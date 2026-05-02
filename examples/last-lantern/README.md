@@ -15,6 +15,11 @@ crag, links this repo to it, persists `mara-underbough` as generated resumable
 talent, and verifies that Belayer can list the generated talent from the crag
 pool.
 
+This smoke requires a Belayer build with `crag` support and either the current
+`team generated` command group or the older `talent generated` alias. If the
+installed Belayer is too old, the script exits before mutating state and prints
+the missing command.
+
 The static artifacts in `artifacts/` draft the product-facing scene loop:
 
 1. The player enters the tavern and asks about old roads.

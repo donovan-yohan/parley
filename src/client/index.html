@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Parley: Last Lantern</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="story-panel" aria-labelledby="scene-title">
+        <header class="scene-header">
+          <div>
+            <h1 id="scene-title">Last Lantern Tavern</h1>
+            <p id="scene-subtitle">Rain at the crossroads. A room full of people pretending not to listen.</p>
+          </div>
+        </header>
+
+        <ol id="transcript" class="transcript" aria-live="polite"></ol>
+
+        <form id="turn-form" class="turn-form">
+          <label for="player-action">Player action</label>
+          <div class="input-row">
+            <input
+              id="player-action"
+              name="playerAction"
+              type="text"
+              value="I ask who remembers the old north road."
+              autocomplete="off"
+            >
+            <button type="submit">Submit</button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="side-panel" aria-label="Scene state">
+        <section>
+          <h2>Next Choices</h2>
+          <ul id="choices" class="choice-list"></ul>
+        </section>
+
+        <section>
+          <h2>Reusable NPCs</h2>
+          <ul id="characters" class="character-list"></ul>
+        </section>
+
+        <section>
+          <h2>Truth Verdict</h2>
+          <div id="truth" class="truth-box">No turn submitted yet.</div>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
