@@ -8,12 +8,41 @@ export function judgeTurn({
   characters = character ? [character] : [],
   proposedFacts
 }) {
-  const acceptedFacts = proposedFacts.filter((fact) => fact.category === "canon");
+  const rejectedClaims = [];
+  const contractCanonFacts = new Map(
+    (scenario?.proposedFacts ?? [])
+      .filter((fact) => fact.category === "canon")
+      .map((fact) => [fact.id, fact])
+  );
+  const unsupportedCanonFacts = proposedFacts.filter((fact) => {
+    if (fact.category !== "canon") {
+      return false;
+    }
+    const contractFact = contractCanonFacts.get(fact.id);
+    return !contractFact || normalizeFactText(contractFact.text) !== normalizeFactText(fact.text);
+  });
+  const acceptedFacts = proposedFacts
+    .filter((fact) => {
+      if (fact.category !== "canon") {
+        return false;
+      }
+      const contractFact = contractCanonFacts.get(fact.id);
+      return contractFact && normalizeFactText(contractFact.text) === normalizeFactText(fact.text);
+    })
+    .map((fact) => materializeContractFact({ contractFact: contractCanonFacts.get(fact.id), evidenceTurn: fact.evidence_turn }));
   const rumors = proposedFacts.filter((fact) => fact.category === "rumor");
   const leads = proposedFacts.filter((fact) => fact.category === "lead");
   const beliefs = proposedFacts.filter((fact) => fact.category === "belief");
   const unresolved = proposedFacts.filter((fact) => fact.category === "unresolved");
-  const rejectedClaims = [];
+
+  for (const unsupportedCanonFact of unsupportedCanonFacts) {
+    rejectedClaims.push({
+      id: `unsupported-canon-${unsupportedCanonFact.id}`,
+      claim: unsupportedCanonFact.text,
+      reason:
+        "The turn author proposed canon outside the scenario/world contract. Use the exact contract fact, or downgrade this to a belief, rumor, lead, or unresolved thread unless the world contract explicitly allows it."
+    });
+  }
 
   const missingCharacters = characters.filter((candidate) => !narration.includes(candidate.name));
   for (const missingCharacter of missingCharacters) {
@@ -35,8 +64,8 @@ export function judgeTurn({
   if (acceptedFacts.length === 0) {
     rejectedClaims.push({
       id: "missing-canon-fact",
-      claim: "The turn proposed at least one canon fact.",
-      reason: "No canon facts were proposed for truth review."
+      claim: "The turn proposed at least one canon fact allowed by the world contract.",
+      reason: "No accepted canon facts were proposed for truth review."
     });
   }
 
@@ -60,4 +89,16 @@ export function judgeTurn({
       `worlds/${scenario?.world?.id ?? "last-lantern"}/state/turns.jsonl`
     ]
   };
+}
+
+function materializeContractFact({ contractFact, evidenceTurn }) {
+  const { responseIds, ...durableContractFact } = contractFact;
+  return {
+    ...durableContractFact,
+    evidence_turn: evidenceTurn
+  };
+}
+
+function normalizeFactText(text) {
+  return String(text ?? "").replace(/\s+/g, " ").trim();
 }

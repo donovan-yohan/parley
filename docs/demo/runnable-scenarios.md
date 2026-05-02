@@ -26,6 +26,8 @@ A scenario pack defines the story-facing data Parley needs:
 - proposed facts split into canon, rumor, lead, belief, and unresolved thread
 - `responseIds` on facts so fallback turns do not commit unsupported leads/rumors
 
+The deterministic snippets are intentionally a fixture author, not the framework's long-term storytelling brain. The runtime split is documented in [`docs/specs/strict-world-loose-authoring-split.md`](../specs/strict-world-loose-authoring-split.md): turn authoring can become fuzzy/LLM-driven while truth review, evidence, durable story memory, and world-state persistence stay strict.
+
 The frontend does not branch on specific scenario ids. It loads `/api/scenarios`, then asks `/api/state?scenario=<id>` and posts `{ scenarioId, playerAction }` to `/api/turn`.
 
 ## Running the app

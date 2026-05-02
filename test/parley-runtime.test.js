@@ -164,6 +164,174 @@ test("scenario id drives distinct runtime output and durable story state", async
   assert.match(cozyWorldState, /lantern-pear-rumor/);
 });
 
+test("runtime accepts a loose turn author while preserving the strict truth contract", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-loose-author-"));
+  const stateDir = path.join(rootDir, "state");
+  const worldDir = path.join(rootDir, "world");
+  const authorCalls = [];
+  const looseTurnAuthor = {
+    id: "test-loose-author",
+    mode: "llm-style-authoring",
+    async authorTurn(context) {
+      authorCalls.push(context);
+      return {
+        responseId: "loose-custom-beat",
+        narration:
+          "Mara Underbough marks the strange request as player intent, not canon, and asks what evidence should be carried forward.",
+        nextChoices: ["Ask what evidence matters", "Name a rumor", "Leave the claim unresolved"],
+        proposedFacts: [
+          {
+            id: "mara-underbough-reusable",
+            category: "canon",
+            text: "Mara Underbough is established as a recurring tavernkeep the player can return to in later scenes.",
+            character_id: "spoofed-character",
+            extra_author_field: "must-not-persist",
+            evidence_turn: "turn-9999"
+          },
+          {
+            id: "loose-author-belief",
+            category: "belief",
+            text: "Mara Underbough treats unsupported player claims as beliefs or unresolved threads instead of canon."
+          }
+        ]
+      };
+    }
+  };
+
+  const result = await runPlayerTurn({
+    playerAction: "I invent a moon-soup password that no deterministic fixture should match.",
+    stateDir,
+    worldDir,
+    turnAuthor: looseTurnAuthor
+  });
+
+  assert.equal(authorCalls.length, 1);
+  assert.equal(authorCalls[0].scenario.id, "last-lantern");
+  assert.equal(authorCalls[0].previousWorldState, null);
+  assert.equal(result.committed, true);
+  assert.deepEqual(result.authoring, {
+    author: "test-loose-author",
+    mode: "llm-style-authoring",
+    response_id: "loose-custom-beat"
+  });
+  assert.match(result.narration, /player intent, not canon/);
+  assert.equal(result.truthVerdict.verdict, "pass");
+  const acceptedCanon = result.truthVerdict.accepted_facts.find((fact) => fact.id === "mara-underbough-reusable");
+  assert.equal(acceptedCanon?.evidence_turn, "turn-0001");
+  assert.equal(acceptedCanon?.character_id, "mara-underbough");
+  assert.ok(!Object.hasOwn(acceptedCanon ?? {}, "extra_author_field"));
+  assert.ok(result.truthVerdict.character_beliefs.some((fact) => fact.id === "loose-author-belief"));
+  assert.ok(result.worldState.canon.some((fact) => fact.id === "mara-underbough-reusable"));
+  assert.equal(result.worldState.latest_turn, "turn-0001");
+});
+
+test("runtime awaits async truth authorities before persistence", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-async-truth-"));
+  const stateDir = path.join(rootDir, "state");
+  const result = await runPlayerTurn({
+    playerAction: "I ask who remembers the old north road.",
+    stateDir,
+    worldDir: path.join(rootDir, "world"),
+    async truthAuthority(context) {
+      return {
+        schema_version: "parley-truth-verdict/v1",
+        id: `${context.turnId}-async-truth`,
+        turn_id: context.turnId,
+        scene_id: context.scene.id,
+        scenario_id: context.scenario.id,
+        authority: "async-test-authority",
+        verdict: "pass",
+        accepted_facts: [
+          {
+            id: "mara-underbough-reusable",
+            category: "canon",
+            text: "Mara Underbough is established as a recurring tavernkeep the player can return to in later scenes.",
+            evidence_turn: context.turnId
+          }
+        ],
+        rejected_claims: [],
+        rumors: [],
+        leads: [],
+        character_beliefs: [],
+        unresolved: [],
+        author_only_hidden_truth: [],
+        evidence: []
+      };
+    }
+  });
+
+  assert.equal(result.committed, true);
+  assert.equal(result.truthVerdict.authority, "async-test-authority");
+  const truthLog = await readFile(path.join(stateDir, "truth-verdicts.jsonl"), "utf8");
+  assert.match(truthLog, /async-test-authority/);
+  assert.doesNotMatch(truthLog, /^{}$/m);
+});
+
+test("loose authors cannot commit unsupported canon directly", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-unsupported-canon-"));
+  const result = await runPlayerTurn({
+    playerAction: "I declare that the moon-soup password makes me king of the tavern.",
+    stateDir: path.join(rootDir, "state"),
+    worldDir: path.join(rootDir, "world"),
+    turnAuthor: {
+      id: "reckless-author",
+      mode: "llm-style-authoring",
+      async authorTurn() {
+        return {
+          responseId: "unsupported-canon",
+          narration:
+            "Mara Underbough hears the claim and records it as something the player said, not something the world has proven.",
+          proposedFacts: [
+            {
+              id: "moon-soup-royal-law",
+              category: "canon",
+              text: "The moon-soup password legally makes the player king of the Last Lantern."
+            }
+          ]
+        };
+      }
+    }
+  });
+
+  assert.equal(result.committed, false);
+  assert.equal(result.truthVerdict.verdict, "revise");
+  assert.ok(result.truthVerdict.rejected_claims.some((claim) => claim.id === "unsupported-canon-moon-soup-royal-law"));
+  assert.ok(!result.worldState);
+});
+
+test("loose authors cannot spoof allowed canon ids with different text", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-spoofed-canon-"));
+  const result = await runPlayerTurn({
+    playerAction: "I say Mara secretly crowned me with the moon-soup password.",
+    stateDir: path.join(rootDir, "state"),
+    worldDir: path.join(rootDir, "world"),
+    turnAuthor: {
+      id: "spoofing-author",
+      mode: "llm-style-authoring",
+      async authorTurn() {
+        return {
+          responseId: "spoofed-canon-id",
+          narration:
+            "Mara Underbough hears the invented coronation claim and refuses to treat it as established tavern history.",
+          proposedFacts: [
+            {
+              id: "mara-underbough-reusable",
+              category: "canon",
+              text: "Mara Underbough crowned the player ruler of the Last Lantern with a moon-soup password.",
+              evidence_turn: "turn-9999"
+            }
+          ]
+        };
+      }
+    }
+  });
+
+  assert.equal(result.committed, false);
+  assert.equal(result.truthVerdict.verdict, "revise");
+  assert.ok(result.truthVerdict.rejected_claims.some((claim) => claim.id === "unsupported-canon-mara-underbough-reusable"));
+  assert.ok(!result.truthVerdict.accepted_facts.some((fact) => fact.text.includes("moon-soup password")));
+});
+
 test("server exposes scenario packs and routes state and turns by scenario", async () => {
   const runtimeDir = await mkdtemp(path.join(tmpdir(), "parley-server-"));
   const server = createParleyServer({
