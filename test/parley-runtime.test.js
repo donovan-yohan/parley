@@ -88,18 +88,29 @@ test("scene seed scalars ignore inline comments and unwrap quoted values", async
 
 test("fallback turns do not commit unsupported scenario leads", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-fallback-"));
-  const result = await runPlayerTurn({
+  const stateDir = path.join(rootDir, "state");
+  const worldDir = path.join(rootDir, "world");
+  const initial = await runPlayerTurn({
+    playerAction: "I ask who remembers the old north road.",
+    stateDir,
+    worldDir
+  });
+  const fallback = await runPlayerTurn({
     playerAction: "I order soup and ask for a towel.",
-    stateDir: path.join(rootDir, "state"),
-    worldDir: path.join(rootDir, "world")
+    stateDir,
+    worldDir
   });
 
-  assert.equal(result.truthVerdict.verdict, "pass");
-  assert.match(result.narration, /Start with what road brought you here/);
-  assert.ok(result.truthVerdict.accepted_facts.some((fact) => fact.id === "mara-underbough-reusable"));
-  assert.ok(!result.truthVerdict.rumors.some((fact) => fact.id === "old-north-road-rumor"));
-  assert.ok(!result.truthVerdict.leads.some((fact) => fact.id === "old-north-road-lead"));
-  assert.ok(!result.truthVerdict.unresolved.some((fact) => fact.id === "ashford-name-mystery"));
+  assert.equal(fallback.truthVerdict.verdict, "pass");
+  assert.match(fallback.narration, /Start with what road brought you here/);
+  assert.ok(fallback.truthVerdict.accepted_facts.some((fact) => fact.id === "mara-underbough-reusable"));
+  assert.ok(!fallback.truthVerdict.rumors.some((fact) => fact.id === "old-north-road-rumor"));
+  assert.ok(!fallback.truthVerdict.leads.some((fact) => fact.id === "old-north-road-lead"));
+  assert.ok(!fallback.truthVerdict.unresolved.some((fact) => fact.id === "ashford-name-mystery"));
+  assert.ok(initial.worldState.leads.some((fact) => fact.id === "old-north-road-lead"));
+  assert.ok(fallback.worldState.leads.some((fact) => fact.id === "old-north-road-lead"));
+  assert.ok(fallback.worldState.rumors.some((fact) => fact.id === "old-north-road-rumor"));
+  assert.ok(fallback.worldState.unresolved.some((fact) => fact.id === "ashford-name-mystery"));
 });
 
 test("scenario id drives distinct runtime output and durable story state", async () => {

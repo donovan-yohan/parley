@@ -65,6 +65,20 @@
       ]
     },
     {
+      "id": "ashford-name",
+      "matchAny": [
+        "ashford",
+        "name means",
+        "north stones"
+      ],
+      "narration": "Mara Underbough does not look toward the door when you say Ashford, which somehow makes the whole room look there for her. \"Old family, older promise,\" she says. \"The north stones mark where that promise broke. If you mean to tug that thread, do it after closing, and do not let the red-scarfed drover hear you ask.\"",
+      "nextChoices": [
+        "Ask which promise broke at the north stones.",
+        "Wait until closing to ask Mara privately.",
+        "Watch the red-scarfed drover without making it obvious."
+      ]
+    },
+    {
       "id": "fallback",
       "narration": "Mara Underbough studies you from behind the tavern bar. \"Start with what road brought you here,\" she says, \"and I will tell you which names the Last Lantern still remembers.\"",
       "nextChoices": [
@@ -117,6 +131,23 @@
       "text": "Why the Ashford name unsettles the Last Lantern remains unresolved.",
       "responseIds": [
         "old-north-road"
+      ]
+    },
+    {
+      "id": "red-scarfed-drover-lead",
+      "category": "lead",
+      "text": "A red-scarfed drover in the Last Lantern may react badly to questions about Ashford.",
+      "source": "mara-underbough",
+      "responseIds": [
+        "ashford-name"
+      ]
+    },
+    {
+      "id": "north-stones-broken-promise",
+      "category": "unresolved",
+      "text": "The north stones mark a broken promise connected to the Ashford name.",
+      "responseIds": [
+        "ashford-name"
       ]
     }
   ]

@@ -67,6 +67,21 @@
       ]
     },
     {
+      "id": "blue-cloth",
+      "matchAny": [
+        "blue cloth",
+        "old press",
+        "press shed",
+        "cider hour"
+      ],
+      "narration": "June Bellweather brushes flour from her sleeve and ties the blue cloth around the basket handle with practiced fingers. \"It used to mean no one asks at the front door,\" she says. \"You leave fruit, folks bring help, and pride stays fed.\" From the old press shed comes one careful knock, then silence.",
+      "nextChoices": [
+        "Answer the knock at the old press shed.",
+        "Ask June who is too proud to ask directly.",
+        "Bring the basket to cider hour and listen."
+      ]
+    },
+    {
       "id": "fallback",
       "narration": "June Bellweather sets a basket on the fence rail. \"Start with the pears,\" she says. \"Mossgrove keeps its secrets in chores, not locked rooms.\" The orchard answers with bees, leaves, and the creak of the press shed door.",
       "nextChoices": [
@@ -119,6 +134,24 @@
       "text": "Who left the pears, and what help they are quietly requesting, remains unresolved.",
       "responseIds": [
         "lantern-pears"
+      ]
+    },
+    {
+      "id": "blue-cloth-custom-rumor",
+      "category": "rumor",
+      "text": "Blue cloth may be an old Mossgrove custom for requesting help without asking openly.",
+      "source": "june-bellweather",
+      "responseIds": [
+        "blue-cloth"
+      ]
+    },
+    {
+      "id": "press-shed-knock-lead",
+      "category": "lead",
+      "text": "Someone or something knocked once from inside the old press shed.",
+      "source": "old-press-shed",
+      "responseIds": [
+        "blue-cloth"
       ]
     }
   ]

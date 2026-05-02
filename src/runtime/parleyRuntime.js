@@ -29,6 +29,8 @@ export async function runPlayerTurn({
   const resolvedWorldDir = worldDir ?? scenario.worldDir;
   await mkdir(resolvedStateDir, { recursive: true });
 
+  const worldStatePath = path.join(resolvedStateDir, "world-state.json");
+  const previousWorldState = await readJsonIfExists(worldStatePath);
   const turnId = await nextTurnId(resolvedStateDir);
   const characters = scenario.characters.map((characterDefinition) =>
     buildScenarioCharacter({ scenario, characterDefinition, sourceRequest: turnId, scene })
@@ -79,8 +81,8 @@ export async function runPlayerTurn({
 
   await appendJsonLine(path.join(resolvedStateDir, "turns.jsonl"), turn);
   await appendJsonLine(path.join(resolvedStateDir, "truth-verdicts.jsonl"), truthVerdict);
-  const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict });
-  await writeFile(path.join(resolvedStateDir, "world-state.json"), `${JSON.stringify(worldState, null, 2)}\n`, "utf8");
+  const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict, previousWorldState });
+  await writeFile(worldStatePath, `${JSON.stringify(worldState, null, 2)}\n`, "utf8");
 
   return {
     schema_version: "parley-turn/v1",
@@ -219,7 +221,8 @@ function buildProposedFacts({ turnId, responseId, facts }) {
     }));
 }
 
-function buildWorldState({ scenario, scene, turn, characters, truthVerdict }) {
+function buildWorldState({ scenario, scene, turn, characters, truthVerdict, previousWorldState }) {
+  const previousCharacters = previousWorldState?.characters ?? [];
   return {
     schema_version: "parley-world-state/v1",
     scenario_id: scenario.id,
@@ -230,7 +233,7 @@ function buildWorldState({ scenario, scene, turn, characters, truthVerdict }) {
       crag: scene.crag,
       climb: scene.climb
     },
-    characters: characters.map((character) => ({
+    characters: mergeById(previousCharacters, characters.map((character) => ({
         id: character.id,
         name: character.name,
         reusable: character.reusable,
@@ -238,15 +241,27 @@ function buildWorldState({ scenario, scene, turn, characters, truthVerdict }) {
         tags: character.tags,
         belayer_generated_talent: character.belayerGeneratedTalent,
         portrait: character.portrait
-      })),
-    canon: truthVerdict.accepted_facts,
-    rumors: truthVerdict.rumors,
-    leads: truthVerdict.leads,
-    character_beliefs: truthVerdict.character_beliefs,
-    unresolved: truthVerdict.unresolved,
+      }))),
+    canon: mergeById(previousWorldState?.canon, truthVerdict.accepted_facts),
+    rumors: mergeById(previousWorldState?.rumors, truthVerdict.rumors),
+    leads: mergeById(previousWorldState?.leads, truthVerdict.leads),
+    character_beliefs: mergeById(previousWorldState?.character_beliefs, truthVerdict.character_beliefs),
+    unresolved: mergeById(previousWorldState?.unresolved, truthVerdict.unresolved),
     latest_turn: turn.id,
     updated_by_truth_verdict: truthVerdict.id
   };
+}
+
+function mergeById(previous = [], next = []) {
+  const merged = new Map();
+  for (const item of [...previous, ...next]) {
+    if (!item) {
+      continue;
+    }
+    const key = item.id ?? item.text ?? item.name ?? JSON.stringify(item);
+    merged.set(key, item);
+  }
+  return [...merged.values()];
 }
 
 async function appendJsonLine(filePath, value) {

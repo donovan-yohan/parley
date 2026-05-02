@@ -120,7 +120,7 @@ function applyScenarioChrome(state) {
 function render() {
   syncTranscript();
 
-  const view = latestResult ?? stateView(currentState);
+  const view = stateView(currentState);
   if (!view) {
     choices.replaceChildren(emptyItem("No scenario loaded."));
     characters.replaceChildren(emptyItem("No reusable NPCs yet."));

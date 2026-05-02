@@ -90,6 +90,21 @@
       ]
     },
     {
+      "id": "maintenance-route",
+      "matchAny": [
+        "maintenance order",
+        "routed",
+        "route",
+        "missing order"
+      ],
+      "narration": "Kestrel-9 paints the wall with a map of dead approvals: Facilities, Legal, then a blank node wearing an executive checksum. Veyra Sol exhales through her teeth. \"That blank node is the trick,\" she says. \"Someone made the audit floor believe an executive existed long enough to shut every door.\"",
+      "nextChoices": [
+        "Ask Veyra who can mint an executive checksum.",
+        "Ask Kestrel-9 what the blank node copied from.",
+        "Check whether the dead badge reader logged a physical hand."
+      ]
+    },
+    {
       "id": "fallback",
       "narration": "Veyra Sol keeps her hands wrapped around a paper cup gone cold. \"Ask about the lockout,\" she says. \"Everything else on this floor is decoration until we know who wanted the audit blind.\" Kestrel-9 leaves a cursor blinking on the wall display.",
       "nextChoices": [
@@ -142,6 +157,23 @@
       "text": "The origin and route of the disputed maintenance order remain unresolved.",
       "responseIds": [
         "audit-lockout"
+      ]
+    },
+    {
+      "id": "blank-exec-checksum-lead",
+      "category": "lead",
+      "text": "The disputed maintenance order passed through a blank executive checksum node.",
+      "source": "kestrel-9",
+      "responseIds": [
+        "maintenance-route"
+      ]
+    },
+    {
+      "id": "executive-checksum-mystery",
+      "category": "unresolved",
+      "text": "Who minted or spoofed the executive checksum remains unresolved.",
+      "responseIds": [
+        "maintenance-route"
       ]
     }
   ]
