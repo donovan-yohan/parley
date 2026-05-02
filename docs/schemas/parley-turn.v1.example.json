@@ -1,0 +1,54 @@
+{
+  "schema_version": "parley-turn/v1",
+  "turn_id": "turn-0003",
+  "world": "last-lantern",
+  "scene": "tavern-first-rumor",
+  "created_at": "2026-05-02T00:00:00Z",
+  "player_input": {
+    "text": "I ask who still remembers the old north road.",
+    "modality": "text"
+  },
+  "narration": {
+    "speaker": "game-master",
+    "text": "The room quiets. A woman behind the bar — broad shoulders, ash-grey hair — sets down a chipped blue bowl and looks you over."
+  },
+  "contributions": [
+    {
+      "speaker": "mara-underbough",
+      "talent_id": "belayer/talents/mara-underbough",
+      "text": "Old roads remember old debts. If you mean the north stones, buy a bowl first and do not say the Ashford name too loudly.",
+      "claims": [
+        { "claim_id": "c1", "text": "Mara warned the player not to say the Ashford name loudly." },
+        { "claim_id": "c2", "text": "They say the north stones move when no one watches." }
+      ]
+    }
+  ],
+  "proposed_state_delta": [
+    {
+      "path": "timeline",
+      "op": "append",
+      "value": {
+        "id": "turn-0003",
+        "summary": "Mara Underbough warned the player not to say the Ashford name loudly.",
+        "participants": ["player", "mara-underbough"]
+      }
+    },
+    {
+      "path": "open_threads",
+      "op": "append",
+      "value": {
+        "id": "north-stones-old-debts",
+        "kind": "rumor",
+        "summary": "The old north road and its stones are tied to old debts.",
+        "status": "open"
+      }
+    }
+  ],
+  "next_choices": [
+    { "id": "ask-ashford", "label": "Ask about the Ashford name." },
+    { "id": "ask-north-stones", "label": "Ask about the north stones." },
+    { "id": "scan-room", "label": "Scan the room for who reacted." }
+  ],
+  "verdict_ref": "verdict-0002",
+  "committed": true
+}

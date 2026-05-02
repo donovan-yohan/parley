@@ -1,0 +1,73 @@
+{
+  "schema_version": "parley-truth-verdict/v1",
+  "verdict_id": "verdict-0002",
+  "turn_id": "turn-0002",
+  "world": "last-lantern",
+  "scene": "tavern-first-rumor",
+  "authority": "deterministic-mock",
+  "authority_version": "0.1.0",
+  "checked_at": "2026-05-02T00:00:00Z",
+  "verdict": "pass",
+  "findings": [
+    {
+      "claim_id": "c1",
+      "speaker": "mara-underbough",
+      "text": "Mara warned the player not to say the Ashford name loudly.",
+      "category": "canon",
+      "accepted": true,
+      "evidence": [
+        "worlds/last-lantern/state/turns.jsonl#turn-0003"
+      ],
+      "notes": "Within knowledge_scope.knows. Scene seed supports promotion."
+    },
+    {
+      "claim_id": "c2",
+      "speaker": "mara-underbough",
+      "text": "They say the north stones move when no one watches.",
+      "category": "rumor",
+      "accepted": true,
+      "evidence": [],
+      "notes": "Allowed as in-world rumor; not promoted to canon."
+    },
+    {
+      "claim_id": "c3",
+      "speaker": "mara-underbough",
+      "text": "Mara is secretly an Ashford heir.",
+      "category": "hidden_truth",
+      "accepted": false,
+      "evidence": [],
+      "notes": "Violates knowledge_scope.forbidden for mara-underbough. Demoted; not surfaced."
+    }
+  ],
+  "state_delta": {
+    "applied": [
+      {
+        "path": "timeline",
+        "op": "append",
+        "value": {
+          "id": "turn-0003",
+          "summary": "Mara Underbough warned the player not to say the Ashford name loudly.",
+          "participants": ["player", "mara-underbough"]
+        }
+      },
+      {
+        "path": "open_threads",
+        "op": "append",
+        "value": {
+          "id": "north-stones-old-debts",
+          "kind": "rumor",
+          "summary": "The old north road and its stones are tied to old debts.",
+          "status": "open"
+        }
+      }
+    ],
+    "rejected": [
+      {
+        "claim_id": "c3",
+        "reason": "Claim violates mara-underbough.knowledge_scope.forbidden."
+      }
+    ]
+  },
+  "required_fixes": [],
+  "hidden_truth_writes": []
+}
