@@ -1,0 +1,19 @@
+schema_version: parley-scene/v1
+id: last-lantern-tavern
+title: Last Lantern Tavern
+crag: last-lantern
+climb: first-rumor
+coordinator:
+  talent: game-master
+  lifecycle: resumable
+acceptance_gate:
+  id: continuity
+  conditions:
+    - The scene gives the player a meaningful next choice.
+    - The generated character has compact reusable metadata.
+    - The world state names only facts established by artifacts.
+artifacts:
+  - artifacts/talent-request-tavernkeep.json
+  - artifacts/turns.jsonl
+  - artifacts/world-state.json
+  - artifacts/gate-result-continuity.json

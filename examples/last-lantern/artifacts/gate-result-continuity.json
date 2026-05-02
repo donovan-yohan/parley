@@ -1,0 +1,27 @@
+{
+  "schema_version": "belayer-gate-result/v1",
+  "gate_id": "continuity",
+  "stage": "session",
+  "authority": "blocking",
+  "producer": "continuity-editor",
+  "subject": {
+    "artifact_paths": [
+      "examples/last-lantern/artifacts/talent-request-tavernkeep.json",
+      "examples/last-lantern/artifacts/turns.jsonl",
+      "examples/last-lantern/artifacts/world-state.json"
+    ]
+  },
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "The scene has one reusable generated character, a player-facing next choice, and no contradiction with established state.",
+      "evidence": [
+        "examples/last-lantern/artifacts/turns.jsonl",
+        "examples/last-lantern/artifacts/world-state.json"
+      ]
+    }
+  ],
+  "required_fixes": [],
+  "checked_at": "2026-05-01T00:00:00Z"
+}
