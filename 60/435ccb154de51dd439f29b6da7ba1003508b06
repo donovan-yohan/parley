@@ -1,0 +1,21 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "60435ccb154de51dd439f29b6da7ba1003508b06",
+  "prompts": {
+    "c6e0ec654b409c4a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019de93f-102e-7872-ae40-f8152493a7b0",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 0,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    }
+  }
+}
