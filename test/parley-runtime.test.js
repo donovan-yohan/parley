@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, stat } from "node:fs/promises";
+import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -43,4 +43,38 @@ test("player input creates Mara response, reusable character, and artifacts", as
   const truth = await readFile(path.join(stateDir, "truth-verdicts.jsonl"), "utf8");
   assert.match(truth, /old-north-road/);
   assert.match(truth, /rumor/);
+});
+
+test("scene seed scalars ignore inline comments and unwrap quoted values", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-scene-yaml-"));
+  const stateDir = path.join(rootDir, "state");
+  const worldDir = path.join(rootDir, "world");
+  const scenePath = path.join(rootDir, "scene.yaml");
+
+  await writeFile(
+    scenePath,
+    [
+      "schema_version: \"parley-scene/v1\" # file format",
+      "id: \"last-lantern-tavern\" # stable scene id",
+      "title: \"Last # Lantern Tavern\" # title comment",
+      "crag: last-lantern # runtime crag",
+      "climb: 'first-rumor' # opening climb"
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = await runPlayerTurn({
+    playerAction: "I ask who remembers the old north road.",
+    stateDir,
+    scenePath,
+    worldDir
+  });
+
+  assert.deepEqual(result.scene, {
+    schema_version: "parley-scene/v1",
+    id: "last-lantern-tavern",
+    title: "Last # Lantern Tavern",
+    crag: "last-lantern",
+    climb: "first-rumor"
+  });
 });

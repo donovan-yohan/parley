@@ -9,6 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const clientDir = path.join(root, "src", "client");
 const port = Number(process.env.PORT ?? 4173);
 const host = process.env.HOST ?? "127.0.0.1";
+const maxJsonBodyBytes = 1_000_000;
 
 const server = createServer(async (request, response) => {
   try {
@@ -28,7 +29,7 @@ const server = createServer(async (request, response) => {
 
     sendJson(response, { error: "Not found" }, 404);
   } catch (error) {
-    sendJson(response, { error: error.message }, 500);
+    sendJson(response, { error: error.message }, error.statusCode ?? 500);
   }
 });
 
@@ -65,7 +66,14 @@ async function serveStatic(request, response) {
 
 async function readJsonBody(request) {
   const chunks = [];
+  let size = 0;
   for await (const chunk of request) {
+    size += chunk.byteLength ?? Buffer.byteLength(chunk);
+    if (size > maxJsonBodyBytes) {
+      const error = new Error("Request body too large");
+      error.statusCode = 413;
+      throw error;
+    }
     chunks.push(chunk);
   }
   if (chunks.length === 0) {

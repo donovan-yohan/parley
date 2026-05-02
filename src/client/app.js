@@ -22,7 +22,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   localTranscript.push({ speaker: "player", text: playerAction });
-  render();
+  appendTranscriptEntry(localTranscript.at(-1));
 
   const response = await fetch("/api/turn", {
     method: "POST",
@@ -33,7 +33,7 @@ form.addEventListener("submit", async (event) => {
   if (!response.ok) {
     const error = await response.json();
     localTranscript.push({ speaker: "system", text: error.error ?? "Turn failed." });
-    render();
+    appendTranscriptEntry(localTranscript.at(-1));
     return;
   }
 
@@ -43,19 +43,7 @@ form.addEventListener("submit", async (event) => {
 });
 
 function render(result) {
-  transcript.replaceChildren(
-    ...localTranscript.map((entry) => {
-      const item = document.createElement("li");
-      item.className = `turn ${entry.speaker}`;
-      const speaker = document.createElement("span");
-      speaker.className = "speaker";
-      speaker.textContent = entry.speaker;
-      const text = document.createElement("p");
-      text.textContent = entry.text;
-      item.append(speaker, text);
-      return item;
-    })
-  );
+  syncTranscript();
 
   if (!result) {
     choices.replaceChildren(emptyItem("Submit an action to discover choices."));
@@ -96,6 +84,24 @@ function render(result) {
     textLine(`Rumors: ${result.truthVerdict.rumors.map((fact) => fact.id).join(", ")}`),
     textLine(`Unresolved: ${result.truthVerdict.unresolved.map((fact) => fact.id).join(", ")}`)
   );
+}
+
+function syncTranscript() {
+  for (const entry of localTranscript.slice(transcript.children.length)) {
+    appendTranscriptEntry(entry);
+  }
+}
+
+function appendTranscriptEntry(entry) {
+  const item = document.createElement("li");
+  item.className = `turn ${entry.speaker}`;
+  const speaker = document.createElement("span");
+  speaker.className = "speaker";
+  speaker.textContent = entry.speaker;
+  const text = document.createElement("p");
+  text.textContent = entry.text;
+  item.append(speaker, text);
+  transcript.append(item);
 }
 
 function emptyItem(text) {

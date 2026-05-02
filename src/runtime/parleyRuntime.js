@@ -118,8 +118,57 @@ async function loadSceneSeed(scenePath) {
 
 function matchYamlScalar(raw, key) {
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = raw.match(new RegExp(`^${escaped}:\\s*(.+)$`, "m"));
-  return match?.[1]?.trim();
+  const match = raw.match(new RegExp(`^${escaped}:\\s*(.*)$`, "m"));
+  if (!match) {
+    return undefined;
+  }
+  return unquoteYamlScalar(stripYamlComment(match[1]).trim());
+}
+
+function stripYamlComment(value) {
+  let quote = null;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (quote) {
+      if (char === quote) {
+        if (quote === "'" && value[index + 1] === "'") {
+          index += 1;
+          continue;
+        }
+        quote = null;
+      }
+      continue;
+    }
+
+    if (char === "'" || char === "\"") {
+      quote = char;
+      continue;
+    }
+    if (char === "#" && (index === 0 || /\s/.test(value[index - 1]))) {
+      return value.slice(0, index);
+    }
+  }
+  return value;
+}
+
+function unquoteYamlScalar(value) {
+  if (value.length < 2) {
+    return value;
+  }
+
+  if (value.startsWith("'") && value.endsWith("'")) {
+    return value.slice(1, -1).replaceAll("''", "'");
+  }
+
+  if (value.startsWith("\"") && value.endsWith("\"")) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value.slice(1, -1);
+    }
+  }
+
+  return value;
 }
 
 async function nextTurnId(stateDir) {
