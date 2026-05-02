@@ -275,6 +275,7 @@ The UI should display Story Memory from cumulative `world-state.json`, not from 
 | Turn author seam | `src/runtime/turnAuthor.js` | Current deterministic fixture author; future LLM author plugs in here. |
 | Belayer mapping | `src/runtime/belayerCharacterAdapter.js` | Maps Parley character definitions to Belayer generated-talent shape. |
 | Truth authority | `src/runtime/truthAuthority.js` | Mock continuity editor and strict canon gate. |
+| Visual asset plan | `docs/plans/2026-05-02-visual-asset-pipeline.md` | Planned core pipeline for art styles, artist talents, portraits, and visual-novel backgrounds. |
 | Evidence docs | `docs/demo/2026-05-02-human-scenario-playtest.md` | Actual browser-level human playtest logs. |
 
 ## What a story author should edit
@@ -332,6 +333,7 @@ The player should feel like they are talking to a living story, but the system s
 4. **Truth authority strength:** Should the truth authority be a second model, deterministic schema validator, or hybrid reviewer?
 5. **Belayer integration depth:** At what point do reusable characters become actual Belayer-managed agents instead of local generated-talent records?
 6. **UI migration timing:** Keep vanilla UI until layout/jobs are proven; migrate only when the interaction model stabilizes.
+7. **Visual asset pipeline:** Use the staged plan in [`docs/plans/2026-05-02-visual-asset-pipeline.md`](../plans/2026-05-02-visual-asset-pipeline.md) to add world art styles, visual traits, artist talents, reusable portraits, and visual-novel backgrounds without turning image generation into a one-off demo hack.
 
 ## Review checklist
 
