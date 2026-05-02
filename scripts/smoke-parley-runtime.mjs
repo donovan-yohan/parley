@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { mkdir, readFile, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { runPlayerTurn } from "../src/runtime/parleyRuntime.js";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const stateDir = path.join(root, "worlds", "last-lantern", "state");
+const runtimeDir = await mkdtemp(path.join(tmpdir(), "parley-runtime-"));
+const stateDir = path.join(runtimeDir, "state");
+const worldDir = path.join(runtimeDir, "world");
 
 await mkdir(stateDir, { recursive: true });
 await Promise.all([
@@ -18,7 +19,8 @@ await Promise.all([
 
 const result = await runPlayerTurn({
   playerAction: "I ask who remembers the old north road.",
-  stateDir
+  stateDir,
+  worldDir
 });
 
 assert.match(result.narration, /Mara Underbough/);

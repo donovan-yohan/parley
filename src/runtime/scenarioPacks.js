@@ -1,0 +1,96 @@
+import { readdir, readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
+export const repoRoot = path.resolve(runtimeDir, "..", "..");
+export const scenariosDir = path.join(repoRoot, "scenarios");
+export const defaultScenarioId = "last-lantern";
+
+export async function listScenarioPacks() {
+  const entries = await readdir(scenariosDir, { withFileTypes: true });
+  const scenarios = await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => loadScenarioPack(entry.name))
+  );
+
+  return scenarios
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map((scenario) => scenarioMetadata(scenario));
+}
+
+export async function loadScenarioPack(scenarioId = defaultScenarioId) {
+  const id = normalizeScenarioId(scenarioId);
+  const scenarioPath = path.join(scenariosDir, id, "scenario.json");
+  const raw = await readFile(scenarioPath, "utf8");
+  const scenario = JSON.parse(raw);
+  validateScenarioPack(scenario, scenarioPath);
+  return {
+    ...scenario,
+    scenarioPath,
+    stateDir: path.join(repoRoot, "worlds", scenario.world.id, "state"),
+    worldDir: path.join(repoRoot, "worlds", scenario.world.id)
+  };
+}
+
+export function scenarioMetadata(scenario) {
+  return {
+    id: scenario.id,
+    title: scenario.title,
+    subtitle: scenario.subtitle,
+    themeId: scenario.themeId,
+    defaultPlayerAction: scenario.defaultPlayerAction,
+    openingNarration: scenario.openingNarration,
+    suggestedPlayerIntents: scenario.suggestedPlayerIntents,
+    world: scenario.world,
+    scene: scenario.scene
+  };
+}
+
+function normalizeScenarioId(scenarioId) {
+  const id = String(scenarioId || defaultScenarioId).trim();
+  if (!/^[a-z0-9-]+$/.test(id)) {
+    const error = new Error(`Invalid scenario id: ${scenarioId}`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return id;
+}
+
+function validateScenarioPack(scenario, scenarioPath) {
+  for (const key of [
+    "id",
+    "title",
+    "subtitle",
+    "themeId",
+    "defaultPlayerAction",
+    "openingNarration",
+    "suggestedPlayerIntents",
+    "world",
+    "scene",
+    "characters",
+    "responses",
+    "proposedFacts"
+  ]) {
+    if (scenario[key] === undefined) {
+      throw new Error(`${scenarioPath} missing required key ${key}`);
+    }
+  }
+
+  if (!["last-lantern", "cyberpunk", "cozy"].includes(scenario.themeId)) {
+    throw new Error(`${scenarioPath} has unsupported themeId ${scenario.themeId}`);
+  }
+
+  if (!Array.isArray(scenario.characters) || scenario.characters.length === 0) {
+    throw new Error(`${scenarioPath} must define at least one character`);
+  }
+
+  if (!Array.isArray(scenario.responses) || scenario.responses.length === 0) {
+    throw new Error(`${scenarioPath} must define at least one response`);
+  }
+
+  if (!Array.isArray(scenario.proposedFacts) || scenario.proposedFacts.length === 0) {
+    throw new Error(`${scenarioPath} must define proposedFacts`);
+  }
+}

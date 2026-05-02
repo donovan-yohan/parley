@@ -1,0 +1,125 @@
+{
+  "schema_version": "parley-scenario/v1",
+  "id": "orchard-welcome",
+  "title": "Mossgrove Orchard Row",
+  "subtitle": "A soft morning, a generous neighbor, and a secret the town handles gently.",
+  "themeId": "cozy",
+  "defaultPlayerAction": "I ask who keeps leaving lantern pears at my gate.",
+  "openingNarration": "Morning warms the lane behind Mossgrove's orchard. Someone has left three lantern pears at your gate, each wrapped in a square of blue cloth and tied with bakery twine.",
+  "suggestedPlayerIntents": [
+    "I ask who keeps leaving lantern pears at my gate.",
+    "Ask June why everyone pretends not to notice the blue cloth.",
+    "Offer to help with the community press before asking more."
+  ],
+  "world": {
+    "id": "orchard-welcome",
+    "name": "Mossgrove",
+    "premise": "Neighbors share work, food, and careful silences around an orchard tradition.",
+    "tone": "warm cozy small-town mystery"
+  },
+  "scene": {
+    "schema_version": "parley-scene/v1",
+    "id": "orchard-row-morning",
+    "title": "Mossgrove Orchard Row",
+    "crag": "orchard-welcome",
+    "climb": "lantern-pear-gift"
+  },
+  "characters": [
+    {
+      "id": "june-bellweather",
+      "name": "June Bellweather",
+      "role": "orchard neighbor",
+      "reusable": true,
+      "lifecycle": "resumable",
+      "world": "orchard-welcome",
+      "faction": "orchard-row-neighbors",
+      "tone": "kind-evasive",
+      "importance": "recurring",
+      "knowledgeBoundary": "Knows neighbor customs, orchard work, and public town history. Does not reveal private family grief without consent.",
+      "tags": [
+        "location:mossgrove-orchard-row",
+        "role:neighbor",
+        "importance:recurring",
+        "faction:orchard-row-neighbors",
+        "tone:kind-evasive"
+      ],
+      "portrait": {
+        "status": "missing",
+        "prompt_path": "scenarios/orchard-welcome/scenario.json#characters/june-bellweather",
+        "asset_path": "worlds/orchard-welcome/assets/portraits/june-bellweather.png"
+      }
+    }
+  ],
+  "responses": [
+    {
+      "id": "lantern-pears",
+      "matchAny": [
+        "lantern pear",
+        "pears",
+        "gate",
+        "orchard"
+      ],
+      "narration": "June Bellweather looks over the orchard fence with flour on one sleeve and a smile that stops just short of an answer. \"Lantern pears choose their own doorsteps,\" she says, which is how Mossgrove people talk when they are protecting someone. She nods toward the old press shed. \"Help with cider hour, and folks may remember which neighbor still ties blue cloth the old way.\"",
+      "nextChoices": [
+        "Offer to help June with cider hour before asking more.",
+        "Ask why the blue cloth matters to Mossgrove.",
+        "Carry one lantern pear to the old press shed."
+      ]
+    },
+    {
+      "id": "fallback",
+      "narration": "June Bellweather sets a basket on the fence rail. \"Start with the pears,\" she says. \"Mossgrove keeps its secrets in chores, not locked rooms.\" The orchard answers with bees, leaves, and the creak of the press shed door.",
+      "nextChoices": [
+        "I ask who keeps leaving lantern pears at my gate.",
+        "Ask June who needs help this morning.",
+        "Visit the old press shed."
+      ]
+    }
+  ],
+  "proposedFacts": [
+    {
+      "id": "june-bellweather-reusable",
+      "category": "canon",
+      "text": "June Bellweather is established as a recurring orchard neighbor the player can return to in Mossgrove.",
+      "character_id": "june-bellweather",
+      "responseIds": [
+        "*"
+      ]
+    },
+    {
+      "id": "lantern-pear-rumor",
+      "category": "rumor",
+      "text": "Lantern pears left at a gate may be a Mossgrove way of asking for help without naming the need.",
+      "source": "june-bellweather",
+      "responseIds": [
+        "lantern-pears"
+      ]
+    },
+    {
+      "id": "blue-cloth-lead",
+      "category": "lead",
+      "text": "The blue cloth tied around the pears points toward an older orchard-row tradition.",
+      "source": "june-bellweather",
+      "responseIds": [
+        "lantern-pears"
+      ]
+    },
+    {
+      "id": "june-kind-evasive-belief",
+      "category": "belief",
+      "text": "June believes the town secret should be approached through shared work, not blunt questioning.",
+      "character_id": "june-bellweather",
+      "responseIds": [
+        "lantern-pears"
+      ]
+    },
+    {
+      "id": "orchard-family-secret",
+      "category": "unresolved",
+      "text": "Who left the pears, and what help they are quietly requesting, remains unresolved.",
+      "responseIds": [
+        "lantern-pears"
+      ]
+    }
+  ]
+}

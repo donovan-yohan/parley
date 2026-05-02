@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCurrentState, runPlayerTurn } from "./runtime/parleyRuntime.js";
+import { defaultScenarioId, listScenarioPacks } from "./runtime/scenarioPacks.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const clientDir = path.join(root, "src", "client");
@@ -11,19 +12,35 @@ const port = Number(process.env.PORT ?? 4173);
 const host = process.env.HOST ?? "127.0.0.1";
 const maxJsonBodyBytes = 1_000_000;
 
-export function createParleyServer() {
-  return createServer(handleParleyRequest);
+export function createParleyServer(runtimeOptions = {}) {
+  return createServer((request, response) => handleParleyRequest(request, response, runtimeOptions));
 }
 
-export async function handleParleyRequest(request, response) {
+export async function handleParleyRequest(request, response, runtimeOptions = {}) {
   try {
-    if (request.method === "GET" && request.url === "/api/state") {
-      return sendJson(response, await loadCurrentState());
+    const requestUrl = new URL(request.url, `http://${host}:${port}`);
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/scenarios") {
+      return sendJson(response, {
+        defaultScenarioId,
+        scenarios: await listScenarioPacks()
+      });
     }
 
-    if (request.method === "POST" && request.url === "/api/turn") {
+    if (request.method === "GET" && requestUrl.pathname === "/api/state") {
+      return sendJson(response, await loadCurrentState({
+        ...runtimeOptions,
+        scenarioId: requestUrl.searchParams.get("scenario") ?? runtimeOptions.scenarioId ?? defaultScenarioId
+      }));
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/turn") {
       const body = await readJsonBody(request);
-      const result = await runPlayerTurn({ playerAction: body.playerAction });
+      const result = await runPlayerTurn({
+        ...runtimeOptions,
+        scenarioId: body.scenarioId ?? runtimeOptions.scenarioId ?? defaultScenarioId,
+        playerAction: body.playerAction
+      });
       return sendJson(response, result);
     }
 
@@ -46,7 +63,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   });
 
   server.listen(port, host, () => {
-    console.log(`Parley Last Lantern app running at http://${host}:${port}`);
+    console.log(`Parley scenario app running at http://${host}:${port}`);
   });
 }
 

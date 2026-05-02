@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { mkdir, readFile, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Readable, Writable } from "node:stream";
@@ -8,11 +9,15 @@ import { Readable, Writable } from "node:stream";
 import { createParleyServer } from "../src/server.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const stateDir = path.join(root, "worlds", "last-lantern", "state");
+let stateDir;
+let worldDir;
 const playerAction = "I ask who remembers the old north road.";
 const originalFetch = globalThis.fetch;
 
 async function main() {
+  const runtimeDir = await mkdtemp(path.join(tmpdir(), "parley-e2e-"));
+  stateDir = path.join(runtimeDir, "state");
+  worldDir = path.join(runtimeDir, "world");
   await mkdir(stateDir, { recursive: true });
   await Promise.all([
     rm(path.join(stateDir, "world-state.json"), { force: true }),
@@ -20,7 +25,7 @@ async function main() {
     rm(path.join(stateDir, "truth-verdicts.jsonl"), { force: true })
   ]);
 
-  const server = createParleyServer();
+  const server = createParleyServer({ stateDir, worldDir });
   const serverFetch = createInProcessFetch(server);
 
   try {
@@ -31,7 +36,8 @@ async function main() {
     ]);
 
     assert.match(html, /id="theme-select"/);
-    assert.match(appSource, /themeSelect\.addEventListener/);
+    assert.match(appSource, /scenarioSelect\.addEventListener/);
+    assert.match(appSource, /\/api\/scenarios/);
     assert.match(cssSource, /\[data-theme="last-lantern"\]/);
     assert.match(cssSource, /\[data-theme="cyberpunk"\]/);
     assert.match(cssSource, /\[data-theme="cozy"\]/);
@@ -43,9 +49,26 @@ async function main() {
     appUrl.search = `smoke=${Date.now()}`;
     await import(appUrl.href);
 
-    harness.themeSelect.value = "cyberpunk";
-    harness.themeSelect.dispatchEvent({ type: "change" });
+    await waitUntil(() => harness.themeSelect.value === "last-lantern");
+    assert.deepEqual(
+      harness.themeSelect.children.map((option) => option.value).sort(),
+      ["last-lantern", "neon-afterhours", "orchard-welcome"]
+    );
+    assert.equal(harness.sceneTitle.textContent, "Last Lantern Tavern");
+    assert.match(textContent(harness.transcript), /old north road waits in the rain/);
+
+    harness.themeSelect.value = "neon-afterhours";
+    await harness.themeSelect.dispatchEvent({ type: "change" });
     assert.equal(harness.document.documentElement.dataset.theme, "cyberpunk");
+    assert.equal(harness.sceneTitle.textContent, "After-Hours Audit Floor");
+    assert.match(harness.sceneSubtitle.textContent, /sealed audit floor/);
+    assert.equal(harness.input.value, "I ask who signed the audit lockout.");
+    assert.match(textContent(harness.transcript), /Helix Arcology/);
+
+    harness.themeSelect.value = "last-lantern";
+    await harness.themeSelect.dispatchEvent({ type: "change" });
+    assert.equal(harness.document.documentElement.dataset.theme, "last-lantern");
+    assert.equal(harness.sceneTitle.textContent, "Last Lantern Tavern");
 
     harness.input.value = playerAction;
 
@@ -134,7 +157,8 @@ async function main() {
     console.log("Checks:");
     for (const check of [
       "Server served index, client JavaScript, and theme CSS",
-      "Client theme selector updates the document theme",
+      "Client scenario selector is populated from /api/scenarios",
+      "Client scenario selection updates theme, title, subtitle, opening line, and input default",
       "Client submit enters and exits loading state",
       "Client submit exercises /api/turn",
       "Client keeps the last good state after a failed turn",
@@ -166,7 +190,7 @@ function installClientGlobals({ harness, serverFetch }) {
 function createInProcessFetch(server) {
   return async (url, options = {}) => {
     const requestUrl = String(url).startsWith("http")
-      ? new URL(url).pathname
+      ? `${new URL(url).pathname}${new URL(url).search}`
       : String(url);
     const response = await requestServer(server, {
       method: options.method ?? "GET",
@@ -216,7 +240,9 @@ function createDomHarness() {
     choices: document.register("choices", new FakeElement("ul")),
     characters: document.register("characters", new FakeElement("ul")),
     truth: document.register("truth", new FakeElement("div")),
-    themeSelect: document.register("theme-select", new FakeElement("select"))
+    themeSelect: document.register("theme-select", new FakeElement("select")),
+    sceneTitle: document.register("scene-title", new FakeElement("h1")),
+    sceneSubtitle: document.register("scene-subtitle", new FakeElement("p"))
   };
   elements.input.focus = () => {};
   elements.input.select = () => {};
@@ -228,6 +254,7 @@ class FakeDocument {
     this.documentElement = new FakeElement("html");
     this.documentElement.dataset = {};
     this.elements = new Map();
+    this.title = "";
   }
 
   register(id, element) {
@@ -330,4 +357,14 @@ await main();
 
 function textContent(element) {
   return [element.textContent, ...element.children.map((child) => textContent(child))].join(" ");
+}
+
+async function waitUntil(predicate, timeoutMs = 500) {
+  const start = Date.now();
+  while (!predicate()) {
+    if (Date.now() - start > timeoutMs) {
+      throw new Error("Timed out waiting for smoke condition");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
 }

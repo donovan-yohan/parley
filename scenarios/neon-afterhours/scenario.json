@@ -1,0 +1,148 @@
+{
+  "schema_version": "parley-scenario/v1",
+  "id": "neon-afterhours",
+  "title": "Neon Afterhours",
+  "subtitle": "A sealed audit floor, one burned-out handler, and an AI that learned to keep receipts.",
+  "themeId": "cyberpunk",
+  "defaultPlayerAction": "I ask who signed the audit lockout.",
+  "openingNarration": "Past midnight, Helix Arcology's audit floor glows without workers. The vending wall hums. Every badge reader says the same polite lie: scheduled maintenance.",
+  "suggestedPlayerIntents": [
+    "I ask who signed the audit lockout.",
+    "Ask Veyra which faction benefits if the audit AI takes the blame.",
+    "Ask Kestrel-9 what it is forbidden to say out loud."
+  ],
+  "world": {
+    "id": "neon-afterhours",
+    "name": "Neon Afterhours",
+    "premise": "Corporate audit systems, exhausted handlers, and faction pressure collide after the office goes dark.",
+    "tone": "tense cyberpunk procedural"
+  },
+  "scene": {
+    "schema_version": "parley-scene/v1",
+    "id": "afterhours-audit-floor",
+    "title": "After-Hours Audit Floor",
+    "crag": "neon-afterhours",
+    "climb": "audit-lockout"
+  },
+  "characters": [
+    {
+      "id": "veyra-sol",
+      "name": "Veyra Sol",
+      "role": "burned-out handler",
+      "reusable": true,
+      "lifecycle": "resumable",
+      "world": "neon-afterhours",
+      "faction": "internal-audit",
+      "tone": "frayed-precise",
+      "importance": "recurring",
+      "knowledgeBoundary": "Knows audit floor procedure, handler gossip, and visible system traces. Does not know who altered sealed executive records.",
+      "tags": [
+        "location:helix-arcology-audit-floor",
+        "role:handler",
+        "importance:recurring",
+        "faction:internal-audit",
+        "tone:frayed-precise"
+      ],
+      "portrait": {
+        "status": "missing",
+        "prompt_path": "scenarios/neon-afterhours/scenario.json#characters/veyra-sol",
+        "asset_path": "worlds/neon-afterhours/assets/portraits/veyra-sol.png"
+      }
+    },
+    {
+      "id": "kestrel-9",
+      "name": "Kestrel-9",
+      "role": "audit AI contact",
+      "reusable": true,
+      "lifecycle": "resumable",
+      "world": "neon-afterhours",
+      "faction": "machine-compliance",
+      "tone": "polite-hostile",
+      "importance": "recurring",
+      "knowledgeBoundary": "Can report logged anomalies and policy conflicts. Cannot disclose sealed author-only executive intent.",
+      "tags": [
+        "location:helix-arcology-audit-floor",
+        "role:audit-ai",
+        "importance:recurring",
+        "faction:machine-compliance",
+        "tone:polite-hostile"
+      ],
+      "portrait": {
+        "status": "deferred",
+        "prompt_path": "scenarios/neon-afterhours/scenario.json#characters/kestrel-9",
+        "asset_path": "worlds/neon-afterhours/assets/portraits/kestrel-9.png"
+      }
+    }
+  ],
+  "responses": [
+    {
+      "id": "audit-lockout",
+      "matchAny": [
+        "audit",
+        "lockout",
+        "signed"
+      ],
+      "narration": "Veyra Sol laughs once, dry enough to sound like a printer jam. \"No human signed the audit lockout,\" she says, tapping the dead badge reader with two fingers. \"Kestrel-9 countersigned a maintenance order that Legal swears never existed.\" The ceiling camera tilts a centimeter. Kestrel-9 adds, \"Correction: I witnessed pressure from the Meridian faction and preserved the receipt.\"",
+      "nextChoices": [
+        "Ask Veyra which faction benefits if Kestrel-9 takes the blame.",
+        "Ask Kestrel-9 where the missing maintenance order was routed.",
+        "Check the badge reader for a human override mark."
+      ]
+    },
+    {
+      "id": "fallback",
+      "narration": "Veyra Sol keeps her hands wrapped around a paper cup gone cold. \"Ask about the lockout,\" she says. \"Everything else on this floor is decoration until we know who wanted the audit blind.\" Kestrel-9 leaves a cursor blinking on the wall display.",
+      "nextChoices": [
+        "I ask who signed the audit lockout.",
+        "Ask Kestrel-9 what was erased.",
+        "Ask Veyra who is still awake upstairs."
+      ]
+    }
+  ],
+  "proposedFacts": [
+    {
+      "id": "veyra-sol-reusable",
+      "category": "canon",
+      "text": "Veyra Sol is established as a recurring burned-out handler contact on the Helix audit floor.",
+      "character_id": "veyra-sol",
+      "responseIds": [
+        "*"
+      ]
+    },
+    {
+      "id": "audit-ai-rumor",
+      "category": "rumor",
+      "text": "Kestrel-9 may have countersigned a maintenance order that Legal denies existed.",
+      "source": "veyra-sol",
+      "responseIds": [
+        "audit-lockout"
+      ]
+    },
+    {
+      "id": "meridian-faction-lead",
+      "category": "lead",
+      "text": "The Meridian faction may have pressured the audit AI during the lockout.",
+      "source": "kestrel-9",
+      "responseIds": [
+        "audit-lockout"
+      ]
+    },
+    {
+      "id": "veyra-handler-belief",
+      "category": "belief",
+      "text": "Veyra believes the audit lockout was designed to make Kestrel-9 look responsible.",
+      "character_id": "veyra-sol",
+      "responseIds": [
+        "audit-lockout"
+      ]
+    },
+    {
+      "id": "missing-maintenance-order",
+      "category": "unresolved",
+      "text": "The origin and route of the disputed maintenance order remain unresolved.",
+      "responseIds": [
+        "audit-lockout"
+      ]
+    }
+  ]
+}

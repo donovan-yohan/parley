@@ -2,7 +2,8 @@ import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { buildMaraUnderbough, persistCharacterMarkdown } from "./belayerCharacterAdapter.js";
+import { buildScenarioCharacter, persistCharacterMarkdown } from "./belayerCharacterAdapter.js";
+import { defaultScenarioId, loadScenarioPack, scenarioMetadata } from "./scenarioPacks.js";
 import { judgeTurn } from "./truthAuthority.js";
 
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
@@ -11,49 +12,54 @@ const defaultWorldDir = path.join(repoRoot, "worlds", "last-lantern");
 const defaultScenePath = path.join(repoRoot, "examples", "last-lantern", "scene.yaml");
 
 export async function runPlayerTurn({
+  scenarioId = defaultScenarioId,
   playerAction,
-  stateDir = path.join(defaultWorldDir, "state"),
+  stateDir,
   scenePath = defaultScenePath,
-  worldDir = defaultWorldDir
+  worldDir
 }) {
   const trimmedAction = String(playerAction ?? "").trim();
   if (!trimmedAction) {
     throw new Error("playerAction is required");
   }
 
-  const scene = await loadSceneSeed(scenePath);
-  await mkdir(stateDir, { recursive: true });
+  const scenario = await loadRuntimeScenario({ scenarioId, scenePath });
+  const scene = scenario.scene;
+  const resolvedStateDir = stateDir ?? scenario.stateDir;
+  const resolvedWorldDir = worldDir ?? scenario.worldDir;
+  await mkdir(resolvedStateDir, { recursive: true });
 
-  const turnId = await nextTurnId(stateDir);
-  const character = buildMaraUnderbough({ scene, sourceRequest: turnId });
-  await persistCharacterMarkdown({ character, worldDir });
+  const turnId = await nextTurnId(resolvedStateDir);
+  const characters = scenario.characters.map((characterDefinition) =>
+    buildScenarioCharacter({ scenario, characterDefinition, sourceRequest: turnId, scene })
+  );
+  await Promise.all(characters.map((character) => persistCharacterMarkdown({ character, worldDir: resolvedWorldDir })));
 
-  const narration = narrateLastLanternTurn({ playerAction: trimmedAction, character });
-  const nextChoices = [
-    "Ask Mara what the Ashford name means.",
-    "Ask what debt the old north road remembers.",
-    "Watch the room for who reacts to Mara's warning."
-  ];
-  const proposedFacts = buildProposedFacts({ turnId, character });
+  const response = selectScenarioResponse({ scenario, playerAction: trimmedAction });
+  const narration = response.narration;
+  const nextChoices = response.nextChoices ?? scenario.suggestedPlayerIntents;
+  const proposedFacts = buildProposedFacts({ turnId, responseId: response.id, facts: scenario.proposedFacts });
   const truthVerdict = judgeTurn({
     turnId,
     scene,
+    scenario,
     playerAction: trimmedAction,
     narration,
-    character,
+    characters,
     proposedFacts
   });
 
   if (truthVerdict.verdict !== "pass") {
-    await appendJsonLine(path.join(stateDir, "truth-verdicts.jsonl"), truthVerdict);
+    await appendJsonLine(path.join(resolvedStateDir, "truth-verdicts.jsonl"), truthVerdict);
     return {
       schema_version: "parley-turn/v1",
       turnId,
+      scenario: scenarioMetadata(scenario),
       scene,
       playerAction: trimmedAction,
       narration,
       nextChoices: [],
-      characters: [character],
+      characters,
       truthVerdict,
       committed: false
     };
@@ -62,27 +68,29 @@ export async function runPlayerTurn({
   const turn = {
     schema_version: "parley-turn/v1",
     id: turnId,
+    scenario_id: scenario.id,
     scene_id: scene.id,
     player_action: trimmedAction,
     narration,
     next_choices: nextChoices,
-    characters: [character.id],
+    characters: characters.map((character) => character.id),
     truth_verdict: truthVerdict.id
   };
 
-  await appendJsonLine(path.join(stateDir, "turns.jsonl"), turn);
-  await appendJsonLine(path.join(stateDir, "truth-verdicts.jsonl"), truthVerdict);
-  const worldState = buildWorldState({ scene, turn, character, truthVerdict });
-  await writeFile(path.join(stateDir, "world-state.json"), `${JSON.stringify(worldState, null, 2)}\n`, "utf8");
+  await appendJsonLine(path.join(resolvedStateDir, "turns.jsonl"), turn);
+  await appendJsonLine(path.join(resolvedStateDir, "truth-verdicts.jsonl"), truthVerdict);
+  const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict });
+  await writeFile(path.join(resolvedStateDir, "world-state.json"), `${JSON.stringify(worldState, null, 2)}\n`, "utf8");
 
   return {
     schema_version: "parley-turn/v1",
     turnId,
+    scenario: scenarioMetadata(scenario),
     scene,
     playerAction: trimmedAction,
     narration,
     nextChoices,
-    characters: [character],
+    characters,
     truthVerdict,
     worldState,
     committed: true
@@ -90,19 +98,35 @@ export async function runPlayerTurn({
 }
 
 export async function loadCurrentState({
-  stateDir = path.join(defaultWorldDir, "state"),
+  scenarioId = defaultScenarioId,
+  stateDir,
   scenePath = defaultScenePath
 } = {}) {
-  const scene = await loadSceneSeed(scenePath);
-  const worldState = await readJsonIfExists(path.join(stateDir, "world-state.json"));
-  const turns = await readJsonLinesIfExists(path.join(stateDir, "turns.jsonl"));
+  const scenario = await loadRuntimeScenario({ scenarioId, scenePath });
+  const resolvedStateDir = stateDir ?? scenario.stateDir;
+  const worldState = await readJsonIfExists(path.join(resolvedStateDir, "world-state.json"));
+  const turns = await readJsonLinesIfExists(path.join(resolvedStateDir, "turns.jsonl"));
   return {
-    scene,
+    scenario: scenarioMetadata(scenario),
+    scene: scenario.scene,
+    openingNarration: scenario.openingNarration,
+    defaultPlayerAction: scenario.defaultPlayerAction,
     worldState,
     transcript: turns,
     characters: worldState?.characters ?? [],
-    nextChoices: turns.at(-1)?.next_choices ?? []
+    nextChoices: turns.at(-1)?.next_choices ?? scenario.suggestedPlayerIntents
   };
+}
+
+async function loadRuntimeScenario({ scenarioId, scenePath }) {
+  const scenario = await loadScenarioPack(scenarioId);
+  if (scenePath && scenePath !== defaultScenePath) {
+    return {
+      ...scenario,
+      scene: await loadSceneSeed(scenePath)
+    };
+  }
+  return scenario;
 }
 
 async function loadSceneSeed(scenePath) {
@@ -176,70 +200,37 @@ async function nextTurnId(stateDir) {
   return `turn-${String(turns.length + 1).padStart(4, "0")}`;
 }
 
-function narrateLastLanternTurn({ playerAction, character }) {
-  if (/north road|old road/i.test(playerAction)) {
-    return `${character.name} pauses with one hand on a blue chipped bowl, warm enough to keep serving and watchful enough to notice who stops breathing. "The old north road remembers debts better than people do," she says. Around the Last Lantern, talk thins to rain on shutters. "Ashford is a lead, not an answer. For the next thread, ask after the north stones, but spend that name softly and choose who hears it."`;
-  }
-
-  return `${character.name} studies you from behind the tavern bar. "Start with what road brought you here," she says, "and I will tell you which names the Last Lantern still remembers."`;
+function selectScenarioResponse({ scenario, playerAction }) {
+  const normalizedAction = playerAction.toLowerCase();
+  return scenario.responses.find((response) =>
+    (response.matchAny ?? []).some((phrase) => normalizedAction.includes(String(phrase).toLowerCase()))
+  ) ?? scenario.responses.find((response) => response.id === "fallback") ?? scenario.responses[0];
 }
 
-function buildProposedFacts({ turnId, character }) {
-  return [
-    {
-      id: "mara-underbough-reusable",
-      category: "canon",
-      text: "Mara Underbough is established as a recurring tavernkeep the player can return to in later scenes.",
-      evidence_turn: turnId,
-      character_id: character.id
-    },
-    {
-      id: "old-north-road-rumor",
-      category: "rumor",
-      text: "The old north road is tied to old debts and the north stones.",
-      evidence_turn: turnId,
-      source: character.id
-    },
-    {
-      id: "old-north-road-lead",
-      category: "lead",
-      text: "Ashford is a lead connected to the north stones, not a solved truth.",
-      evidence_turn: turnId,
-      source: character.id
-    },
-    {
-      id: "ashford-name-belief",
-      category: "belief",
-      text: "Mara believes saying the Ashford name loudly in the tavern is dangerous or unwise.",
-      evidence_turn: turnId,
-      character_id: character.id
-    },
-    {
-      id: "ashford-name-mystery",
-      category: "unresolved",
-      text: "Why the Ashford name unsettles the Last Lantern remains unresolved.",
+function buildProposedFacts({ turnId, responseId, facts }) {
+  return facts
+    .filter((fact) => {
+      const responseIds = fact.responseIds ?? ["*"];
+      return responseIds.includes("*") || responseIds.includes(responseId);
+    })
+    .map(({ responseIds, ...fact }) => ({
+      ...fact,
       evidence_turn: turnId
-    }
-  ];
+    }));
 }
 
-function buildWorldState({ scene, turn, character, truthVerdict }) {
+function buildWorldState({ scenario, scene, turn, characters, truthVerdict }) {
   return {
     schema_version: "parley-world-state/v1",
-    world: {
-      id: "last-lantern",
-      name: "Last Lantern",
-      premise: "A rain-soaked crossroads tavern where travelers trade rumors before the old roads.",
-      tone: "grounded fantasy mystery"
-    },
+    scenario_id: scenario.id,
+    world: scenario.world,
     current_scene: {
       id: scene.id,
       title: scene.title,
       crag: scene.crag,
       climb: scene.climb
     },
-    characters: [
-      {
+    characters: characters.map((character) => ({
         id: character.id,
         name: character.name,
         reusable: character.reusable,
@@ -247,8 +238,7 @@ function buildWorldState({ scene, turn, character, truthVerdict }) {
         tags: character.tags,
         belayer_generated_talent: character.belayerGeneratedTalent,
         portrait: character.portrait
-      }
-    ],
+      })),
     canon: truthVerdict.accepted_facts,
     rumors: truthVerdict.rumors,
     leads: truthVerdict.leads,

@@ -6,21 +6,24 @@ const transcript = document.querySelector("#transcript");
 const choices = document.querySelector("#choices");
 const characters = document.querySelector("#characters");
 const truth = document.querySelector("#truth");
-const themeSelect = document.querySelector("#theme-select");
+const scenarioSelect = document.querySelector("#theme-select");
+const sceneTitle = document.querySelector("#scene-title");
+const sceneSubtitle = document.querySelector("#scene-subtitle");
+
+let scenarios = [];
+let selectedScenarioId = null;
+let currentState = null;
 let latestResult = null;
+let localTranscript = [];
 let turnRunning = false;
 
-const localTranscript = [
-  {
-    speaker: "narrator",
-    text: "The Last Lantern smells of wet wool, hot onions, and lamp oil. Somewhere beyond the shuttered windows, the old north road waits in the rain."
+init();
+
+scenarioSelect.addEventListener("change", async () => {
+  if (!scenarioSelect.value || scenarioSelect.value === selectedScenarioId) {
+    return;
   }
-];
-
-render();
-
-themeSelect.addEventListener("change", () => {
-  document.documentElement.dataset.theme = themeSelect.value;
+  await loadScenarioState(scenarioSelect.value);
 });
 
 form.addEventListener("submit", async (event) => {
@@ -36,13 +39,13 @@ form.addEventListener("submit", async (event) => {
   localTranscript.push({ speaker: "player", text: playerAction });
   input.value = "";
   setTurnRunning(true);
-  render(latestResult);
+  render();
 
   try {
     const response = await fetch("/api/turn", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ playerAction })
+      body: JSON.stringify({ scenarioId: selectedScenarioId, playerAction })
     });
 
     if (!response.ok) {
@@ -52,28 +55,81 @@ form.addEventListener("submit", async (event) => {
     }
 
     latestResult = await response.json();
+    currentState = mergeTurnIntoState({ state: currentState, result: latestResult });
     localTranscript.push({ speaker: "narrator", text: latestResult.narration });
   } catch (error) {
     localTranscript.push({ speaker: "system", text: error.message ?? "Turn failed." });
   } finally {
     setTurnRunning(false);
-    render(latestResult);
+    render();
     input.focus();
   }
 });
 
-function render(result) {
+async function init() {
+  setTurnRunning(true, "Loading scenarios...");
+  try {
+    const response = await fetch("/api/scenarios");
+    if (!response.ok) {
+      throw new Error("Could not load scenarios.");
+    }
+    const payload = await response.json();
+    scenarios = payload.scenarios;
+    scenarioSelect.replaceChildren(...scenarios.map((scenario) => scenarioOption(scenario)));
+    await loadScenarioState(payload.defaultScenarioId);
+  } catch (error) {
+    localTranscript = [{ speaker: "system", text: error.message ?? "Could not load scenarios." }];
+    render();
+  } finally {
+    setTurnRunning(false);
+  }
+}
+
+async function loadScenarioState(scenarioId) {
+  setTurnRunning(true, "Loading scenario...");
+  try {
+    const response = await fetch(`/api/state?scenario=${encodeURIComponent(scenarioId)}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error ?? "Could not load scenario state.");
+    }
+    currentState = await response.json();
+    latestResult = null;
+    selectedScenarioId = currentState.scenario.id;
+    scenarioSelect.value = selectedScenarioId;
+    applyScenarioChrome(currentState);
+    localTranscript = [{ speaker: "narrator", text: currentState.openingNarration }];
+    transcript.replaceChildren();
+    input.value = currentState.defaultPlayerAction;
+    render();
+  } catch (error) {
+    localTranscript.push({ speaker: "system", text: error.message ?? "Could not load scenario state." });
+    render();
+  } finally {
+    setTurnRunning(false);
+  }
+}
+
+function applyScenarioChrome(state) {
+  document.documentElement.dataset.theme = state.scenario.themeId;
+  document.title = `Parley: ${state.scenario.title}`;
+  sceneTitle.textContent = state.scene.title;
+  sceneSubtitle.textContent = state.scenario.subtitle;
+}
+
+function render() {
   syncTranscript();
 
-  if (!result) {
-    choices.replaceChildren(emptyItem("Submit an action to discover choices."));
+  const view = latestResult ?? stateView(currentState);
+  if (!view) {
+    choices.replaceChildren(emptyItem("No scenario loaded."));
     characters.replaceChildren(emptyItem("No reusable NPCs yet."));
     truth.replaceChildren(textLine("No story memory yet."));
     return;
   }
 
   choices.replaceChildren(
-    ...result.nextChoices.map((choice) => {
+    ...view.nextChoices.map((choice) => {
       const item = document.createElement("li");
       const button = document.createElement("button");
       button.className = "choice-button";
@@ -91,29 +147,64 @@ function render(result) {
   );
 
   characters.replaceChildren(
-    ...result.characters.map((character) => {
-      const item = document.createElement("li");
-      const name = document.createElement("strong");
-      name.textContent = character.name;
-      const meta = document.createElement("span");
-      meta.textContent = describeCharacter(character);
-      const note = document.createElement("p");
-      note.textContent = describeCharacterNote(character);
-      const tags = document.createElement("div");
-      tags.className = "tags";
-      const translatedTags = [...new Set((character.tags ?? []).map((tag) => humanTag(tag)))];
-      tags.replaceChildren(...translatedTags.map((tag) => tagChip(tag)));
-      item.append(name, meta, note, tags);
-      return item;
-    })
+    ...(view.characters.length
+      ? view.characters.map((character) => {
+        const item = document.createElement("li");
+        const name = document.createElement("strong");
+        name.textContent = character.name;
+        const meta = document.createElement("span");
+        meta.textContent = describeCharacter(character);
+        const note = document.createElement("p");
+        note.textContent = describeCharacterNote(character);
+        const tags = document.createElement("div");
+        tags.className = "tags";
+        const translatedTags = [...new Set((character.tags ?? []).map((tag) => humanTag(tag)))];
+        tags.replaceChildren(...translatedTags.map((tag) => tagChip(tag)));
+        item.append(name, meta, note, tags);
+        return item;
+      })
+      : [emptyItem("No reusable NPCs yet.")])
   );
 
+  if (!view.truthVerdict) {
+    truth.replaceChildren(textLine("No story memory yet."));
+    return;
+  }
+
   truth.replaceChildren(
-    memoryGroup("What changed", result.truthVerdict.accepted_facts),
-    memoryGroup("Leads", result.truthVerdict.leads ?? []),
-    memoryGroup("Rumors", result.truthVerdict.rumors),
-    memoryGroup("Unresolved", result.truthVerdict.unresolved)
+    memoryGroup("What changed", view.truthVerdict.accepted_facts),
+    memoryGroup("Leads", view.truthVerdict.leads ?? []),
+    memoryGroup("Rumors", view.truthVerdict.rumors),
+    memoryGroup("Unresolved", view.truthVerdict.unresolved)
   );
+}
+
+function stateView(state) {
+  if (!state) {
+    return null;
+  }
+
+  return {
+    nextChoices: state.nextChoices ?? [],
+    characters: state.characters ?? [],
+    truthVerdict: state.worldState ? {
+      accepted_facts: state.worldState.canon ?? [],
+      leads: state.worldState.leads ?? [],
+      rumors: state.worldState.rumors ?? [],
+      unresolved: state.worldState.unresolved ?? []
+    } : null
+  };
+}
+
+function mergeTurnIntoState({ state, result }) {
+  return {
+    ...(state ?? {}),
+    scenario: result.scenario,
+    scene: result.scene,
+    worldState: result.worldState,
+    characters: result.characters,
+    nextChoices: result.nextChoices
+  };
 }
 
 function syncTranscript() {
@@ -132,6 +223,13 @@ function appendTranscriptEntry(entry) {
   text.textContent = entry.text;
   item.append(speaker, text);
   transcript.append(item);
+}
+
+function scenarioOption(scenario) {
+  const option = document.createElement("option");
+  option.value = scenario.id;
+  option.textContent = scenario.title;
+  return option;
 }
 
 function emptyItem(text) {
@@ -154,16 +252,22 @@ function textLine(text) {
   return paragraph;
 }
 
-function setTurnRunning(isRunning) {
+function setTurnRunning(isRunning, statusText = "") {
   turnRunning = isRunning;
   input.disabled = isRunning;
+  scenarioSelect.disabled = isRunning;
   submitButton.disabled = isRunning;
+  for (const choiceItem of choices.children) {
+    for (const choiceButton of choiceItem.children ?? []) {
+      choiceButton.disabled = isRunning;
+    }
+  }
   submitButton.textContent = isRunning ? "Listening..." : "Submit";
-  turnStatus.textContent = isRunning ? "The room weighs the question before answering." : "";
+  turnStatus.textContent = isRunning ? statusText || "The room weighs the question before answering." : "";
 }
 
 function describeCharacter(character) {
-  const role = humanTag(character.tags?.find((tag) => tag.startsWith("role:")) ?? character.belayerGeneratedTalent?.role ?? "");
+  const role = humanTag(character.tags?.find((tag) => tag.startsWith("role:")) ?? character.belayerGeneratedTalent?.role ?? character.belayer_generated_talent?.role ?? "");
   const faction = humanTag(character.tags?.find((tag) => tag.startsWith("faction:")) ?? "");
   const tone = humanTag(character.tags?.find((tag) => tag.startsWith("tone:")) ?? "");
   const lifecycle = humanTag(character.lifecycle ?? "");

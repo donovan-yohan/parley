@@ -1,0 +1,123 @@
+{
+  "schema_version": "parley-scenario/v1",
+  "id": "last-lantern",
+  "title": "Last Lantern Tavern",
+  "subtitle": "Rain at the crossroads. A room full of people pretending not to listen.",
+  "themeId": "last-lantern",
+  "defaultPlayerAction": "I ask who remembers the old north road.",
+  "openingNarration": "The Last Lantern smells of wet wool, hot onions, and lamp oil. Somewhere beyond the shuttered windows, the old north road waits in the rain.",
+  "suggestedPlayerIntents": [
+    "I ask who remembers the old north road.",
+    "Ask Mara what the Ashford name means.",
+    "Watch the room for who reacts to Mara's warning."
+  ],
+  "world": {
+    "id": "last-lantern",
+    "name": "Last Lantern",
+    "premise": "A rain-soaked crossroads tavern where travelers trade rumors before the old roads.",
+    "tone": "grounded fantasy mystery"
+  },
+  "scene": {
+    "schema_version": "parley-scene/v1",
+    "id": "last-lantern-tavern",
+    "title": "Last Lantern Tavern",
+    "crag": "last-lantern",
+    "climb": "first-rumor"
+  },
+  "characters": [
+    {
+      "id": "mara-underbough",
+      "name": "Mara Underbough",
+      "role": "tavernkeep",
+      "reusable": true,
+      "lifecycle": "resumable",
+      "world": "last-lantern",
+      "faction": "last-lantern-staff",
+      "tone": "warm-watchful",
+      "importance": "recurring",
+      "knowledgeBoundary": "Knows local rumors and visible tavern history, not author-only hidden truth.",
+      "tags": [
+        "location:last-lantern-tavern",
+        "role:tavernkeep",
+        "importance:recurring",
+        "faction:last-lantern-staff",
+        "tone:warm-watchful"
+      ],
+      "portrait": {
+        "status": "missing",
+        "prompt_path": "worlds/last-lantern/characters/mara-underbough.md#portrait-prompt",
+        "asset_path": "worlds/last-lantern/assets/portraits/mara-underbough.png"
+      }
+    }
+  ],
+  "responses": [
+    {
+      "id": "old-north-road",
+      "matchAny": [
+        "north road",
+        "old road"
+      ],
+      "narration": "Mara Underbough pauses with one hand on a blue chipped bowl, warm enough to keep serving and watchful enough to notice who stops breathing. \"The old north road remembers debts better than people do,\" she says. Around the Last Lantern, talk thins to rain on shutters. \"Ashford is a lead, not an answer. For the next thread, ask after the north stones, but spend that name softly and choose who hears it.\"",
+      "nextChoices": [
+        "Ask Mara what the Ashford name means.",
+        "Ask what debt the old north road remembers.",
+        "Watch the room for who reacts to Mara's warning."
+      ]
+    },
+    {
+      "id": "fallback",
+      "narration": "Mara Underbough studies you from behind the tavern bar. \"Start with what road brought you here,\" she says, \"and I will tell you which names the Last Lantern still remembers.\"",
+      "nextChoices": [
+        "I ask who remembers the old north road.",
+        "Ask who last came in from the rain.",
+        "Look for the quietest table in the room."
+      ]
+    }
+  ],
+  "proposedFacts": [
+    {
+      "id": "mara-underbough-reusable",
+      "category": "canon",
+      "text": "Mara Underbough is established as a recurring tavernkeep the player can return to in later scenes.",
+      "character_id": "mara-underbough",
+      "responseIds": [
+        "*"
+      ]
+    },
+    {
+      "id": "old-north-road-rumor",
+      "category": "rumor",
+      "text": "The old north road is tied to old debts and the north stones.",
+      "source": "mara-underbough",
+      "responseIds": [
+        "old-north-road"
+      ]
+    },
+    {
+      "id": "old-north-road-lead",
+      "category": "lead",
+      "text": "Ashford is a lead connected to the north stones, not a solved truth.",
+      "source": "mara-underbough",
+      "responseIds": [
+        "old-north-road"
+      ]
+    },
+    {
+      "id": "ashford-name-belief",
+      "category": "belief",
+      "text": "Mara believes saying the Ashford name loudly in the tavern is dangerous or unwise.",
+      "character_id": "mara-underbough",
+      "responseIds": [
+        "old-north-road"
+      ]
+    },
+    {
+      "id": "ashford-name-mystery",
+      "category": "unresolved",
+      "text": "Why the Ashford name unsettles the Last Lantern remains unresolved.",
+      "responseIds": [
+        "old-north-road"
+      ]
+    }
+  ]
+}
