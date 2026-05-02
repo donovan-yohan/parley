@@ -10,10 +10,11 @@ Run from this repository root:
 BELAYER_BIN=/path/to/belayer ./scripts/smoke-last-lantern.sh
 ```
 
-The script creates a temporary `BELAYER_HOME`, initializes a `last-lantern`
-crag, links this repo to it, persists `mara-underbough` as generated resumable
-talent, and verifies that Belayer can list the generated talent from the crag
-pool.
+The script creates a temporary `BELAYER_HOME` by default, initializes a
+`last-lantern` crag, links this repo to it, persists `mara-underbough` as
+generated resumable talent, and verifies that Belayer can list and inspect the
+generated talent from the crag pool. To intentionally reuse a non-temporary
+Belayer home for the smoke run, set `SMOKE_BELAYER_HOME=/path/to/home`.
 
 The static artifacts in `artifacts/` draft the product-facing scene loop:
 
