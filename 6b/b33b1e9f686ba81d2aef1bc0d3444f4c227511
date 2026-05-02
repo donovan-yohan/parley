@@ -1,0 +1,27 @@
+src/client/app.js
+  73d0a38ffcc76e8c 25,36,46,89-104
+src/server.js
+  73d0a38ffcc76e8c 12,32,69,71-76
+src/runtime/parleyRuntime.js
+  73d0a38ffcc76e8c 121-171
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "6bb33b1e9f686ba81d2aef1bc0d3444f4c227511",
+  "prompts": {
+    "73d0a38ffcc76e8c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019de93f-0cba-7d33-ac27-6820ab6e69d7",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 84,
+      "total_deletions": 18,
+      "accepted_lines": 84,
+      "overriden_lines": 0
+    }
+  }
+}
