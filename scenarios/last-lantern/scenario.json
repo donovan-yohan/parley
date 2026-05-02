@@ -22,7 +22,33 @@
     "id": "last-lantern-tavern",
     "title": "Last Lantern Tavern",
     "crag": "last-lantern",
-    "climb": "first-rumor"
+    "climb": "first-rumor",
+    "visual": {
+      "status": "draft",
+      "environment_type": "rainy crossroads tavern interior",
+      "time_of_day": "rainy night",
+      "composition": "visual novel background, wide establishing shot from inside the tavern toward the bar and shuttered windows",
+      "landmarks": [
+        "blue chipped bowls on the bar",
+        "cold rainlight through shuttered windows",
+        "hearth glow on wet wool cloaks"
+      ],
+      "safe_overlay_zones": [
+        "bottom third",
+        "center lower third"
+      ],
+      "negative": [
+        "no visible player character",
+        "no readable text/signage",
+        "no UI elements"
+      ]
+    },
+    "background": {
+      "status": "missing",
+      "prompt_path": "worlds/last-lantern/assets/backgrounds/last-lantern-tavern.prompt.md",
+      "asset_path": "worlds/last-lantern/assets/backgrounds/last-lantern-tavern.png",
+      "aspect_ratio": "landscape"
+    }
   },
   "characters": [
     {
@@ -45,8 +71,34 @@
       ],
       "portrait": {
         "status": "missing",
-        "prompt_path": "worlds/last-lantern/characters/mara-underbough.md#portrait-prompt",
-        "asset_path": "worlds/last-lantern/assets/portraits/mara-underbough.png"
+        "prompt_path": "worlds/last-lantern/assets/portraits/mara-underbough.prompt.md",
+        "asset_path": "worlds/last-lantern/assets/portraits/mara-underbough.png",
+        "aspect_ratio": "portrait"
+      },
+      "visual": {
+        "status": "draft",
+        "age_range": "late 40s to 50s",
+        "build": "stout, broad-shouldered from tavern work",
+        "physical_description": "round weathered face, ash-grey hair pulled back, warm but appraising eyes, hands nicked by years of bar work",
+        "wardrobe": [
+          "wool tunic",
+          "dark leather apron",
+          "copper key on a cord"
+        ],
+        "signature_props": [
+          "blue chipped bowl",
+          "bar towel looped at the waist"
+        ],
+        "palette_hints": [
+          "warm umber",
+          "lamp-yellow highlights",
+          "rain-cold blue rim light"
+        ],
+        "negative": [
+          "no armor",
+          "no noble finery",
+          "no modern zippers"
+        ]
       }
     }
   ],

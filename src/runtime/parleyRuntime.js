@@ -6,6 +6,7 @@ import { buildScenarioCharacter, persistCharacterMarkdown } from "./belayerChara
 import { defaultScenarioId, loadScenarioPack, scenarioMetadata } from "./scenarioPacks.js";
 import { judgeTurn } from "./truthAuthority.js";
 import { createScenarioFixtureAuthor, normalizeAuthoredTurn } from "./turnAuthor.js";
+import { attachVisualAssetsToCharacters, loadVisualAssetManifest, prepareVisualAssetsForScenario } from "./visualAssets.js";
 
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(runtimeDir, "..", "..");
@@ -35,9 +36,16 @@ export async function runPlayerTurn({
   const worldStatePath = path.join(resolvedStateDir, "world-state.json");
   const previousWorldState = await readJsonIfExists(worldStatePath);
   const turnId = await nextTurnId(resolvedStateDir);
-  const characters = scenario.characters.map((characterDefinition) =>
+  let characters = scenario.characters.map((characterDefinition) =>
     buildScenarioCharacter({ scenario, characterDefinition, sourceRequest: turnId, scene })
   );
+  const visualAssets = await prepareVisualAssetsForScenario({
+    scenario,
+    scene,
+    characters,
+    worldDir: resolvedWorldDir
+  });
+  characters = attachVisualAssetsToCharacters({ characters, visualAssets });
   await Promise.all(characters.map((character) => persistCharacterMarkdown({ character, worldDir: resolvedWorldDir })));
 
   const authoredTurn = await buildAuthoredTurn({
@@ -75,6 +83,7 @@ export async function runPlayerTurn({
       characters,
       truthVerdict,
       authoring,
+      visualAssets,
       committed: false
     };
   }
@@ -88,13 +97,14 @@ export async function runPlayerTurn({
     narration,
     next_choices: nextChoices,
     characters: characters.map((character) => character.id),
+    visual_assets: visualAssets.assets.map((asset) => asset.id),
     authoring,
     truth_verdict: truthVerdict.id
   };
 
   await appendJsonLine(path.join(resolvedStateDir, "turns.jsonl"), turn);
   await appendJsonLine(path.join(resolvedStateDir, "truth-verdicts.jsonl"), truthVerdict);
-  const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict, previousWorldState });
+  const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState });
   await writeFile(worldStatePath, `${JSON.stringify(worldState, null, 2)}\n`, "utf8");
 
   return {
@@ -108,6 +118,7 @@ export async function runPlayerTurn({
     characters,
     truthVerdict,
     worldState,
+    visualAssets,
     authoring,
     committed: true
   };
@@ -116,20 +127,26 @@ export async function runPlayerTurn({
 export async function loadCurrentState({
   scenarioId = defaultScenarioId,
   stateDir,
-  scenePath = defaultScenePath
+  scenePath = defaultScenePath,
+  worldDir
 } = {}) {
   const scenario = await loadRuntimeScenario({ scenarioId, scenePath });
   const resolvedStateDir = stateDir ?? scenario.stateDir;
+  const resolvedWorldDir = worldDir ?? scenario.worldDir;
   const worldState = await readJsonIfExists(path.join(resolvedStateDir, "world-state.json"));
   const turns = await readJsonLinesIfExists(path.join(resolvedStateDir, "turns.jsonl"));
+  const latestVisualAssets = await loadVisualAssetManifest(resolvedWorldDir);
+  const visualAssets = latestVisualAssets.assets.length ? latestVisualAssets : worldState?.visual_assets ?? latestVisualAssets;
+  const characters = attachVisualAssetsToCharacters({ characters: worldState?.characters ?? [], visualAssets });
   return {
     scenario: scenarioMetadata(scenario),
     scene: scenario.scene,
     openingNarration: scenario.openingNarration,
     defaultPlayerAction: scenario.defaultPlayerAction,
     worldState,
+    visualAssets,
     transcript: turns,
-    characters: worldState?.characters ?? [],
+    characters,
     nextChoices: turns.at(-1)?.next_choices ?? scenario.suggestedPlayerIntents
   };
 }
@@ -260,7 +277,7 @@ function validateTruthVerdict(truthVerdict) {
   }
 }
 
-function buildWorldState({ scenario, scene, turn, characters, truthVerdict, previousWorldState }) {
+function buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState }) {
   const previousCharacters = previousWorldState?.characters ?? [];
   return {
     schema_version: "parley-world-state/v1",
@@ -279,6 +296,7 @@ function buildWorldState({ scenario, scene, turn, characters, truthVerdict, prev
         lifecycle: character.lifecycle,
         tags: character.tags,
         belayer_generated_talent: character.belayerGeneratedTalent,
+        visual: character.visual,
         portrait: character.portrait
       }))),
     canon: mergeById(previousWorldState?.canon, truthVerdict.accepted_facts),
@@ -286,6 +304,7 @@ function buildWorldState({ scenario, scene, turn, characters, truthVerdict, prev
     leads: mergeById(previousWorldState?.leads, truthVerdict.leads),
     character_beliefs: mergeById(previousWorldState?.character_beliefs, truthVerdict.character_beliefs),
     unresolved: mergeById(previousWorldState?.unresolved, truthVerdict.unresolved),
+    visual_assets: visualAssets,
     latest_turn: turn.id,
     updated_by_truth_verdict: truthVerdict.id
   };

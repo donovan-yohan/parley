@@ -9,6 +9,7 @@ const truth = document.querySelector("#truth");
 const scenarioSelect = document.querySelector("#theme-select");
 const sceneTitle = document.querySelector("#scene-title");
 const sceneSubtitle = document.querySelector("#scene-subtitle");
+const sceneArt = document.querySelector("#scene-art");
 
 let scenarios = [];
 let selectedScenarioId = null;
@@ -121,6 +122,7 @@ function render() {
   syncTranscript();
 
   const view = stateView(currentState);
+  renderSceneArt(view);
   if (!view) {
     choices.replaceChildren(emptyItem("No scenario loaded."));
     characters.replaceChildren(emptyItem("No reusable NPCs yet."));
@@ -150,6 +152,9 @@ function render() {
     ...(view.characters.length
       ? view.characters.map((character) => {
         const item = document.createElement("li");
+        const portrait = renderCharacterPortrait(character);
+        const details = document.createElement("div");
+        details.className = "character-details";
         const name = document.createElement("strong");
         name.textContent = character.name;
         const meta = document.createElement("span");
@@ -160,7 +165,8 @@ function render() {
         tags.className = "tags";
         const translatedTags = [...new Set((character.tags ?? []).map((tag) => humanTag(tag)))];
         tags.replaceChildren(...translatedTags.map((tag) => tagChip(tag)));
-        item.append(name, meta, note, tags);
+        details.append(name, meta, note, tags);
+        item.append(portrait, details);
         return item;
       })
       : [emptyItem("No reusable NPCs yet.")])
@@ -179,6 +185,71 @@ function render() {
   );
 }
 
+function renderSceneArt(view) {
+  const background = view?.visualAssets?.assets?.find((asset) => asset.kind === "background");
+  sceneArt.replaceChildren();
+  sceneArt.className = `scene-art ${background?.status ?? "missing"}`;
+
+  if (!background) {
+    sceneArt.textContent = "Background asset pending.";
+    return;
+  }
+
+  if (background.public_url) {
+    const image = document.createElement("img");
+    image.src = background.public_url;
+    image.alt = `${background.entity_name} background`;
+    const caption = document.createElement("span");
+    caption.textContent = "Saved background asset";
+    sceneArt.append(image, caption);
+    return;
+  }
+
+  sceneArt.textContent = `${assetStatusLabel(background, "Background")} · ${background.entity_name}`;
+}
+
+function renderCharacterPortrait(character) {
+  const portrait = document.createElement("div");
+  portrait.className = `portrait-frame ${character.portrait?.status ?? "missing"}`;
+
+  if (character.portrait?.public_url) {
+    const image = document.createElement("img");
+    image.src = character.portrait.public_url;
+    image.alt = `${character.name} portrait`;
+    portrait.append(image);
+    return portrait;
+  }
+
+  const initials = document.createElement("strong");
+  initials.textContent = character.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("");
+  const status = document.createElement("span");
+  status.textContent = assetStatusLabel(character.portrait, "Portrait");
+  portrait.append(initials, status);
+  return portrait;
+}
+
+function assetStatusLabel(asset, noun) {
+  const status = asset?.status ?? "missing";
+  if (status === "prompt_ready") {
+    return `${noun} prompt ready`;
+  }
+  if (status === "generated" || status === "locked") {
+    return `${noun} saved`;
+  }
+  if (status === "failed") {
+    return `${noun} failed`;
+  }
+  if (status === "generating") {
+    return `${noun} generating`;
+  }
+  return `${noun} missing`;
+}
+
 function stateView(state) {
   if (!state) {
     return null;
@@ -192,7 +263,8 @@ function stateView(state) {
       leads: state.worldState.leads ?? [],
       rumors: state.worldState.rumors ?? [],
       unresolved: state.worldState.unresolved ?? []
-    } : null
+    } : null,
+    visualAssets: state.visualAssets ?? state.worldState?.visual_assets ?? null
   };
 }
 
@@ -201,6 +273,7 @@ function mergeTurnIntoState({ state, result }) {
     ...(state ?? {}),
     scenario: result.scenario,
     scene: result.scene,
+    visualAssets: result.visualAssets,
     worldState: result.worldState,
     characters: result.characters,
     nextChoices: result.nextChoices

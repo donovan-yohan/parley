@@ -22,7 +22,34 @@
     "id": "orchard-row-morning",
     "title": "Mossgrove Orchard Row",
     "crag": "orchard-welcome",
-    "climb": "lantern-pear-gift"
+    "climb": "lantern-pear-gift",
+    "visual": {
+      "status": "draft",
+      "environment_type": "cozy orchard lane and farmhouse edge",
+      "time_of_day": "late golden afternoon",
+      "composition": "visual novel background, warm wide establishing shot with path and orchard rows, quiet lower third",
+      "landmarks": [
+        "lantern pear trees",
+        "weathered gate",
+        "distant press shed",
+        "soft hills beyond the orchard"
+      ],
+      "safe_overlay_zones": [
+        "bottom third",
+        "center lower third"
+      ],
+      "negative": [
+        "no readable signs",
+        "no UI elements",
+        "no visible player character"
+      ]
+    },
+    "background": {
+      "status": "missing",
+      "prompt_path": "worlds/orchard-welcome/assets/backgrounds/orchard-row-morning.prompt.md",
+      "asset_path": "worlds/orchard-welcome/assets/backgrounds/orchard-row-morning.png",
+      "aspect_ratio": "landscape"
+    }
   },
   "characters": [
     {
@@ -45,8 +72,35 @@
       ],
       "portrait": {
         "status": "missing",
-        "prompt_path": "scenarios/orchard-welcome/scenario.json#characters/june-bellweather",
-        "asset_path": "worlds/orchard-welcome/assets/portraits/june-bellweather.png"
+        "prompt_path": "worlds/orchard-welcome/assets/portraits/june-bellweather.prompt.md",
+        "asset_path": "worlds/orchard-welcome/assets/portraits/june-bellweather.png",
+        "aspect_ratio": "portrait"
+      },
+      "visual": {
+        "status": "draft",
+        "age_range": "60s",
+        "build": "small, sturdy, orchard-strong",
+        "physical_description": "sunlined face, silver braid tucked under a kerchief, bright mischievous eyes, soil-worn hands",
+        "wardrobe": [
+          "patched work dress",
+          "faded green cardigan",
+          "muddy orchard boots"
+        ],
+        "signature_props": [
+          "basket of lantern pears",
+          "blue cloth ribbon"
+        ],
+        "palette_hints": [
+          "pear gold",
+          "leaf green",
+          "warm cream",
+          "soft earth brown"
+        ],
+        "negative": [
+          "no fantasy armor",
+          "no glossy pastoral stock art",
+          "no readable text"
+        ]
       }
     }
   ],
