@@ -83,6 +83,7 @@ state_delta:
     - reason: "Claim c3 violates mara-underbough.knowledge_scope.forbidden."
       claim_id: c3
 required_fixes: []
+hidden_truth_writes: []
 ```
 
 ## Verdict Values

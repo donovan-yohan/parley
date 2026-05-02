@@ -20,7 +20,8 @@ talent by id; Belayer never references Parley fields.
   to the Belayer talent record and to the file path under `characters/`.
 - A character record always references the source `turn_id` and the Belayer
   `talent_id` that produced it.
-- Tags are first-class. Untagged characters are a contract violation.
+- Tags are first-class. A missing `tags` block and an empty `tags` block are
+  both contract violations.
 - Belief, rumor, and hidden author truth never live on the character record.
   They live on world-state and truth-verdict artifacts. Character records hold
   only the character's stable identity, voice, and known-knowledge boundaries.
@@ -105,11 +106,12 @@ portrait:
 ## Provenance
 
 Every reusable claim links back to evidence so callbacks don't drift.
+The source Belayer talent link is the root-level `talent_id`; provenance does
+not rename or duplicate that reference.
 
 ```yaml
 provenance:
   created_in_turn: turn-0002
-  belayer_talent_id: belayer/talents/mara-underbough
   established_facts:
     - artifact: state/world-state.json
       fact_id: tavernkeeper-mara-warned-ashford-name

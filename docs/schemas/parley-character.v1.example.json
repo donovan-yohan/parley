@@ -61,7 +61,6 @@
   },
   "provenance": {
     "created_in_turn": "turn-0002",
-    "belayer_talent_id": "belayer/talents/mara-underbough",
     "established_facts": [
       {
         "artifact": "worlds/last-lantern/state/world-state.json",
