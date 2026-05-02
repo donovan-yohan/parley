@@ -1,5 +1,5 @@
 {
-  "schema_version": "belayer-world-state/v1",
+  "schema_version": "parley-world-state/v1",
   "world": {
     "name": "Last Lantern",
     "premise": "A rain-soaked crossroads tavern where travelers trade rumors before the old roads.",
