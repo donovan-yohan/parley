@@ -30,6 +30,7 @@ test("player input creates Mara response, reusable character, and artifacts", as
   assert.equal(result.truthVerdict.verdict, "pass");
   assert.ok(result.truthVerdict.accepted_facts.length >= 1);
   assert.ok(result.truthVerdict.rumors.length >= 1);
+  assert.ok(result.truthVerdict.leads.length >= 1);
   assert.ok(result.truthVerdict.unresolved.length >= 1);
 
   await stat(path.join(stateDir, "world-state.json"));
@@ -43,6 +44,7 @@ test("player input creates Mara response, reusable character, and artifacts", as
   const truth = await readFile(path.join(stateDir, "truth-verdicts.jsonl"), "utf8");
   assert.match(truth, /old-north-road/);
   assert.match(truth, /rumor/);
+  assert.match(truth, /lead/);
 });
 
 test("scene seed scalars ignore inline comments and unwrap quoted values", async () => {

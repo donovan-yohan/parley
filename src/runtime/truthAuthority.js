@@ -11,6 +11,7 @@ export function judgeTurn({
 
   const acceptedFacts = proposedFacts.filter((fact) => fact.category === "canon");
   const rumors = proposedFacts.filter((fact) => fact.category === "rumor");
+  const leads = proposedFacts.filter((fact) => fact.category === "lead");
   const beliefs = proposedFacts.filter((fact) => fact.category === "belief");
   const unresolved = proposedFacts.filter((fact) => fact.category === "unresolved");
   const rejectedClaims = [];
@@ -41,6 +42,7 @@ export function judgeTurn({
     accepted_facts: acceptedFacts,
     rejected_claims: rejectedClaims,
     rumors,
+    leads,
     character_beliefs: beliefs,
     unresolved,
     author_only_hidden_truth: [],

@@ -178,7 +178,7 @@ async function nextTurnId(stateDir) {
 
 function narrateLastLanternTurn({ playerAction, character }) {
   if (/north road|old road/i.test(playerAction)) {
-    return `${character.name} pauses with one hand on a blue chipped bowl. "The old north road remembers debts better than people do," she says. Around the Last Lantern, talk thins to the sound of rain on shutters. "If you mean the north stones, ask softly, and do not spend the Ashford name where every traveler can hear it."`;
+    return `${character.name} pauses with one hand on a blue chipped bowl, warm enough to keep serving and watchful enough to notice who stops breathing. "The old north road remembers debts better than people do," she says. Around the Last Lantern, talk thins to rain on shutters. "Ashford is a lead, not an answer. For the next thread, ask after the north stones, but spend that name softly and choose who hears it."`;
   }
 
   return `${character.name} studies you from behind the tavern bar. "Start with what road brought you here," she says, "and I will tell you which names the Last Lantern still remembers."`;
@@ -189,7 +189,7 @@ function buildProposedFacts({ turnId, character }) {
     {
       id: "mara-underbough-reusable",
       category: "canon",
-      text: "Mara Underbough is established as the reusable resumable tavernkeep at the Last Lantern.",
+      text: "Mara Underbough is established as a recurring tavernkeep the player can return to in later scenes.",
       evidence_turn: turnId,
       character_id: character.id
     },
@@ -197,6 +197,13 @@ function buildProposedFacts({ turnId, character }) {
       id: "old-north-road-rumor",
       category: "rumor",
       text: "The old north road is tied to old debts and the north stones.",
+      evidence_turn: turnId,
+      source: character.id
+    },
+    {
+      id: "old-north-road-lead",
+      category: "lead",
+      text: "Ashford is a lead connected to the north stones, not a solved truth.",
       evidence_turn: turnId,
       source: character.id
     },
@@ -244,6 +251,7 @@ function buildWorldState({ scene, turn, character, truthVerdict }) {
     ],
     canon: truthVerdict.accepted_facts,
     rumors: truthVerdict.rumors,
+    leads: truthVerdict.leads,
     character_beliefs: truthVerdict.character_beliefs,
     unresolved: truthVerdict.unresolved,
     latest_turn: turn.id,

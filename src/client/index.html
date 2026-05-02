@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="last-lantern">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -28,12 +28,23 @@
               value="I ask who remembers the old north road."
               autocomplete="off"
             >
-            <button type="submit">Submit</button>
+            <button id="submit-turn" type="submit">Submit</button>
           </div>
+          <p id="turn-status" class="turn-status" aria-live="polite"></p>
         </form>
       </section>
 
       <aside class="side-panel" aria-label="Scene state">
+        <section>
+          <h2>World Theme</h2>
+          <label class="theme-label" for="theme-select">Preset</label>
+          <select id="theme-select" name="theme">
+            <option value="last-lantern">High Fantasy / Last Lantern</option>
+            <option value="cyberpunk">Cyberpunk</option>
+            <option value="cozy">Cozy Crossing</option>
+          </select>
+        </section>
+
         <section>
           <h2>Next Choices</h2>
           <ul id="choices" class="choice-list"></ul>
@@ -45,7 +56,7 @@
         </section>
 
         <section>
-          <h2>Truth Verdict</h2>
+          <h2>Story Memory</h2>
           <div id="truth" class="truth-box">No turn submitted yet.</div>
         </section>
       </aside>
