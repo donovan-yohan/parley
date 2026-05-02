@@ -123,7 +123,7 @@ breaking the other, as long as frontmatter ids stay stable.
 | What is this world about?                     | `WORLD.md`                            |
 | What is the canon for this place?             | `lore/locations/<id>.md`              |
 | What does this character know / sound like?   | `characters/<id>.md`                  |
-| What rumors are live?                         | `state/world-state.json.open_threads` |
+| What rumors are live?                         | `state/world-state.json`              |
 | What did the player just do?                  | `state/turns.jsonl`                   |
 | What did the authority decide?                | `state/truth-verdicts.jsonl`          |
 | What does the author know that nobody does?   | `state/hidden-truth.jsonl`            |
