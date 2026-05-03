@@ -11,7 +11,11 @@ const port = Number(process.env.PORT ?? 4173);
 const host = process.env.HOST ?? "127.0.0.1";
 const maxJsonBodyBytes = 1_000_000;
 
-const server = createServer(async (request, response) => {
+export function createParleyServer() {
+  return createServer(handleParleyRequest);
+}
+
+export async function handleParleyRequest(request, response) {
   try {
     if (request.method === "GET" && request.url === "/api/state") {
       return sendJson(response, await loadCurrentState());
@@ -31,16 +35,20 @@ const server = createServer(async (request, response) => {
   } catch (error) {
     sendJson(response, { error: error.message }, error.statusCode ?? 500);
   }
-});
+}
 
-server.on("error", (error) => {
-  console.error(`Parley server failed to start on ${host}:${port}: ${error.message}`);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const server = createParleyServer();
 
-server.listen(port, host, () => {
-  console.log(`Parley Last Lantern app running at http://${host}:${port}`);
-});
+  server.on("error", (error) => {
+    console.error(`Parley server failed to start on ${host}:${port}: ${error.message}`);
+    process.exit(1);
+  });
+
+  server.listen(port, host, () => {
+    console.log(`Parley Last Lantern app running at http://${host}:${port}`);
+  });
+}
 
 async function serveStatic(request, response) {
   const urlPath = new URL(request.url, `http://localhost:${port}`).pathname;

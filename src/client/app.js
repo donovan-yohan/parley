@@ -1,9 +1,14 @@
 const form = document.querySelector("#turn-form");
 const input = document.querySelector("#player-action");
+const submitButton = document.querySelector("#submit-turn");
+const turnStatus = document.querySelector("#turn-status");
 const transcript = document.querySelector("#transcript");
 const choices = document.querySelector("#choices");
 const characters = document.querySelector("#characters");
 const truth = document.querySelector("#truth");
+const themeSelect = document.querySelector("#theme-select");
+let latestResult = null;
+let turnRunning = false;
 
 const localTranscript = [
   {
@@ -14,32 +19,47 @@ const localTranscript = [
 
 render();
 
+themeSelect.addEventListener("change", () => {
+  document.documentElement.dataset.theme = themeSelect.value;
+});
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (turnRunning) {
+    return;
+  }
   const playerAction = input.value.trim();
   if (!playerAction) {
     return;
   }
 
   localTranscript.push({ speaker: "player", text: playerAction });
-  appendTranscriptEntry(localTranscript.at(-1));
+  input.value = "";
+  setTurnRunning(true);
+  render(latestResult);
 
-  const response = await fetch("/api/turn", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ playerAction })
-  });
+  try {
+    const response = await fetch("/api/turn", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ playerAction })
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    localTranscript.push({ speaker: "system", text: error.error ?? "Turn failed." });
-    appendTranscriptEntry(localTranscript.at(-1));
-    return;
+    if (!response.ok) {
+      const error = await response.json();
+      localTranscript.push({ speaker: "system", text: error.error ?? "Turn failed." });
+      return;
+    }
+
+    latestResult = await response.json();
+    localTranscript.push({ speaker: "narrator", text: latestResult.narration });
+  } catch (error) {
+    localTranscript.push({ speaker: "system", text: error.message ?? "Turn failed." });
+  } finally {
+    setTurnRunning(false);
+    render(latestResult);
+    input.focus();
   }
-
-  const result = await response.json();
-  localTranscript.push({ speaker: "narrator", text: result.narration });
-  render(result);
 });
 
 function render(result) {
@@ -48,17 +68,24 @@ function render(result) {
   if (!result) {
     choices.replaceChildren(emptyItem("Submit an action to discover choices."));
     characters.replaceChildren(emptyItem("No reusable NPCs yet."));
+    truth.replaceChildren(textLine("No story memory yet."));
     return;
   }
 
   choices.replaceChildren(
     ...result.nextChoices.map((choice) => {
       const item = document.createElement("li");
-      item.textContent = choice;
-      item.addEventListener("click", () => {
+      const button = document.createElement("button");
+      button.className = "choice-button";
+      button.type = "button";
+      button.disabled = turnRunning;
+      button.textContent = choice;
+      button.addEventListener("click", () => {
         input.value = choice;
+        input.select();
         input.focus();
       });
+      item.append(button);
       return item;
     })
   );
@@ -69,20 +96,23 @@ function render(result) {
       const name = document.createElement("strong");
       name.textContent = character.name;
       const meta = document.createElement("span");
-      meta.textContent = `${character.belayerGeneratedTalent.role} / ${character.lifecycle}`;
+      meta.textContent = describeCharacter(character);
+      const note = document.createElement("p");
+      note.textContent = describeCharacterNote(character);
       const tags = document.createElement("div");
       tags.className = "tags";
-      tags.replaceChildren(...character.tags.map((tag) => tagChip(tag)));
-      item.append(name, meta, tags);
+      const translatedTags = [...new Set((character.tags ?? []).map((tag) => humanTag(tag)))];
+      tags.replaceChildren(...translatedTags.map((tag) => tagChip(tag)));
+      item.append(name, meta, note, tags);
       return item;
     })
   );
 
   truth.replaceChildren(
-    textLine(`Verdict: ${result.truthVerdict.verdict}`),
-    textLine(`Accepted: ${result.truthVerdict.accepted_facts.map((fact) => fact.id).join(", ")}`),
-    textLine(`Rumors: ${result.truthVerdict.rumors.map((fact) => fact.id).join(", ")}`),
-    textLine(`Unresolved: ${result.truthVerdict.unresolved.map((fact) => fact.id).join(", ")}`)
+    memoryGroup("What changed", result.truthVerdict.accepted_facts),
+    memoryGroup("Leads", result.truthVerdict.leads ?? []),
+    memoryGroup("Rumors", result.truthVerdict.rumors),
+    memoryGroup("Unresolved", result.truthVerdict.unresolved)
   );
 }
 
@@ -122,4 +152,51 @@ function textLine(text) {
   const paragraph = document.createElement("p");
   paragraph.textContent = text;
   return paragraph;
+}
+
+function setTurnRunning(isRunning) {
+  turnRunning = isRunning;
+  input.disabled = isRunning;
+  submitButton.disabled = isRunning;
+  submitButton.textContent = isRunning ? "Listening..." : "Submit";
+  turnStatus.textContent = isRunning ? "The room weighs the question before answering." : "";
+}
+
+function describeCharacter(character) {
+  const role = humanTag(character.tags?.find((tag) => tag.startsWith("role:")) ?? character.belayerGeneratedTalent?.role ?? "");
+  const faction = humanTag(character.tags?.find((tag) => tag.startsWith("faction:")) ?? "");
+  const tone = humanTag(character.tags?.find((tag) => tag.startsWith("tone:")) ?? "");
+  const lifecycle = humanTag(character.lifecycle ?? "");
+  return [role, faction, tone, lifecycle].filter(Boolean).join(" / ");
+}
+
+function describeCharacterNote(character) {
+  const lifecycle = humanTag(character.lifecycle ?? "").toLowerCase();
+  const reusable = character.reusable ? "reusable" : "scene-bound";
+  return `${character.name} is a ${reusable}${lifecycle ? `, ${lifecycle}` : ""} NPC available through Parley's character record.`;
+}
+
+function humanTag(tag) {
+  const value = String(tag).includes(":") ? String(tag).split(":").slice(1).join(":") : String(tag);
+  return value
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function memoryGroup(label, facts) {
+  const group = document.createElement("section");
+  const title = document.createElement("h3");
+  title.textContent = label;
+  const list = document.createElement("ul");
+  list.replaceChildren(
+    ...(facts.length ? facts.map((fact) => {
+      const item = document.createElement("li");
+      item.textContent = fact.text;
+      return item;
+    }) : [emptyItem("Nothing recorded yet.")])
+  );
+  group.append(title, list);
+  return group;
 }
