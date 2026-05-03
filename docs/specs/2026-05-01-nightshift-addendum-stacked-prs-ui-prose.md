@@ -11,7 +11,7 @@ User direction captured during the night-shift run:
   - Show who is speaking clearly.
   - Think through how to reveal or hide characters' behind-the-scenes thinking.
   - Design infrastructure that makes the output prose worth reading, not generic roleplay sludge.
-  - Borrow useful concepts from AI roleplay character cards, silly taverns-style cards, lore bibles, and interactive fiction.
+  - Borrow useful concepts from AI roleplay character cards, SillyTavern-style cards, lore bibles, and interactive fiction.
   - Keep the distinctive value: federation of agents / Belayer talents as reusable characters.
 
 ## Stacked PR Plan
@@ -67,4 +67,3 @@ Do not expose raw chain-of-thought. Instead expose authored, safe layers:
 - GM notes / scene state
 - truth authority verdict summary
 - hidden debug view for developers only
-
