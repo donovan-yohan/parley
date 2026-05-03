@@ -1,0 +1,31 @@
+test/parley-runtime.test.js
+  466842055215d17d 49-66
+scripts/smoke-parley-e2e.mjs
+  466842055215d17d 148,154,156-183
+docs/specs/parley-truth-authority-contract.md
+  466842055215d17d 33,42,46-50
+docs/schemas/parley-truth-verdict.v1.example.json
+  466842055215d17d 33-42
+docs/research/2026-05-02-stack-audit.md
+  466842055215d17d 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "817ee8b00fb94a514373ab12c1f3f7deab73dd18",
+  "prompts": {
+    "466842055215d17d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "886aad34-5bae-497d-99f1-17517b2b21b7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 68,
+      "total_deletions": 11,
+      "accepted_lines": 2322,
+      "overriden_lines": 0
+    }
+  }
+}
