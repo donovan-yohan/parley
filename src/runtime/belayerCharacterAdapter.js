@@ -105,7 +105,7 @@ ${character.tags.map((tag) => `- \`${tag}\``).join("\n")}
 
 ## Knowledge Boundary
 
-${character.belayerGeneratedTalent.metadata.knowledge_boundary}
+${character.belayerGeneratedTalent.metadata.knowledge_boundary ?? "Not specified — defer to scene seed and prior canon."}
 
 ## Visual Profile
 

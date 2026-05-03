@@ -11,11 +11,20 @@ export const defaultScenarioId = "last-lantern";
 
 export async function listScenarioPacks() {
   const entries = await readdir(scenariosDir, { withFileTypes: true });
-  const scenarios = await Promise.all(
+  const settled = await Promise.allSettled(
     entries
       .filter((entry) => entry.isDirectory())
       .map((entry) => loadScenarioPack(entry.name))
   );
+
+  const scenarios = [];
+  for (const result of settled) {
+    if (result.status === "fulfilled") {
+      scenarios.push(result.value);
+    } else {
+      console.warn(`[parley] skipping scenario directory: ${result.reason?.message ?? result.reason}`);
+    }
+  }
 
   return scenarios
     .sort((left, right) => left.id.localeCompare(right.id))
@@ -93,19 +102,76 @@ function validateScenarioPack(scenario, scenarioPath) {
     throw new Error(`${scenarioPath} has unsupported themeId ${scenario.themeId}`);
   }
 
+  if (!scenario.world || typeof scenario.world !== "object" || Array.isArray(scenario.world)) {
+    throw new Error(`${scenarioPath} world must be an object`);
+  }
+  if (!String(scenario.world.id ?? "").trim()) {
+    throw new Error(`${scenarioPath} world.id is required`);
+  }
+
+  if (!scenario.scene || typeof scenario.scene !== "object" || Array.isArray(scenario.scene)) {
+    throw new Error(`${scenarioPath} scene must be an object`);
+  }
+  if (!String(scenario.scene.id ?? "").trim()) {
+    throw new Error(`${scenarioPath} scene.id is required`);
+  }
+
   if (!Array.isArray(scenario.characters) || scenario.characters.length === 0) {
     throw new Error(`${scenarioPath} must define at least one character`);
   }
+  validateScenarioCharacters(scenario.characters, scenarioPath);
 
   if (!Array.isArray(scenario.responses) || scenario.responses.length === 0) {
     throw new Error(`${scenarioPath} must define at least one response`);
   }
+  validateScenarioResponses(scenario.responses, scenarioPath);
 
   if (!Array.isArray(scenario.proposedFacts) || scenario.proposedFacts.length === 0) {
     throw new Error(`${scenarioPath} must define proposedFacts`);
   }
 
   validateOptionalDetourData(scenario, scenarioPath);
+}
+
+function validateScenarioCharacters(characters, scenarioPath) {
+  const seenIds = new Set();
+  for (const [index, character] of characters.entries()) {
+    if (!character || typeof character !== "object" || Array.isArray(character)) {
+      throw new Error(`${scenarioPath} characters[${index}] must be an object`);
+    }
+    for (const key of ["id", "name", "role"]) {
+      if (!String(character[key] ?? "").trim()) {
+        throw new Error(`${scenarioPath} characters[${index}] missing ${key}`);
+      }
+    }
+    if (seenIds.has(character.id)) {
+      throw new Error(`${scenarioPath} characters duplicate id ${character.id}`);
+    }
+    seenIds.add(character.id);
+  }
+}
+
+function validateScenarioResponses(responses, scenarioPath) {
+  const seenIds = new Set();
+  for (const [index, response] of responses.entries()) {
+    if (!response || typeof response !== "object" || Array.isArray(response)) {
+      throw new Error(`${scenarioPath} responses[${index}] must be an object`);
+    }
+    for (const key of ["id", "narration"]) {
+      if (!String(response[key] ?? "").trim()) {
+        throw new Error(`${scenarioPath} responses[${index}] missing ${key}`);
+      }
+    }
+    if (seenIds.has(response.id)) {
+      throw new Error(`${scenarioPath} responses duplicate id ${response.id}`);
+    }
+    seenIds.add(response.id);
+    if (response.id !== "fallback") {
+      if (!Array.isArray(response.matchAny) || response.matchAny.length === 0) {
+        throw new Error(`${scenarioPath} responses[${index}] (${response.id}) must define matchAny phrases`);
+      }
+    }
+  }
 }
 
 function validateOptionalDetourData(scenario, scenarioPath) {

@@ -76,7 +76,9 @@ export async function runPlayerTurn({
     actionInterpretation: authoredTurn.actionInterpretation,
     detourScene: authoredTurn.detourScene,
     storyConsequence: authoredTurn.storyConsequence,
-    beatRedirect: authoredTurn.beatRedirect
+    beatRedirect: authoredTurn.beatRedirect,
+    stateDir: resolvedStateDir,
+    worldDir: resolvedWorldDir
   });
 
   validateTruthVerdict(truthVerdict);
