@@ -129,19 +129,22 @@ function selectDetourGuidance({ scenario, playerAction }) {
 }
 
 function scoreGuidance({ guidance, action }) {
-  const matchAnyGroups = guidance.matchAnyGroups ?? [];
-  if (matchAnyGroups.length && !matchAnyGroups.every((group) => group.some((phrase) => action.includes(normalizeText(phrase))))) {
+  const groups = guidance._normalizedMatchAnyGroups
+    ?? (guidance.matchAnyGroups ?? []).map((group) => (group ?? []).map(normalizeText));
+  if (groups.length && !groups.every((group) => group.some((phrase) => action.includes(phrase)))) {
     return 0;
   }
 
-  const matchAny = guidance.matchAny ?? [];
-  const matchCount = matchAny.filter((phrase) => action.includes(normalizeText(phrase))).length;
-  const required = guidance.matchRequired ?? [];
-  const requiredMatches = required.every((phrase) => action.includes(normalizeText(phrase)));
+  const matchAny = guidance._normalizedMatchAny
+    ?? (guidance.matchAny ?? []).map(normalizeText);
+  const matchCount = matchAny.filter((phrase) => action.includes(phrase)).length;
+  const required = guidance._normalizedMatchRequired
+    ?? (guidance.matchRequired ?? []).map(normalizeText);
+  const requiredMatches = required.every((phrase) => action.includes(phrase));
   if (required.length && !requiredMatches) {
     return 0;
   }
-  return matchCount + required.length + matchAnyGroups.length;
+  return matchCount + required.length + groups.length;
 }
 
 function requireGuidance({ scenario, interpretation }) {

@@ -210,5 +210,19 @@ function validateOptionalDetourData(scenario, scenarioPath) {
         throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} targets unknown attractor ${targetAttractorId}`);
       }
     }
+
+    guidance._normalizedMatchAnyGroups = guidance.matchAnyGroups.map((group) =>
+      (group ?? []).map(normalizeDetourPhrase)
+    );
+    guidance._normalizedMatchAny = (guidance.matchAny ?? []).map(normalizeDetourPhrase);
+    guidance._normalizedMatchRequired = (guidance.matchRequired ?? []).map(normalizeDetourPhrase);
   }
+}
+
+function normalizeDetourPhrase(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
