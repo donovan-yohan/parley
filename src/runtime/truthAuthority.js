@@ -68,11 +68,18 @@ export function judgeTurn({
     });
   }
 
-  if (acceptedFacts.length === 0) {
+  const hasAnyContribution =
+    acceptedFacts.length > 0 ||
+    rumors.length > 0 ||
+    leads.length > 0 ||
+    beliefs.length > 0 ||
+    unresolved.length > 0;
+
+  if (!hasAnyContribution) {
     blockingRejectedClaims.push({
-      id: "missing-canon-fact",
-      claim: "The turn proposed at least one canon fact allowed by the world contract.",
-      reason: "No accepted canon facts were proposed for truth review."
+      id: "missing-turn-contribution",
+      claim: "The turn proposed at least one canon, belief, rumor, lead, or unresolved entry.",
+      reason: "No proposed facts of any category were provided for truth review."
     });
   }
 
@@ -107,5 +114,9 @@ function materializeContractFact({ contractFact, evidenceTurn }) {
 }
 
 function normalizeFactText(text) {
-  return String(text ?? "").replace(/\s+/g, " ").trim();
+  return String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/[.,;:!?]+$/g, "");
 }
