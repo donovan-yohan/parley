@@ -19,10 +19,13 @@ The app currently ships three example scenarios:
 | Neon Afterhours | `neon-afterhours` | `I ask who signed the audit lockout.` | Veyra Sol, Kestrel-9 |
 | Mossgrove Orchard Row | `orchard-welcome` | `I ask who keeps leaving lantern pears at my gate.` | June Bellweather |
 
-Each scenario writes runtime artifacts under `worlds/<scenario-id>/state/` when
-played through the browser app. The current `worlds/*` and `scenarios/*` layout
-is a prototype/template layout; the planned framework split will materialize
-fresh `instances/*` directories for gameplay. See
+Each scenario writes runtime artifacts under `worlds/<world-id>/state/` when
+played through the browser app. The current demo uses matching scenario and world
+IDs, but the runtime derives the state path from `scenario.world.id`.
+
+The current `worlds/*` and `scenarios/*` layout is a prototype/template
+layout; the planned framework split will materialize fresh `instances/*`
+directories for gameplay. See
 `docs/plans/2026-05-03-instance-wiki-authoring.md`.
 
 ## Prerequisites
@@ -244,21 +247,24 @@ SMOKE_BELAYER_HOME=/tmp/parley-belayer-smoke BELAYER_BIN=/path/to/belayer ./scri
 Browser play writes scenario state under:
 
 ```text
-worlds/<scenario-id>/state/
+worlds/<world-id>/state/
 ```
 
-Important files include:
+Important files are created lazily as turns are submitted:
 
-- `world-state.json`
-- `turns.jsonl`
-- `truth-verdicts.jsonl`
-- `action-interpretations.jsonl`
-- `detour-scenes.jsonl`
-- `story-consequences.jsonl`
-- `beat-redirects.jsonl`
+- `truth-verdicts.jsonl` is appended for every evaluated turn, including turns
+  that fail truth validation.
+- `turns.jsonl` is appended only for committed turns where the truth verdict is
+  `pass`.
+- `world-state.json` is written after committed turns and represents the latest
+  durable state.
+- `action-interpretations.jsonl`, `detour-scenes.jsonl`,
+  `story-consequences.jsonl`, and `beat-redirects.jsonl` are appended only when a
+  committed turn produces DM detour artifacts. Normal on-path turns may not create
+  these files.
 
 These are intentionally inspectable JSON/JSONL files. If local state gets noisy,
-remove the relevant `worlds/<scenario-id>/state/` directory and restart the app.
+remove the relevant `worlds/<world-id>/state/` directory and restart the app.
 
 ## Development Notes
 
