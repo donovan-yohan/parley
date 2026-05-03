@@ -30,6 +30,17 @@
       "notes": "Allowed as in-world rumor; not promoted to canon."
     },
     {
+      "claim_id": "c2a",
+      "speaker": "mara-underbough",
+      "text": "The old north road shows recent wagon ruts worth following.",
+      "category": "lead",
+      "accepted": true,
+      "evidence": [
+        "worlds/last-lantern/state/turns.jsonl#turn-0003"
+      ],
+      "notes": "Kept in world-state.leads pending player follow-up. Not promoted to canon."
+    },
+    {
       "claim_id": "c3",
       "speaker": "mara-underbough",
       "text": "Mara is secretly an Ashford heir.",
@@ -69,5 +80,16 @@
     ]
   },
   "required_fixes": [],
-  "hidden_truth_writes": []
+  "hidden_truth_writes": [],
+  "handled_rejected_claims": [
+    {
+      "claim_id": "c4",
+      "speaker": "player",
+      "text": "I'd like to swing my sword and split the bar in half.",
+      "category": "canon",
+      "reason": "Player-proposed canon claim outside the scenario contract. Detour author absorbed the disruption with a deterministic consequence narration; runtime persisted the rejection as handled but allowed the turn to commit.",
+      "handled_by": "dm-detour-tools/v1",
+      "handled": true
+    }
+  ]
 }

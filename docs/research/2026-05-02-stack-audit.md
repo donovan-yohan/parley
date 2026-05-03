@@ -19,7 +19,7 @@ The current vanilla UI is fine as proof. If we keep adding panels, theming, stat
 Worktree:
 
 ```text
-/Users/donovanyohan/Documents/Programs/personal/parley-worktrees/stack-audit-ui-prose-research
+parley-worktrees/stack-audit-ui-prose-research/
 ```
 
 Base branch:

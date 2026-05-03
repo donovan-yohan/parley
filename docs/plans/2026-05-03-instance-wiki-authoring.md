@@ -137,7 +137,11 @@ During play, the active instance is the artifact and source of truth.
 
 - Mara receives active scene and her own knowledge scope;
 - Mara does not receive hidden truth;
-- off-screen lore is excluded for `default_view: scene-local`;
+- off-screen lore is excluded when the character record sets
+  `context_policy.default_view: scene-local` (a new optional field on the
+  per-character knowledge_scope object that tells `buildCharacterContext`
+  to default to scene-local lore unless the character explicitly opts into
+  wider visibility);
 - relationship/closeness guidance appears in character context;
 - template paths do not appear in serialized context.
 
@@ -155,9 +159,19 @@ During play, the active instance is the artifact and source of truth.
 
 - Append pending candidates to story instance state.
 - Accepting a candidate writes to world-instance canon and audit logs.
-- Rejecting/defering does not change world canon.
+- Rejecting/deferring does not change world canon.
 - Promotion never rewrites `turns.jsonl`.
 - Acceptance requires evidence turn ids and verdict ids.
+- Acceptance is atomic across the four-file write
+  (`world/canon/facts.jsonl`, `world/state/world-state.json`,
+  `world/log.md`, `story/state/promotions.jsonl`). Implementation
+  approach: write each new file content to a sibling `*.tmp` path,
+  fsync, then rename in a fixed order (`facts.jsonl` →
+  `world-state.json` → `log.md` → `promotions.jsonl`); on restart the
+  promotion runner detects orphan `*.tmp` siblings and either replays
+  the rename (if its parent record is already in `promotions.jsonl`)
+  or removes them. The audit append to `promotions.jsonl` is the
+  durable commit point.
 
 **Tests:**
 

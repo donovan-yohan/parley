@@ -255,7 +255,10 @@ function assetStatusLabel(asset, noun) {
   if (status === "deferred") {
     return `${noun} deferred`;
   }
-  return `${noun} missing`;
+  if (status === "missing") {
+    return `${noun} missing`;
+  }
+  return `${noun} ${status.replaceAll("_", " ")}`;
 }
 
 function stateView(state) {

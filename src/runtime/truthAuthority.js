@@ -7,7 +7,9 @@ export function judgeTurn({
   character,
   characters = character ? [character] : [],
   proposedFacts,
-  handledRejectedClaims = []
+  handledRejectedClaims = [],
+  stateDir,
+  worldDir
 }) {
   const blockingRejectedClaims = [];
   const handledClaims = handledRejectedClaims.map((claim) => ({
@@ -68,11 +70,18 @@ export function judgeTurn({
     });
   }
 
-  if (acceptedFacts.length === 0) {
+  const hasAnyContribution =
+    acceptedFacts.length > 0 ||
+    rumors.length > 0 ||
+    leads.length > 0 ||
+    beliefs.length > 0 ||
+    unresolved.length > 0;
+
+  if (!hasAnyContribution) {
     blockingRejectedClaims.push({
-      id: "missing-canon-fact",
-      claim: "The turn proposed at least one canon fact allowed by the world contract.",
-      reason: "No accepted canon facts were proposed for truth review."
+      id: "missing-turn-contribution",
+      claim: "The turn proposed at least one canon, belief, rumor, lead, or unresolved entry.",
+      reason: "No proposed facts of any category were provided for truth review."
     });
   }
 
@@ -91,10 +100,7 @@ export function judgeTurn({
     character_beliefs: beliefs,
     unresolved,
     author_only_hidden_truth: [],
-    evidence: [
-      scenario?.scenarioPath ?? "examples/last-lantern/scene.yaml",
-      `worlds/${scenario?.world?.id ?? "last-lantern"}/state/turns.jsonl`
-    ]
+    evidence: buildEvidencePaths({ scenario, stateDir, worldDir })
   };
 }
 
@@ -106,6 +112,25 @@ function materializeContractFact({ contractFact, evidenceTurn }) {
   };
 }
 
+function buildEvidencePaths({ scenario, stateDir, worldDir }) {
+  const evidence = [];
+  if (scenario?.scenarioPath) {
+    evidence.push(scenario.scenarioPath);
+  }
+  if (stateDir) {
+    evidence.push(`${stateDir}/turns.jsonl`);
+  } else if (worldDir) {
+    evidence.push(`${worldDir}/state/turns.jsonl`);
+  } else if (scenario?.world?.id) {
+    evidence.push(`worlds/${scenario.world.id}/state/turns.jsonl`);
+  }
+  return evidence;
+}
+
 function normalizeFactText(text) {
-  return String(text ?? "").replace(/\s+/g, " ").trim();
+  return String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/[.,;:!?]+$/g, "");
 }

@@ -76,7 +76,9 @@ export async function runPlayerTurn({
     actionInterpretation: authoredTurn.actionInterpretation,
     detourScene: authoredTurn.detourScene,
     storyConsequence: authoredTurn.storyConsequence,
-    beatRedirect: authoredTurn.beatRedirect
+    beatRedirect: authoredTurn.beatRedirect,
+    stateDir: resolvedStateDir,
+    worldDir: resolvedWorldDir
   });
 
   validateTruthVerdict(truthVerdict);
@@ -117,6 +119,7 @@ export async function runPlayerTurn({
   await appendJsonLine(path.join(resolvedStateDir, "turns.jsonl"), turn);
   await persistDmArtifacts({ stateDir: resolvedStateDir, authoredTurn });
   await appendJsonLine(path.join(resolvedStateDir, "truth-verdicts.jsonl"), truthVerdict);
+  await persistHiddenTruth({ stateDir: resolvedStateDir, truthVerdict });
   const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState, authoredTurn });
   await writeFile(worldStatePath, `${JSON.stringify(worldState, null, 2)}\n`, "utf8");
 
@@ -247,6 +250,9 @@ async function nextTurnId(stateDir) {
 }
 
 async function buildAuthoredTurn({ turnAuthor, turnId, scenario, scene, playerAction, characters, previousWorldState }) {
+  if (turnAuthor === null) {
+    throw new Error("turnAuthor must not be null");
+  }
   const resolvedTurnAuthor = typeof turnAuthor === "function"
     ? { id: "custom-turn-author", mode: "custom", authorTurn: turnAuthor }
     : turnAuthor;
@@ -296,8 +302,16 @@ function validateTruthVerdict(truthVerdict) {
     throw new Error("truthAuthority must return a truth verdict object");
   }
 
-  if (!["pass", "revise"].includes(truthVerdict.verdict)) {
+  if (!["pass", "revise", "fail"].includes(truthVerdict.verdict)) {
     throw new Error(`truthAuthority returned invalid verdict ${truthVerdict.verdict}`);
+  }
+
+  const verdictId = String(truthVerdict.id ?? truthVerdict.verdict_id ?? "").trim();
+  if (!verdictId) {
+    throw new Error("truthAuthority verdict missing id");
+  }
+  if (!truthVerdict.id) {
+    truthVerdict.id = verdictId;
   }
 
   for (const key of [
@@ -361,6 +375,22 @@ function summarizeDmArtifacts(authoredTurn) {
   };
 }
 
+async function persistHiddenTruth({ stateDir, truthVerdict }) {
+  const writes = truthVerdict.author_only_hidden_truth ?? truthVerdict.hidden_truth_writes ?? [];
+  if (!Array.isArray(writes) || writes.length === 0) {
+    return;
+  }
+  const sidecarPath = path.join(stateDir, "hidden-truth.jsonl");
+  for (const entry of writes) {
+    await appendJsonLine(sidecarPath, {
+      ...entry,
+      schema_version: "parley-hidden-truth/v1",
+      verdict_id: truthVerdict.id,
+      turn_id: truthVerdict.turn_id
+    });
+  }
+}
+
 async function persistDmArtifacts({ stateDir, authoredTurn }) {
   const artifactFiles = [
     ["action-interpretations.jsonl", authoredTurn.actionInterpretation],
@@ -393,11 +423,20 @@ function mergeById(previous = [], next = []) {
 }
 
 function memoryMergeKey(item) {
-  const semanticKey = item.text ?? item.claim ?? item.summary ?? item.name;
-  if (semanticKey) {
-    return normalizeMemoryKey(semanticKey);
+  if (item.name && item.id) {
+    return `id:${item.id}`;
   }
-  return item.id ?? JSON.stringify(item);
+  const semanticKey = item.text ?? item.claim ?? item.summary;
+  if (semanticKey) {
+    return `text:${normalizeMemoryKey(semanticKey)}`;
+  }
+  if (item.id) {
+    return `id:${item.id}`;
+  }
+  if (item.name) {
+    return `name:${normalizeMemoryKey(item.name)}`;
+  }
+  return `json:${JSON.stringify(item)}`;
 }
 
 function normalizeMemoryKey(value) {

@@ -28,7 +28,7 @@ export function normalizeAuthoredTurn({ authoredTurn, turnAuthor, scenario, turn
     throw new Error("turnAuthor must return an authored turn object");
   }
 
-  const responseId = String(authoredTurn.responseId ?? authoredTurn.response_id ?? "unscoped-turn").trim();
+  const responseId = String(authoredTurn.responseId ?? authoredTurn.response_id ?? "").trim();
   if (!responseId) {
     throw new Error("turnAuthor must return a non-empty responseId");
   }

@@ -11,11 +11,20 @@ export const defaultScenarioId = "last-lantern";
 
 export async function listScenarioPacks() {
   const entries = await readdir(scenariosDir, { withFileTypes: true });
-  const scenarios = await Promise.all(
+  const settled = await Promise.allSettled(
     entries
       .filter((entry) => entry.isDirectory())
       .map((entry) => loadScenarioPack(entry.name))
   );
+
+  const scenarios = [];
+  for (const result of settled) {
+    if (result.status === "fulfilled") {
+      scenarios.push(result.value);
+    } else {
+      console.warn(`[parley] skipping scenario directory: ${result.reason?.message ?? result.reason}`);
+    }
+  }
 
   return scenarios
     .sort((left, right) => left.id.localeCompare(right.id))
@@ -28,11 +37,12 @@ export async function loadScenarioPack(scenarioId = defaultScenarioId) {
   const raw = await readFile(scenarioPath, "utf8");
   const scenario = JSON.parse(raw);
   validateScenarioPack(scenario, scenarioPath);
+  const worldId = normalizeWorldId(scenario.world?.id, scenarioPath);
   return {
     ...scenario,
     scenarioPath,
-    stateDir: path.join(repoRoot, "worlds", scenario.world.id, "state"),
-    worldDir: path.join(repoRoot, "worlds", scenario.world.id)
+    stateDir: path.join(repoRoot, "worlds", worldId, "state"),
+    worldDir: path.join(repoRoot, "worlds", worldId)
   };
 }
 
@@ -56,6 +66,14 @@ function normalizeScenarioId(scenarioId) {
     const error = new Error(`Invalid scenario id: ${scenarioId}`);
     error.statusCode = 400;
     throw error;
+  }
+  return id;
+}
+
+function normalizeWorldId(worldId, scenarioPath) {
+  const id = String(worldId ?? "").trim();
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+    throw new Error(`${scenarioPath} has invalid world.id ${JSON.stringify(worldId)} (must match /^[a-z0-9][a-z0-9-]*$/)`);
   }
   return id;
 }
@@ -84,19 +102,76 @@ function validateScenarioPack(scenario, scenarioPath) {
     throw new Error(`${scenarioPath} has unsupported themeId ${scenario.themeId}`);
   }
 
+  if (!scenario.world || typeof scenario.world !== "object" || Array.isArray(scenario.world)) {
+    throw new Error(`${scenarioPath} world must be an object`);
+  }
+  if (!String(scenario.world.id ?? "").trim()) {
+    throw new Error(`${scenarioPath} world.id is required`);
+  }
+
+  if (!scenario.scene || typeof scenario.scene !== "object" || Array.isArray(scenario.scene)) {
+    throw new Error(`${scenarioPath} scene must be an object`);
+  }
+  if (!String(scenario.scene.id ?? "").trim()) {
+    throw new Error(`${scenarioPath} scene.id is required`);
+  }
+
   if (!Array.isArray(scenario.characters) || scenario.characters.length === 0) {
     throw new Error(`${scenarioPath} must define at least one character`);
   }
+  validateScenarioCharacters(scenario.characters, scenarioPath);
 
   if (!Array.isArray(scenario.responses) || scenario.responses.length === 0) {
     throw new Error(`${scenarioPath} must define at least one response`);
   }
+  validateScenarioResponses(scenario.responses, scenarioPath);
 
   if (!Array.isArray(scenario.proposedFacts) || scenario.proposedFacts.length === 0) {
     throw new Error(`${scenarioPath} must define proposedFacts`);
   }
 
   validateOptionalDetourData(scenario, scenarioPath);
+}
+
+function validateScenarioCharacters(characters, scenarioPath) {
+  const seenIds = new Set();
+  for (const [index, character] of characters.entries()) {
+    if (!character || typeof character !== "object" || Array.isArray(character)) {
+      throw new Error(`${scenarioPath} characters[${index}] must be an object`);
+    }
+    for (const key of ["id", "name", "role"]) {
+      if (!String(character[key] ?? "").trim()) {
+        throw new Error(`${scenarioPath} characters[${index}] missing ${key}`);
+      }
+    }
+    if (seenIds.has(character.id)) {
+      throw new Error(`${scenarioPath} characters duplicate id ${character.id}`);
+    }
+    seenIds.add(character.id);
+  }
+}
+
+function validateScenarioResponses(responses, scenarioPath) {
+  const seenIds = new Set();
+  for (const [index, response] of responses.entries()) {
+    if (!response || typeof response !== "object" || Array.isArray(response)) {
+      throw new Error(`${scenarioPath} responses[${index}] must be an object`);
+    }
+    for (const key of ["id", "narration"]) {
+      if (!String(response[key] ?? "").trim()) {
+        throw new Error(`${scenarioPath} responses[${index}] missing ${key}`);
+      }
+    }
+    if (seenIds.has(response.id)) {
+      throw new Error(`${scenarioPath} responses duplicate id ${response.id}`);
+    }
+    seenIds.add(response.id);
+    if (response.id !== "fallback") {
+      if (!Array.isArray(response.matchAny) || response.matchAny.length === 0) {
+        throw new Error(`${scenarioPath} responses[${index}] (${response.id}) must define matchAny phrases`);
+      }
+    }
+  }
 }
 
 function validateOptionalDetourData(scenario, scenarioPath) {
@@ -127,6 +202,22 @@ function validateOptionalDetourData(scenario, scenarioPath) {
     if (!Array.isArray(guidance.matchAnyGroups) || guidance.matchAnyGroups.length === 0) {
       throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} must define matchAnyGroups`);
     }
+    for (const [groupIndex, group] of guidance.matchAnyGroups.entries()) {
+      if (!Array.isArray(group) || group.length === 0) {
+        throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} matchAnyGroups[${groupIndex}] must be a non-empty array of phrases`);
+      }
+      for (const [phraseIndex, phrase] of group.entries()) {
+        if (typeof phrase !== "string" || !phrase.trim()) {
+          throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} matchAnyGroups[${groupIndex}][${phraseIndex}] must be a non-empty string`);
+        }
+      }
+    }
+    if (guidance.matchAny !== undefined && !Array.isArray(guidance.matchAny)) {
+      throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} matchAny must be an array when provided`);
+    }
+    if (guidance.matchRequired !== undefined && !Array.isArray(guidance.matchRequired)) {
+      throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} matchRequired must be an array when provided`);
+    }
     if (!Array.isArray(guidance.targetAttractorIds) || guidance.targetAttractorIds.length === 0) {
       throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} must target at least one attractor`);
     }
@@ -135,5 +226,19 @@ function validateOptionalDetourData(scenario, scenarioPath) {
         throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} targets unknown attractor ${targetAttractorId}`);
       }
     }
+
+    guidance._normalizedMatchAnyGroups = guidance.matchAnyGroups.map((group) =>
+      (group ?? []).map(normalizeDetourPhrase)
+    );
+    guidance._normalizedMatchAny = (guidance.matchAny ?? []).map(normalizeDetourPhrase);
+    guidance._normalizedMatchRequired = (guidance.matchRequired ?? []).map(normalizeDetourPhrase);
   }
+}
+
+function normalizeDetourPhrase(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }

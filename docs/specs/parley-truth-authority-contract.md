@@ -30,7 +30,7 @@ It does not:
 It returns a verdict object. The runtime applies (or rejects) the delta based
 on the verdict.
 
-## Five Truth Categories
+## Six Truth Categories
 
 Every claim in a turn is bucketed into exactly one of these:
 
@@ -39,8 +39,15 @@ Every claim in a turn is bucketed into exactly one of these:
 | `canon`            | "Mara is the tavernkeep at the Last Lantern."              | `world-state.timeline` + `characters` entry   |
 | `character_belief` | "Mara thinks Garrick is lying about the toll."             | `open_threads` with `kind=belief`, attributed |
 | `rumor`            | "They say the north stones move when no one watches."      | `open_threads` with `kind=rumor`              |
+| `lead`             | "The old north road shows recent wagon ruts worth following." | `world-state.leads`, kept until promoted/dropped |
 | `unresolved`       | "Something happened with the Ashford line. Unclear what."  | `open_threads` with `kind=mystery`            |
 | `hidden_truth`     | Author-only fact not yet shown to player                   | NOT in world-state. Author-only sidecar.      |
+
+`lead` is distinct from `rumor` (which is a public-facing whisper) and from
+`unresolved` (which is a player-visible open mystery). Leads describe a
+specific next-step opportunity the runtime should keep alive in
+`world-state.leads` until either promoted to `canon` (via
+`parley-canon-promotion-policy`) or explicitly dropped.
 
 Hidden truths must never be written to player-visible artifacts. They live in a
 separate file (`worlds/<w>/state/hidden-truth.jsonl`) the UI does not read.
@@ -93,8 +100,42 @@ hidden_truth_writes: []
 - `revise` — runtime applies `state_delta.applied` but must regenerate the
   parts of narration tied to rejected claims. `required_fixes` lists what must
   change.
-- `fail` — runtime rolls back. Nothing is committed. The GM gets the findings
-  and retries. After N retries (default 2) the run halts and logs.
+- `fail` — runtime rolls back. No world-state, turn, or DM-artifact
+  files are committed; the verdict itself is still appended to
+  `state/truth-verdicts.jsonl` so the failure is durable evidence the
+  GM and reviewers can replay. The GM gets the findings and retries.
+  After N retries (default 2) the run halts and logs.
+
+The verdict object's identifier may be supplied as either the JS-style
+`id` field or the documented `verdict_id` field. The runtime accepts
+either, populates `id` from `verdict_id` when only the latter is
+present, and validates that at least one is non-empty.
+
+## Handled Rejection Pattern (yes-and detours)
+
+A turn author may propose a claim that the truth authority cannot accept as
+canon (typically a disruptive player-driven claim such as `c4` in the example).
+A DM detour author may absorb that rejection by emitting a deterministic
+consequence narration that acknowledges the disruption without promoting the
+claim.
+
+When the runtime is invoked with `handledRejectedClaims`, those entries are
+appended to `handled_rejected_claims` (each carrying `handled: true` and a
+`handled_by` provenance string) and do **not** count toward the blocking set
+that demotes a verdict from `pass` to `revise`.
+
+Authority contract requirements for handled claims:
+
+- The handling provenance (`handled_by`) must reference a registered detour
+  contract. Today that is `dm-detour-tools/v1`.
+- The original `claim_id` and `text` must be preserved verbatim so downstream
+  consumers can audit what was disrupted vs. canonized.
+- Handled claims never write into `state_delta.applied`. Their only effect on
+  state is the consequence narration the detour author already produced.
+
+Without an active detour author, a turn that proposes unsupported canon must
+still be downgraded to `revise`. This pattern is opt-in per turn, not the
+authority's default behavior.
 
 ## Knowledge Scope Enforcement
 

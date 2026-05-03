@@ -129,19 +129,32 @@ function selectDetourGuidance({ scenario, playerAction }) {
 }
 
 function scoreGuidance({ guidance, action }) {
-  const matchAnyGroups = guidance.matchAnyGroups ?? [];
-  if (matchAnyGroups.length && !matchAnyGroups.every((group) => group.some((phrase) => action.includes(normalizeText(phrase))))) {
+  const groups = guidance._normalizedMatchAnyGroups
+    ?? (guidance.matchAnyGroups ?? []).map((group) => (group ?? []).map(normalizeText));
+  if (groups.length && !groups.every((group) => group.some((phrase) => action.includes(phrase)))) {
     return 0;
   }
 
-  const matchAny = guidance.matchAny ?? [];
-  const matchCount = matchAny.filter((phrase) => action.includes(normalizeText(phrase))).length;
-  const required = guidance.matchRequired ?? [];
-  const requiredMatches = required.every((phrase) => action.includes(normalizeText(phrase)));
+  const matchAny = guidance._normalizedMatchAny
+    ?? (guidance.matchAny ?? []).map(normalizeText);
+  const matchCount = matchAny.filter((phrase) => action.includes(phrase)).length;
+  const required = guidance._normalizedMatchRequired
+    ?? (guidance.matchRequired ?? []).map(normalizeText);
+  const requiredMatches = required.every((phrase) => action.includes(phrase));
   if (required.length && !requiredMatches) {
     return 0;
   }
-  return matchCount + required.length + matchAnyGroups.length;
+  // Score is the sum of three contributions because each one represents
+  // additional specificity, not redundancy:
+  //   - matchCount: how many optional phrases the action hit
+  //   - required.length: number of must-hit phrases (already verified above)
+  //   - groups.length: number of independent matchAnyGroups (each one is a
+  //     separate hard AND filter, also already verified above)
+  // A guidance with N matchAnyGroups outranks one with M < N groups because
+  // each group is a hard AND, so more groups = more constraints satisfied,
+  // not fewer. Weighting groups by inverse size would reverse that and let
+  // a single broad OR-group beat several narrow ANDs.
+  return matchCount + required.length + groups.length;
 }
 
 function requireGuidance({ scenario, interpretation }) {

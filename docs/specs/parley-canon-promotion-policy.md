@@ -35,15 +35,15 @@ the story log and truth verdicts.
   "id": "promo-0001",
   "status": "pending",
   "source": {
-    "world_instance": "kyle-last-lantern",
+    "world_instance": "kyle-last-lantern-first-rumor",
     "story_instance": "first-rumor-001",
-    "turn_ids": ["turn-0003"],
-    "verdict_ids": ["verdict-0003"],
-    "claim_ids": ["c2"]
+    "turn_ids": ["turn-0007"],
+    "verdict_ids": ["verdict-0007"],
+    "claim_ids": ["c5"]
   },
   "current_category": "rumor",
   "proposed_category": "canon",
-  "summary": "The red-scarfed drover heard the Ashford name and left before closing.",
+  "summary": "The red-scarfed drover reacted to the Ashford name and left before closing.",
   "proposed_writes": [
     {
       "target": "world/canon/facts.jsonl",
@@ -98,7 +98,7 @@ The first implementation should be deterministic and file-backed:
 
 ```bash
 node scripts/accept-promotion-candidate.mjs \
-  --instance instances/kyle-last-lantern \
+  --instance instances/kyle-last-lantern-first-rumor \
   --story first-rumor-001 \
   --candidate promo-0001 \
   --actor dm:kyle
@@ -108,11 +108,35 @@ The script should:
 
 1. Read the pending candidate.
 2. Validate it has evidence turns and verdicts.
-3. Append to `story/state/promotions.jsonl`.
-4. Append canon to `world/canon/facts.jsonl` or the target lore file.
-5. Update `world/state/world-state.json`.
-6. Append a line to `world/log.md` with actor, timestamp, evidence, and candidate id.
-7. Leave `turns.jsonl` byte-identical.
+3. Validate every `proposed_writes[].target` against the target
+   allowlist (see below). Reject the candidate if any target is not
+   allowlisted.
+4. Append to `story/state/promotions.jsonl`.
+5. Append canon to `world/canon/facts.jsonl` or the target lore file.
+6. Update `world/state/world-state.json`.
+7. Append a line to `world/log.md` with actor, timestamp, evidence, and candidate id.
+8. Leave `turns.jsonl` byte-identical.
+
+### `proposed_writes[].target` allowlist
+
+The target field must match one of these prefixes. Anything else fails
+validation, in particular `story/state/turns.jsonl` is forbidden (step 8
+requires it byte-identical):
+
+| Allowed prefix                   | Purpose                                    |
+| -------------------------------- | ------------------------------------------ |
+| `world/canon/facts.jsonl`        | Append a canon fact entry                  |
+| `world/state/world-state.json`   | Update the materialized world snapshot     |
+| `world/log.md`                   | Append a human-readable changelog line     |
+| `world/lore/locations/<id>.md`   | Append/update a durable location record    |
+| `world/lore/factions/<id>.md`    | Append/update a durable faction record     |
+| `story/state/promotions.jsonl`   | Append the audit trail entry               |
+
+Forbidden prefixes (validator must reject):
+
+- `story/state/turns.jsonl`
+- `story/state/truth-verdicts.jsonl`
+- anything outside `world/` or `story/state/promotions.jsonl`
 
 A UI can come later. Do not block the contract on UI.
 

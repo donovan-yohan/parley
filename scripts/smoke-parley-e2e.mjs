@@ -145,17 +145,42 @@ async function main() {
       await stat(artifactPath);
     }
 
-    const [worldState, turns, truth] = await Promise.all([
+    const [worldStateRaw, turns, truthRaw] = await Promise.all([
       readFile(worldStatePath, "utf8"),
       readFile(turnsPath, "utf8"),
       readFile(truthPath, "utf8")
     ]);
 
-    assert.match(worldState, /mara-underbough/);
-    assert.match(worldState, /old-north-road-lead/);
+    assert.match(worldStateRaw, /mara-underbough/);
     assert.match(turns, /I ask who remembers the old north road\./);
-    assert.match(truth, /old-north-road-rumor/);
-    assert.match(truth, /ashford-name-mystery/);
+
+    const worldState = JSON.parse(worldStateRaw);
+    const persistedVerdicts = truthRaw
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+    const lastVerdict = persistedVerdicts.at(-1);
+
+    assert.ok(
+      lastVerdict.leads.some((entry) => entry.id === "old-north-road-lead"),
+      "expected old-north-road-lead in the last verdict"
+    );
+    assert.ok(
+      lastVerdict.unresolved.some((entry) => entry.id === "ashford-name-mystery"),
+      "expected ashford-name to remain an unresolved mystery, not be promoted to canon"
+    );
+    assert.ok(
+      !lastVerdict.accepted_facts.some((fact) => /ashford/i.test(fact.text)),
+      "Ashford must never appear as accepted canon"
+    );
+    assert.ok(
+      worldState.leads.some((entry) => entry.id === "old-north-road-lead"),
+      "expected old-north-road-lead in world-state.leads"
+    );
+    assert.ok(
+      !worldState.canon.some((fact) => /ashford/i.test(fact.text ?? "")),
+      "world-state.canon must not contain any Ashford fact"
+    );
 
     console.log("Parley narrative e2e smoke");
     console.log("");

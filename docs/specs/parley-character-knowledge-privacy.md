@@ -64,6 +64,42 @@ knowledge_scope:
     - full_story_log
     - pending_promotion_candidates
     - private_other_character_beliefs
+```
+
+### `may_read` and `must_not_read` selector grammar
+
+Each entry is a string the context builder matches as either a
+well-known token or a typed selector with a fixed shape:
+
+```
+selector       = well_known | typed_selector
+well_known     = "self" | "active_scene" | "witnessed_turns"
+                | "hidden_truth" | "full_world_wiki" | "full_story_log"
+                | "pending_promotion_candidates"
+                | "private_other_character_beliefs"
+typed_selector = scope ":" entity_type ":" entity_id
+scope          = "public_canon" | "instance_canon"
+entity_type    = "location" | "faction" | "character" | "scene"
+entity_id      = lower-kebab-case identifier as it appears in the
+                 instance wiki (e.g. last-lantern-tavern)
+```
+
+Worked examples:
+
+| Selector                                   | Resolves to                                  |
+| ------------------------------------------ | -------------------------------------------- |
+| `self`                                     | This character's own record                  |
+| `active_scene`                             | Active scene seed and visible scene state    |
+| `witnessed_turns`                          | Turns where this character was a participant |
+| `public_canon:location:last-lantern-tavern`| Public canon facts tagged to that location   |
+| `public_canon:faction:last-lantern-staff`  | Public canon facts tagged to that faction    |
+| `instance_canon:character:mara-underbough` | Instance-canon facts about another character (rarely allowed) |
+
+Unrecognized tokens or malformed typed selectors must fail validation
+at scenario load time, not silently expose extra context at gameplay
+time.
+
+```yaml
 
 sharing_guidance:
   default_posture: warm-watchful

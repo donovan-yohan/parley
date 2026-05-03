@@ -5,9 +5,9 @@
   "source": {
     "world_instance": "kyle-last-lantern-first-rumor",
     "story_instance": "first-rumor-001",
-    "turn_ids": ["turn-0003"],
-    "verdict_ids": ["verdict-0003"],
-    "claim_ids": ["c2"]
+    "turn_ids": ["turn-0007"],
+    "verdict_ids": ["verdict-0007"],
+    "claim_ids": ["c5"]
   },
   "current_category": "rumor",
   "proposed_category": "canon",

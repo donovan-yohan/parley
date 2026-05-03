@@ -25,7 +25,10 @@ export function validateActionInterpretation(value) {
     "unsupported_claims",
     "guidance_id"
   ], "action interpretation");
+  requiredString(artifact, "id");
   requiredString(artifact, "turn_id");
+  requiredString(artifact, "player_action");
+  requiredString(artifact, "scene_id");
   requiredString(artifact, "intent");
   requiredString(artifact, "plausibility");
   requiredString(artifact, "cooperation");
@@ -45,6 +48,16 @@ export function validateActionInterpretation(value) {
 
 export function validateStoryAttractor(value) {
   const artifact = objectWithSchema(value, schemaVersions.storyAttractor, "story attractor");
+  allowedKeys(artifact, [
+    "schema_version",
+    "id",
+    "story_instance_id",
+    "priority",
+    "intent",
+    "acceptable_routes",
+    "forbidden_shortcuts",
+    "success_signals"
+  ], "story attractor");
   requiredString(artifact, "id");
   requiredString(artifact, "story_instance_id");
   requiredString(artifact, "priority");
@@ -107,6 +120,20 @@ export function validateStoryConsequence(value) {
   requiredArray(artifact, "affected_entities");
   optionalArray(artifact, "reputation_deltas");
   optionalArray(artifact, "followup_hooks");
+  optionalArray(artifact, "rejected_claims");
+  if (Array.isArray(artifact.rejected_claims)) {
+    for (const [index, claim] of artifact.rejected_claims.entries()) {
+      if (!claim || typeof claim !== "object" || Array.isArray(claim)) {
+        throw new Error(`story consequence rejected_claims[${index}] must be an object`);
+      }
+      if (!String(claim.claim ?? "").trim()) {
+        throw new Error(`story consequence rejected_claims[${index}] missing claim`);
+      }
+      if (!String(claim.reason ?? "").trim()) {
+        throw new Error(`story consequence rejected_claims[${index}] missing reason`);
+      }
+    }
+  }
   if (typeof artifact.promotion_eligible !== "boolean") {
     throw new Error("story consequence missing boolean promotion_eligible");
   }
