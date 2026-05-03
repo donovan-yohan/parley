@@ -100,8 +100,16 @@ hidden_truth_writes: []
 - `revise` — runtime applies `state_delta.applied` but must regenerate the
   parts of narration tied to rejected claims. `required_fixes` lists what must
   change.
-- `fail` — runtime rolls back. Nothing is committed. The GM gets the findings
-  and retries. After N retries (default 2) the run halts and logs.
+- `fail` — runtime rolls back. No world-state, turn, or DM-artifact
+  files are committed; the verdict itself is still appended to
+  `state/truth-verdicts.jsonl` so the failure is durable evidence the
+  GM and reviewers can replay. The GM gets the findings and retries.
+  After N retries (default 2) the run halts and logs.
+
+The verdict object's identifier may be supplied as either the JS-style
+`id` field or the documented `verdict_id` field. The runtime accepts
+either, populates `id` from `verdict_id` when only the latter is
+present, and validates that at least one is non-empty.
 
 ## Handled Rejection Pattern (yes-and detours)
 

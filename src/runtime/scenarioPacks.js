@@ -202,6 +202,22 @@ function validateOptionalDetourData(scenario, scenarioPath) {
     if (!Array.isArray(guidance.matchAnyGroups) || guidance.matchAnyGroups.length === 0) {
       throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} must define matchAnyGroups`);
     }
+    for (const [groupIndex, group] of guidance.matchAnyGroups.entries()) {
+      if (!Array.isArray(group) || group.length === 0) {
+        throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} matchAnyGroups[${groupIndex}] must be a non-empty array of phrases`);
+      }
+      for (const [phraseIndex, phrase] of group.entries()) {
+        if (typeof phrase !== "string" || !phrase.trim()) {
+          throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} matchAnyGroups[${groupIndex}][${phraseIndex}] must be a non-empty string`);
+        }
+      }
+    }
+    if (guidance.matchAny !== undefined && !Array.isArray(guidance.matchAny)) {
+      throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} matchAny must be an array when provided`);
+    }
+    if (guidance.matchRequired !== undefined && !Array.isArray(guidance.matchRequired)) {
+      throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} matchRequired must be an array when provided`);
+    }
     if (!Array.isArray(guidance.targetAttractorIds) || guidance.targetAttractorIds.length === 0) {
       throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} must target at least one attractor`);
     }

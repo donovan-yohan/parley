@@ -463,6 +463,98 @@ test("hidden truth writes are persisted to the author-only sidecar", async () =>
   assert.match(sidecar, /parley-hidden-truth\/v1/);
 });
 
+test("verdict_id is accepted as an alias for id", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-verdict-id-alias-"));
+  const result = await runPlayerTurn({
+    playerAction: "I ask who remembers the old north road.",
+    stateDir: path.join(rootDir, "state"),
+    worldDir: path.join(rootDir, "world"),
+    async truthAuthority(context) {
+      return {
+        schema_version: "parley-truth-verdict/v1",
+        verdict_id: `${context.turnId}-aliased`,
+        turn_id: context.turnId,
+        scene_id: context.scene.id,
+        scenario_id: context.scenario.id,
+        authority: "alias-authority",
+        verdict: "pass",
+        accepted_facts: [
+          {
+            id: "mara-underbough-reusable",
+            category: "canon",
+            text: "Mara Underbough is established as a recurring tavernkeep the player can return to in later scenes.",
+            evidence_turn: context.turnId
+          }
+        ],
+        rejected_claims: [],
+        rumors: [],
+        leads: [],
+        character_beliefs: [],
+        unresolved: []
+      };
+    }
+  });
+
+  assert.equal(result.committed, true);
+  assert.equal(result.truthVerdict.id, "turn-0001-aliased");
+  assert.equal(result.worldState.updated_by_truth_verdict, "turn-0001-aliased");
+});
+
+test("hidden truth sidecar metadata cannot be overridden by author entries", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-hidden-truth-override-"));
+  const stateDir = path.join(rootDir, "state");
+  await runPlayerTurn({
+    playerAction: "I ask who remembers the old north road.",
+    stateDir,
+    worldDir: path.join(rootDir, "world"),
+    async truthAuthority(context) {
+      return {
+        schema_version: "parley-truth-verdict/v1",
+        id: `${context.turnId}-hidden-override`,
+        turn_id: context.turnId,
+        scene_id: context.scene.id,
+        scenario_id: context.scenario.id,
+        authority: "hidden-override-authority",
+        verdict: "pass",
+        accepted_facts: [
+          {
+            id: "mara-underbough-reusable",
+            category: "canon",
+            text: "Mara Underbough is established as a recurring tavernkeep the player can return to in later scenes.",
+            evidence_turn: context.turnId
+          }
+        ],
+        rejected_claims: [],
+        rumors: [],
+        leads: [],
+        character_beliefs: [],
+        unresolved: [],
+        author_only_hidden_truth: [
+          {
+            id: "ashford-spy",
+            text: "Mara is secretly a spy.",
+            schema_version: "evil-overridden/v9",
+            verdict_id: "spoofed-verdict",
+            turn_id: "spoofed-turn"
+          }
+        ]
+      };
+    }
+  });
+
+  const sidecar = (await readFile(path.join(stateDir, "hidden-truth.jsonl"), "utf8"))
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  assert.equal(sidecar.length, 1);
+  const entry = sidecar[0];
+  assert.equal(entry.schema_version, "parley-hidden-truth/v1");
+  assert.equal(entry.verdict_id, "turn-0001-hidden-override");
+  assert.equal(entry.turn_id, "turn-0001");
+  assert.equal(entry.id, "ashford-spy");
+  assert.equal(entry.text, "Mara is secretly a spy.");
+});
+
 test("turn with only beliefs and rumors passes truth review without canon", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-no-canon-pass-"));
   const result = await runPlayerTurn({

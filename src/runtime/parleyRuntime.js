@@ -306,8 +306,12 @@ function validateTruthVerdict(truthVerdict) {
     throw new Error(`truthAuthority returned invalid verdict ${truthVerdict.verdict}`);
   }
 
-  if (!String(truthVerdict.id ?? "").trim()) {
+  const verdictId = String(truthVerdict.id ?? truthVerdict.verdict_id ?? "").trim();
+  if (!verdictId) {
     throw new Error("truthAuthority verdict missing id");
+  }
+  if (!truthVerdict.id) {
+    truthVerdict.id = verdictId;
   }
 
   for (const key of [
@@ -379,10 +383,10 @@ async function persistHiddenTruth({ stateDir, truthVerdict }) {
   const sidecarPath = path.join(stateDir, "hidden-truth.jsonl");
   for (const entry of writes) {
     await appendJsonLine(sidecarPath, {
+      ...entry,
       schema_version: "parley-hidden-truth/v1",
       verdict_id: truthVerdict.id,
-      turn_id: truthVerdict.turn_id,
-      ...entry
+      turn_id: truthVerdict.turn_id
     });
   }
 }
