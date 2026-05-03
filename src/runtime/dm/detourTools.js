@@ -16,6 +16,7 @@ const defaultInterpretation = {
 
 export function interpretPlayerAction({ turnId, scenario, scene, playerAction }) {
   const guidance = selectDetourGuidance({ scenario, playerAction });
+  const hasGuidance = Boolean(guidance);
   const selected = guidance ?? {};
   const targetAttractorIds = selected.targetAttractorIds ?? firstAttractorIds(scenario);
   const interpretation = {
@@ -30,7 +31,7 @@ export function interpretPlayerAction({ turnId, scenario, scene, playerAction })
     claim_policy: selected.claimPolicy ?? defaultInterpretation.claimPolicy,
     consequence_level: selected.consequenceLevel ?? defaultInterpretation.consequenceLevel,
     targets: selected.targets ?? scenarioCharacterIds(scenario),
-    recommended_mode: selected ? "detour_scene" : defaultInterpretation.recommendedMode,
+    recommended_mode: hasGuidance ? "detour_scene" : defaultInterpretation.recommendedMode,
     candidate_attractors: targetAttractorIds,
     unsupported_claims: normalizeUnsupportedClaims({ claims: selected.unsupportedClaims, turnId }),
     guidance_id: selected.id ?? null
