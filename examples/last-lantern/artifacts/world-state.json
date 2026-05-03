@@ -1,0 +1,48 @@
+{
+  "schema_version": "belayer-world-state/v1",
+  "world": {
+    "name": "Last Lantern",
+    "premise": "A rain-soaked crossroads tavern where travelers trade rumors before the old roads.",
+    "tone": "grounded fantasy mystery"
+  },
+  "timeline": [
+    {
+      "id": "turn-0001",
+      "summary": "The player entered the tavern and asked who remembers the old north road.",
+      "participants": ["player"]
+    },
+    {
+      "id": "turn-0003",
+      "summary": "Mara Underbough warned the player not to say the Ashford name loudly.",
+      "participants": ["player", "mara-underbough"]
+    }
+  ],
+  "characters": [
+    {
+      "id": "mara-underbough",
+      "name": "Mara Underbough",
+      "state": "Generated resumable tavernkeep talent with local rumor knowledge.",
+      "relationships": ["Knows local travelers and old road debts."]
+    }
+  ],
+  "locations": [
+    {
+      "id": "last-lantern-tavern",
+      "name": "Last Lantern Tavern",
+      "state": "Warm, crowded, and tense when the Ashford name is spoken."
+    }
+  ],
+  "open_threads": [
+    {
+      "id": "ashford-name",
+      "summary": "Mara warned that the Ashford name should not be spoken loudly.",
+      "status": "open"
+    },
+    {
+      "id": "north-stones",
+      "summary": "The old north road and its stones are tied to old debts.",
+      "status": "open"
+    }
+  ],
+  "updated_at": "2026-05-01T00:00:00Z"
+}

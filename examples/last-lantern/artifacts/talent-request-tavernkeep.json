@@ -1,0 +1,23 @@
+{
+  "schema_version": "belayer-talent-request/v1",
+  "request_id": "turn-0002",
+  "requester": "game-master",
+  "domain": "story",
+  "role": "tavernkeep",
+  "lifecycle": "resumable",
+  "reason": "The player asked about old roads and the scene needs a local authority with reusable memory.",
+  "context_artifacts": [
+    "examples/last-lantern/scene.yaml",
+    "examples/last-lantern/artifacts/turns.jsonl"
+  ],
+  "expected_outputs": [
+    "in-character answer",
+    "compact generated talent metadata",
+    "world-state delta"
+  ],
+  "constraints": [
+    "The character should know local rumors but not hidden author-only truth.",
+    "The character should be reusable if the player returns to the tavern."
+  ],
+  "created_at": "2026-05-01T00:00:00Z"
+}
