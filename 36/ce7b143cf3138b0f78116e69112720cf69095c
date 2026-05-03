@@ -1,0 +1,31 @@
+src/runtime/dm/detourTools.js
+  466842055215d17d 147-156
+docs/specs/parley-truth-authority-contract.md
+  466842055215d17d 103-112
+test/parley-runtime.test.js
+  466842055215d17d 466-557
+src/runtime/parleyRuntime.js
+  466842055215d17d 309-310,313-315,386,389
+src/runtime/scenarioPacks.js
+  466842055215d17d 205-220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "36ce7b143cf3138b0f78116e69112720cf69095c",
+  "prompts": {
+    "466842055215d17d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "886aad34-5bae-497d-99f1-17517b2b21b7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 168,
+      "total_deletions": 8,
+      "accepted_lines": 2528,
+      "overriden_lines": 0
+    }
+  }
+}
