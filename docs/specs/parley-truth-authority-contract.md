@@ -96,6 +96,32 @@ hidden_truth_writes: []
 - `fail` — runtime rolls back. Nothing is committed. The GM gets the findings
   and retries. After N retries (default 2) the run halts and logs.
 
+## Handled Rejection Pattern (yes-and detours)
+
+A turn author may propose a claim that the truth authority cannot accept as
+canon (typically a disruptive player-driven claim such as `c4` in the example).
+A DM detour author may absorb that rejection by emitting a deterministic
+consequence narration that acknowledges the disruption without promoting the
+claim.
+
+When the runtime is invoked with `handledRejectedClaims`, those entries are
+appended to `handled_rejected_claims` (each carrying `handled: true` and a
+`handled_by` provenance string) and do **not** count toward the blocking set
+that demotes a verdict from `pass` to `revise`.
+
+Authority contract requirements for handled claims:
+
+- The handling provenance (`handled_by`) must reference a registered detour
+  contract. Today that is `dm-detour-tools/v1`.
+- The original `claim_id` and `text` must be preserved verbatim so downstream
+  consumers can audit what was disrupted vs. canonized.
+- Handled claims never write into `state_delta.applied`. Their only effect on
+  state is the consequence narration the detour author already produced.
+
+Without an active detour author, a turn that proposes unsupported canon must
+still be downgraded to `revise`. This pattern is opt-in per turn, not the
+authority's default behavior.
+
 ## Knowledge Scope Enforcement
 
 For each character contribution, the authority cross-checks against the

@@ -393,11 +393,20 @@ function mergeById(previous = [], next = []) {
 }
 
 function memoryMergeKey(item) {
-  const semanticKey = item.text ?? item.claim ?? item.summary ?? item.name;
-  if (semanticKey) {
-    return normalizeMemoryKey(semanticKey);
+  if (item.name && item.id) {
+    return `id:${item.id}`;
   }
-  return item.id ?? JSON.stringify(item);
+  const semanticKey = item.text ?? item.claim ?? item.summary;
+  if (semanticKey) {
+    return `text:${normalizeMemoryKey(semanticKey)}`;
+  }
+  if (item.id) {
+    return `id:${item.id}`;
+  }
+  if (item.name) {
+    return `name:${normalizeMemoryKey(item.name)}`;
+  }
+  return `json:${JSON.stringify(item)}`;
 }
 
 function normalizeMemoryKey(value) {

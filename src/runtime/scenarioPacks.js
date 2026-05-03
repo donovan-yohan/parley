@@ -28,11 +28,12 @@ export async function loadScenarioPack(scenarioId = defaultScenarioId) {
   const raw = await readFile(scenarioPath, "utf8");
   const scenario = JSON.parse(raw);
   validateScenarioPack(scenario, scenarioPath);
+  const worldId = normalizeWorldId(scenario.world?.id, scenarioPath);
   return {
     ...scenario,
     scenarioPath,
-    stateDir: path.join(repoRoot, "worlds", scenario.world.id, "state"),
-    worldDir: path.join(repoRoot, "worlds", scenario.world.id)
+    stateDir: path.join(repoRoot, "worlds", worldId, "state"),
+    worldDir: path.join(repoRoot, "worlds", worldId)
   };
 }
 
@@ -56,6 +57,14 @@ function normalizeScenarioId(scenarioId) {
     const error = new Error(`Invalid scenario id: ${scenarioId}`);
     error.statusCode = 400;
     throw error;
+  }
+  return id;
+}
+
+function normalizeWorldId(worldId, scenarioPath) {
+  const id = String(worldId ?? "").trim();
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+    throw new Error(`${scenarioPath} has invalid world.id ${JSON.stringify(worldId)} (must match /^[a-z0-9][a-z0-9-]*$/)`);
   }
   return id;
 }
