@@ -36,11 +36,14 @@ async function main() {
     ]);
 
     assert.match(html, /id="theme-select"/);
+    assert.match(html, /id="scene-art"/);
     assert.match(appSource, /scenarioSelect\.addEventListener/);
     assert.match(appSource, /\/api\/scenarios/);
     assert.match(cssSource, /\[data-theme="last-lantern"\]/);
     assert.match(cssSource, /\[data-theme="cyberpunk"\]/);
     assert.match(cssSource, /\[data-theme="cozy"\]/);
+    assert.match(cssSource, /\.portrait-frame/);
+    assert.match(cssSource, /\.scene-art/);
 
     const harness = createDomHarness();
     installClientGlobals({ harness, serverFetch });
@@ -104,6 +107,8 @@ async function main() {
     assert.match(textContent(harness.transcript), /Ashford/i);
     assert.match(textContent(harness.transcript), /lead|thread|trail/i);
     assert.match(textContent(harness.characters), /Mara Underbough/);
+    assert.match(textContent(harness.characters), /Portrait prompt ready/);
+    assert.match(textContent(harness.sceneArt), /Background prompt ready/);
     assert.match(textContent(harness.characters), /reusable, resumable NPC/);
     assert.doesNotMatch(textContent(harness.characters), /keeps the Last Lantern's bar/);
     assert.match(textContent(harness.truth), /Leads/);
@@ -163,6 +168,7 @@ async function main() {
       "Client submit exercises /api/turn",
       "Client keeps the last good state after a failed turn",
       "Mara answers the old north road prompt",
+      "Visual asset prompts are visible for Mara's portrait and the scene background",
       "Mara is reusable and resumable",
       "Story memory records rumor, lead, and unresolved mystery",
       "Choice buttons populate the next input",
@@ -240,6 +246,7 @@ function createDomHarness() {
     choices: document.register("choices", new FakeElement("ul")),
     characters: document.register("characters", new FakeElement("ul")),
     truth: document.register("truth", new FakeElement("div")),
+    sceneArt: document.register("scene-art", new FakeElement("aside")),
     themeSelect: document.register("theme-select", new FakeElement("select")),
     sceneTitle: document.register("scene-title", new FakeElement("h1")),
     sceneSubtitle: document.register("scene-subtitle", new FakeElement("p"))

@@ -1,10 +1,10 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCurrentState, runPlayerTurn } from "./runtime/parleyRuntime.js";
-import { defaultScenarioId, listScenarioPacks } from "./runtime/scenarioPacks.js";
+import { defaultScenarioId, listScenarioPacks, loadScenarioPack } from "./runtime/scenarioPacks.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const clientDir = path.join(root, "src", "client");
@@ -44,6 +44,10 @@ export async function handleParleyRequest(request, response, runtimeOptions = {}
       return sendJson(response, result);
     }
 
+    if (request.method === "GET" && requestUrl.pathname.startsWith("/world-assets/")) {
+      return serveWorldAsset(requestUrl, response, runtimeOptions);
+    }
+
     if (request.method === "GET") {
       return serveStatic(request, response);
     }
@@ -65,6 +69,45 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   server.listen(port, host, () => {
     console.log(`Parley scenario app running at http://${host}:${port}`);
   });
+}
+
+async function serveWorldAsset(requestUrl, response, runtimeOptions = {}) {
+  const scenarioId = requestUrl.searchParams.get("scenario") ?? runtimeOptions.scenarioId ?? defaultScenarioId;
+  const scenario = runtimeOptions.worldDir ? null : await loadScenarioPack(scenarioId);
+  const worldDir = runtimeOptions.worldDir ?? scenario.worldDir;
+  const relativeAssetPath = decodeURIComponent(requestUrl.pathname.slice("/world-assets/".length));
+  const filePath = path.resolve(worldDir, relativeAssetPath);
+  const assetsDir = path.resolve(worldDir, "assets");
+
+  if (!filePath.startsWith(`${assetsDir}${path.sep}`) || !isWorldImageAsset(filePath)) {
+    return sendJson(response, { error: "Not found" }, 404);
+  }
+
+  try {
+    const [realAssetsDir, realFilePath] = await Promise.all([realpath(assetsDir), realpath(filePath)]);
+    if (
+      realFilePath === realAssetsDir ||
+      !realFilePath.startsWith(`${realAssetsDir}${path.sep}`) ||
+      !isWorldImageAsset(realFilePath)
+    ) {
+      return sendJson(response, { error: "Not found" }, 404);
+    }
+    const data = await readFile(realFilePath);
+    response.writeHead(200, {
+      "content-type": contentType(realFilePath),
+      "x-content-type-options": "nosniff"
+    });
+    response.end(data);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return sendJson(response, { error: "Not found" }, 404);
+    }
+    throw error;
+  }
+}
+
+function isWorldImageAsset(filePath) {
+  return /\.(png|jpe?g|webp)$/i.test(filePath);
 }
 
 async function serveStatic(request, response) {
@@ -118,6 +161,21 @@ function contentType(filePath) {
   }
   if (filePath.endsWith(".js")) {
     return "text/javascript; charset=utf-8";
+  }
+  if (filePath.endsWith(".png")) {
+    return "image/png";
+  }
+  if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+  if (filePath.endsWith(".webp")) {
+    return "image/webp";
+  }
+  if (filePath.endsWith(".svg")) {
+    return "image/svg+xml; charset=utf-8";
+  }
+  if (filePath.endsWith(".json")) {
+    return "application/json; charset=utf-8";
   }
   return "text/html; charset=utf-8";
 }

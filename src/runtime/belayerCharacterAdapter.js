@@ -21,6 +21,7 @@ export function buildScenarioCharacter({ scenario, characterDefinition, sourceRe
     tone: characterDefinition.tone,
     importance: characterDefinition.importance,
     knowledgeBoundary: characterDefinition.knowledgeBoundary,
+    visual: characterDefinition.visual,
     belayerGeneratedTalent: {
       schema_version: "belayer-generated-talent/v1",
       id: characterDefinition.id,
@@ -106,9 +107,15 @@ ${character.tags.map((tag) => `- \`${tag}\``).join("\n")}
 
 ${character.belayerGeneratedTalent.metadata.knowledge_boundary}
 
+## Visual Profile
+
+${formatVisualMarkdown(character.visual)}
+
 ## Portrait Prompt
 
-Portrait metadata is tracked in the character record:
+Portrait metadata snapshot at first character materialization. The durable
+\`assets/manifest.json\` record and prompt sidecar are the source of truth for
+later status/path changes:
 
 - status: \`${character.portrait?.status ?? "missing"}\`
 - prompt_path: \`${character.portrait?.prompt_path ?? "not-set"}\`
@@ -124,4 +131,15 @@ Do not imply the character knows hidden author-only truth.
       throw error;
     }
   }
+}
+
+function formatVisualMarkdown(visual) {
+  if (!visual) {
+    return "Visual traits have not been drafted yet.";
+  }
+
+  return Object.entries(visual)
+    .filter(([, value]) => value !== undefined && value !== null && (typeof value !== "object" || Array.isArray(value)))
+    .map(([key, value]) => `- ${key}: ${Array.isArray(value) ? value.join("; ") : String(value)}`)
+    .join("\n");
 }
