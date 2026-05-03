@@ -20,6 +20,11 @@ The UI shows the transcript, next choices, a reusable NPC list, and the mock
 truth verdict for the turn. Runtime artifacts are written under
 `worlds/last-lantern/state/`.
 
+That `worlds/<id>/state/` path is the current prototype layout. The planned
+framework split treats `worlds/*` and `scenarios/*` as template seed material and
+materializes fresh `instances/*` directories for gameplay. See
+`docs/plans/2026-05-03-instance-wiki-authoring.md`.
+
 ## Smoke and Tests
 
 ```bash

@@ -155,3 +155,32 @@ implementation. Recommended starter prompt template lives in
 `worlds/<w>/SCHEMA.md` (the world bible documents what evidence the authority
 should weigh for that world's tone). Until then, the deterministic MVP just
 checks knowledge-scope buckets and seed coverage.
+
+## Instance-Only Authority Context
+
+The authority reads active instance artifacts, not template roots. Templates are
+setup inputs only. During gameplay, the truth authority may inspect the active
+world instance, active story instance, prior instance state, relevant character
+records, proposed turn artifact, and hidden-truth boundaries if the validator role
+requires them.
+
+It must not read world or story templates during gameplay. That avoids conflicts
+between original template canon and the player's evolved world instance canon.
+
+## Promotion Candidates, Not Auto-Canon
+
+For significant events, the authority may recommend a promotion candidate. This is
+still not canon. It is a pending governance artifact that a DM/human accepts or
+rejects later.
+
+```text
+story/state/turns.jsonl
+story/state/truth-verdicts.jsonl
+story/state/promotion-candidates.jsonl   # pending, not canon
+  ↓ DM/human acceptance
+world/canon/facts.jsonl
+world/state/world-state.json
+world/log.md
+```
+
+See [`parley-canon-promotion-policy.md`](./parley-canon-promotion-policy.md).

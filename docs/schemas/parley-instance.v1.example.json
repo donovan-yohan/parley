@@ -1,0 +1,20 @@
+{
+  "schema_version": "parley-instance/v1",
+  "id": "kyle-last-lantern-first-rumor",
+  "display_name": "Kyle's Last Lantern",
+  "source": {
+    "world_template": "last-lantern",
+    "world_template_version": "0.1.0",
+    "world_template_hash": "sha256:example-world-template-hash",
+    "story_template": "last-lantern",
+    "story_template_version": "0.1.0",
+    "story_template_hash": "sha256:example-story-template-hash"
+  },
+  "paths": {
+    "world": "world",
+    "stories": "stories"
+  },
+  "created_by": "dm:kyle",
+  "materialized_at": "2026-05-03T00:00:00Z",
+  "updated_at": "2026-05-03T00:00:00Z"
+}

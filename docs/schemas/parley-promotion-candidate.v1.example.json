@@ -1,0 +1,31 @@
+{
+  "schema_version": "parley-promotion-candidate/v1",
+  "id": "promo-0001",
+  "status": "pending",
+  "source": {
+    "world_instance": "kyle-last-lantern-first-rumor",
+    "story_instance": "first-rumor-001",
+    "turn_ids": ["turn-0003"],
+    "verdict_ids": ["verdict-0003"],
+    "claim_ids": ["c2"]
+  },
+  "current_category": "rumor",
+  "proposed_category": "canon",
+  "summary": "The red-scarfed drover reacted to the Ashford name and left before closing.",
+  "proposed_writes": [
+    {
+      "target": "world/canon/facts.jsonl",
+      "op": "append",
+      "value": {
+        "id": "red-scarfed-drover-reacted-ashford",
+        "category": "canon",
+        "summary": "The red-scarfed drover reacted to the Ashford name and left before closing.",
+        "evidence_turns": ["turn-0003"],
+        "evidence_verdicts": ["verdict-0003"]
+      }
+    }
+  ],
+  "promotion_reason": "Recurring mystery clue with future story impact.",
+  "requires_dm_acceptance": true,
+  "created_at": "2026-05-03T00:00:00Z"
+}
