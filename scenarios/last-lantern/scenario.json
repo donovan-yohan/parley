@@ -207,7 +207,7 @@
     {
       "schema_version": "parley-story-attractor/v1",
       "id": "last-lantern.notice-drover",
-      "story_instance_id": "last-lantern-001",
+      "story_instance_id": "materialized-at-runtime",
       "priority": "high",
       "intent": "The player should understand that the red-scarfed drover matters to the Ashford mystery.",
       "acceptable_routes": [
@@ -321,6 +321,20 @@
           "text": "Mara is more guarded toward the player after the table outburst.",
           "character_id": "mara-underbough"
         }
+      ],
+      "matchAnyGroups": [
+        [
+          "leap onto a table",
+          "climb on table",
+          "onto a table"
+        ],
+        [
+          "claim i own",
+          "declare i own",
+          "own the last lantern",
+          "demand everyone hand over",
+          "hand over their secrets"
+        ]
       ]
     }
   ]

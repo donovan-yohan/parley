@@ -8,6 +8,23 @@ const schemaVersions = {
 
 export function validateActionInterpretation(value) {
   const artifact = objectWithSchema(value, schemaVersions.actionInterpretation, "action interpretation");
+  allowedKeys(artifact, [
+    "schema_version",
+    "id",
+    "turn_id",
+    "player_action",
+    "scene_id",
+    "intent",
+    "plausibility",
+    "cooperation",
+    "claim_policy",
+    "consequence_level",
+    "targets",
+    "recommended_mode",
+    "candidate_attractors",
+    "unsupported_claims",
+    "guidance_id"
+  ], "action interpretation");
   requiredString(artifact, "turn_id");
   requiredString(artifact, "intent");
   requiredString(artifact, "plausibility");
@@ -15,8 +32,13 @@ export function validateActionInterpretation(value) {
   requiredString(artifact, "claim_policy");
   requiredString(artifact, "consequence_level");
   requiredString(artifact, "recommended_mode");
+  enumValue(artifact, "recommended_mode", ["normal_continuation", "detour_scene"]);
   requiredArray(artifact, "targets");
-  requiredArray(artifact, "candidate_attractors");
+  if (artifact.recommended_mode === "detour_scene") {
+    requiredArray(artifact, "candidate_attractors");
+  } else {
+    optionalArray(artifact, "candidate_attractors");
+  }
   optionalArray(artifact, "unsupported_claims");
   return artifact;
 }
@@ -35,9 +57,23 @@ export function validateStoryAttractor(value) {
 
 export function validateDetourScene(value) {
   const artifact = objectWithSchema(value, schemaVersions.detourScene, "detour scene");
+  allowedKeys(artifact, [
+    "schema_version",
+    "id",
+    "source_turn_id",
+    "scope",
+    "title",
+    "purpose",
+    "temporary_location",
+    "target_attractor_ids",
+    "entry_state",
+    "exit_conditions",
+    "expires_after"
+  ], "detour scene");
   requiredString(artifact, "id");
   requiredString(artifact, "source_turn_id");
   requiredString(artifact, "scope");
+  enumValue(artifact, "scope", ["story_instance"]);
   requiredString(artifact, "title");
   requiredString(artifact, "purpose");
   requiredArray(artifact, "target_attractor_ids");
@@ -49,10 +85,24 @@ export function validateDetourScene(value) {
 
 export function validateStoryConsequence(value) {
   const artifact = objectWithSchema(value, schemaVersions.storyConsequence, "story consequence");
+  allowedKeys(artifact, [
+    "schema_version",
+    "id",
+    "source_turn_id",
+    "category",
+    "scope",
+    "summary",
+    "affected_entities",
+    "reputation_deltas",
+    "followup_hooks",
+    "rejected_claims",
+    "promotion_eligible"
+  ], "story consequence");
   requiredString(artifact, "id");
   requiredString(artifact, "source_turn_id");
   requiredString(artifact, "category");
   requiredString(artifact, "scope");
+  enumValue(artifact, "scope", ["story_instance"]);
   requiredString(artifact, "summary");
   requiredArray(artifact, "affected_entities");
   optionalArray(artifact, "reputation_deltas");
@@ -65,6 +115,16 @@ export function validateStoryConsequence(value) {
 
 export function validateBeatRedirect(value) {
   const artifact = objectWithSchema(value, schemaVersions.beatRedirect, "beat redirect");
+  allowedKeys(artifact, [
+    "schema_version",
+    "id",
+    "source_turn_id",
+    "from_scene_id",
+    "to_attractor_id",
+    "route_type",
+    "summary",
+    "next_scene_suggestions"
+  ], "beat redirect");
   requiredString(artifact, "id");
   requiredString(artifact, "source_turn_id");
   requiredString(artifact, "from_scene_id");
@@ -83,6 +143,21 @@ function objectWithSchema(value, schemaVersion, noun) {
     throw new Error(`${noun} must use schema_version ${schemaVersion}`);
   }
   return value;
+}
+
+function allowedKeys(object, keys, noun) {
+  const allowed = new Set(keys);
+  for (const key of Object.keys(object)) {
+    if (!allowed.has(key)) {
+      throw new Error(`${noun} has unexpected_field ${key}`);
+    }
+  }
+}
+
+function enumValue(object, key, allowedValues) {
+  if (!allowedValues.includes(object[key])) {
+    throw new Error(`${key} must be one of ${allowedValues.join(", ")}`);
+  }
 }
 
 function requiredString(object, key) {

@@ -129,6 +129,11 @@ function selectDetourGuidance({ scenario, playerAction }) {
 }
 
 function scoreGuidance({ guidance, action }) {
+  const matchAnyGroups = guidance.matchAnyGroups ?? [];
+  if (matchAnyGroups.length && !matchAnyGroups.every((group) => group.some((phrase) => action.includes(normalizeText(phrase))))) {
+    return 0;
+  }
+
   const matchAny = guidance.matchAny ?? [];
   const matchCount = matchAny.filter((phrase) => action.includes(normalizeText(phrase))).length;
   const required = guidance.matchRequired ?? [];
@@ -136,7 +141,7 @@ function scoreGuidance({ guidance, action }) {
   if (required.length && !requiredMatches) {
     return 0;
   }
-  return matchCount + (required.length ? required.length : 0);
+  return matchCount + required.length + matchAnyGroups.length;
 }
 
 function requireGuidance({ scenario, interpretation }) {

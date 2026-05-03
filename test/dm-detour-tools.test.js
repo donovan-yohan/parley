@@ -137,6 +137,63 @@ test("runtime persists detour artifacts for disruptive yes-and turns without can
   assert.match(consequences, /story_instance/);
 });
 
+test("normal cooperative actions containing detour keywords do not invent disruptive claims", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-detour-negative-"));
+  const result = await runPlayerTurn({
+    playerAction: "I sit at the table and ask Mara who owns the Last Lantern's oldest secrets.",
+    stateDir: path.join(rootDir, "state"),
+    worldDir: path.join(rootDir, "world")
+  });
+
+  assert.equal(result.committed, true);
+  assert.notEqual(result.authoring.response_id, "detour-last-lantern-table-outburst");
+  assert.ok(!result.truthVerdict.rejected_claims.some((claim) => /own/i.test(claim.claim)));
+  assert.ok(!result.worldState.detour_scenes.length);
+});
+
+test("runtime rejects raw unvalidated detour artifacts from custom turn authors", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-invalid-detour-author-"));
+  await assert.rejects(
+    runPlayerTurn({
+      playerAction: "I make a messy custom detour.",
+      stateDir: path.join(rootDir, "state"),
+      worldDir: path.join(rootDir, "world"),
+      turnAuthor: {
+        id: "invalid-detour-author",
+        mode: "llm-style-authoring",
+        async authorTurn() {
+          return {
+            responseId: "invalid-detour",
+            narration: "Mara Underbough refuses to persist malformed detour artifacts.",
+            nextChoices: ["Try again with valid artifacts"],
+            proposedFacts: [
+              {
+                id: "mara-underbough-reusable",
+                category: "canon",
+                text: "Mara Underbough is established as a recurring tavernkeep the player can return to in later scenes."
+              }
+            ],
+            detourScene: {
+              schema_version: "parley-detour-scene/v1",
+              id: "bad-detour",
+              source_turn_id: "turn-0001",
+              scope: "template",
+              title: "Bad",
+              purpose: "Bad scope and unknown field must fail.",
+              target_attractor_ids: ["last-lantern.notice-drover"],
+              entry_state: {},
+              exit_conditions: ["leave"],
+              expires_after: "scene_resolution",
+              unexpected_field: true
+            }
+          };
+        }
+      }
+    }),
+    /scope|unexpected_field|detour scene/
+  );
+});
+
 test("scenario-specific extreme actions produce proportional detours", async () => {
   const cases = [
     {

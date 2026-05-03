@@ -2,6 +2,8 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { validateStoryAttractor } from "./dm/detourContracts.js";
+
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(runtimeDir, "..", "..");
 export const scenariosDir = path.join(repoRoot, "scenarios");
@@ -92,5 +94,46 @@ function validateScenarioPack(scenario, scenarioPath) {
 
   if (!Array.isArray(scenario.proposedFacts) || scenario.proposedFacts.length === 0) {
     throw new Error(`${scenarioPath} must define proposedFacts`);
+  }
+
+  validateOptionalDetourData(scenario, scenarioPath);
+}
+
+function validateOptionalDetourData(scenario, scenarioPath) {
+  if (scenario.storyAttractors !== undefined) {
+    if (!Array.isArray(scenario.storyAttractors)) {
+      throw new Error(`${scenarioPath} storyAttractors must be an array`);
+    }
+    for (const attractor of scenario.storyAttractors) {
+      validateStoryAttractor(attractor);
+    }
+  }
+
+  if (scenario.dmDetourGuidance === undefined) {
+    return;
+  }
+
+  if (!Array.isArray(scenario.dmDetourGuidance)) {
+    throw new Error(`${scenarioPath} dmDetourGuidance must be an array`);
+  }
+
+  const attractorIds = new Set((scenario.storyAttractors ?? []).map((attractor) => attractor.id));
+  for (const guidance of scenario.dmDetourGuidance) {
+    for (const key of ["id", "intent", "claimPolicy", "consequenceLevel", "narration"]) {
+      if (!String(guidance[key] ?? "").trim()) {
+        throw new Error(`${scenarioPath} dmDetourGuidance entry missing ${key}`);
+      }
+    }
+    if (!Array.isArray(guidance.matchAnyGroups) || guidance.matchAnyGroups.length === 0) {
+      throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} must define matchAnyGroups`);
+    }
+    if (!Array.isArray(guidance.targetAttractorIds) || guidance.targetAttractorIds.length === 0) {
+      throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} must target at least one attractor`);
+    }
+    for (const targetAttractorId of guidance.targetAttractorIds) {
+      if (!attractorIds.has(targetAttractorId)) {
+        throw new Error(`${scenarioPath} dmDetourGuidance ${guidance.id} targets unknown attractor ${targetAttractorId}`);
+      }
+    }
   }
 }

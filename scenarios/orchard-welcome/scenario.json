@@ -213,7 +213,7 @@
     {
       "schema_version": "parley-story-attractor/v1",
       "id": "orchard-welcome.blue-cloth-tradition",
-      "story_instance_id": "orchard-welcome-001",
+      "story_instance_id": "materialized-at-runtime",
       "priority": "high",
       "intent": "The player should learn that Mossgrove handles secrets through shared work and blue-cloth tradition, not coercion.",
       "acceptable_routes": [
@@ -324,6 +324,20 @@
           "text": "June is guarded because the player tried to force a confession through public threats.",
           "character_id": "june-bellweather"
         }
+      ],
+      "matchAnyGroups": [
+        [
+          "threaten",
+          "salt the fields",
+          "arrest every neighbor",
+          "mayor arrest"
+        ],
+        [
+          "confess",
+          "confesses",
+          "unless someone confesses",
+          "salt the fields"
+        ]
       ]
     }
   ]

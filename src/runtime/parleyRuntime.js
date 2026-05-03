@@ -3,6 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildScenarioCharacter, persistCharacterMarkdown } from "./belayerCharacterAdapter.js";
+import {
+  validateActionInterpretation,
+  validateBeatRedirect,
+  validateDetourScene,
+  validateStoryConsequence
+} from "./dm/detourContracts.js";
 import { defaultScenarioId, loadScenarioPack, scenarioMetadata } from "./scenarioPacks.js";
 import { judgeTurn } from "./truthAuthority.js";
 import { createScenarioFixtureAuthor, normalizeAuthoredTurn } from "./turnAuthor.js";
@@ -258,7 +264,31 @@ async function buildAuthoredTurn({ turnAuthor, turnId, scenario, scene, playerAc
     previousWorldState
   });
 
+  validateDmArtifacts({ authoredTurn, turnId });
+
   return normalizeAuthoredTurn({ authoredTurn, turnAuthor: resolvedTurnAuthor, scenario, turnId });
+}
+
+function validateDmArtifacts({ authoredTurn, turnId }) {
+  const artifactValidators = [
+    ["actionInterpretation", validateActionInterpretation],
+    ["detourScene", validateDetourScene],
+    ["storyConsequence", validateStoryConsequence],
+    ["beatRedirect", validateBeatRedirect]
+  ];
+
+  for (const [key, validator] of artifactValidators) {
+    if (!authoredTurn[key]) {
+      continue;
+    }
+    const artifact = validator(authoredTurn[key]);
+    if (artifact.source_turn_id && artifact.source_turn_id !== turnId) {
+      throw new Error(`${key} source_turn_id must match ${turnId}`);
+    }
+    if (artifact.turn_id && artifact.turn_id !== turnId) {
+      throw new Error(`${key} turn_id must match ${turnId}`);
+    }
+  }
 }
 
 function validateTruthVerdict(truthVerdict) {

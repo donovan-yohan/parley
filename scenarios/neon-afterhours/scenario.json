@@ -259,7 +259,7 @@
     {
       "schema_version": "parley-story-attractor/v1",
       "id": "neon-afterhours.blank-executive-checksum",
-      "story_instance_id": "neon-afterhours-001",
+      "story_instance_id": "materialized-at-runtime",
       "priority": "high",
       "intent": "The player should notice that the lockout route depends on a blank executive checksum node rather than raw AI obedience.",
       "acceptable_routes": [
@@ -373,6 +373,20 @@
           "text": "Veyra trusts the player less after they damaged audit-floor equipment.",
           "character_id": "veyra-sol"
         }
+      ],
+      "matchAnyGroups": [
+        [
+          "smash",
+          "break",
+          "damage"
+        ],
+        [
+          "badge reader",
+          "badge readers",
+          "erase the logs",
+          "executive checksum",
+          "order the ai"
+        ]
       ]
     }
   ]
