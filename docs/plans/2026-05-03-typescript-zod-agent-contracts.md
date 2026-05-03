@@ -98,6 +98,11 @@ Use strict Zod schemas for durable artifacts:
 - `parley-visual-asset-manifest/v1`
 - `parley-promotion-candidate/v1`
 - `parley-promotion-decision/v1`
+- `parley-story-attractor/v1`
+- `parley-action-interpretation/v1`
+- `parley-detour-scene/v1`
+- `parley-story-consequence/v1`
+- `parley-beat-redirect/v1`
 
 Strict means unknown fields fail by default on committed artifacts. If we need extension space, define explicit `metadata` or `extensions` bags with namespaced keys.
 
