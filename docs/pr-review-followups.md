@@ -237,3 +237,37 @@ Pre-flight before opening the cleanup PR:
 1. Re-pull the `main` tree after all 10 merges to make sure line numbers above still point at the right code.
 2. Convert each **OPEN** item into a TODO in the cleanup branch; group commits by file/system for easier review.
 3. For each item flagged "update the schema/example", make sure docs + JSON schema + example all move together.
+
+---
+
+## Verification Results (2026-05-03, post-cleanup)
+
+After landing the cleanup commits on `cleanup/post-stack-followups`, the
+NOTED spot-checks confirm the originating follow-up commits did fix what
+they claimed:
+
+- **PR #1 smoke-last-lantern.sh** — `mktemp -d "${TMPDIR:-/tmp}/parley-last-lantern.XXXXXX"`
+  defaults to a temp `BELAYER_HOME`; opt-in via `SMOKE_BELAYER_HOME`.
+- **PR #2 docs** — `SillyTavern` capitalization correct in the addendum
+  spec; `parley-world-state/v1` namespace in `examples/last-lantern/artifacts/world-state.json`.
+- **PR #3 contracts** — character-contract.md states "missing `tags` block
+  and empty `tags` block are both contract violations" at line 23 + 146;
+  truth-authority-contract.md `Verdict Shape` includes `hidden_truth_writes`.
+- **PR #4 server.js** — `readJsonBody` throws `statusCode = 413` on
+  oversized bodies; transcript renders via incremental append
+  (`syncTranscript` only iterates entries beyond `transcript.children.length`).
+- **PR #5 client/app.js** — no Mara-specific hardcoded notes/status
+  strings remain.
+
+The `OPEN` items in PRs #5–#10 plus #9 docs are addressed in the
+companion commits on this branch:
+
+| Commit                                          | Items |
+| ----------------------------------------------- | ----- |
+| `fix: harden security-flagged...`               | PR #6 path traversal, PR #10 mergeById id collapse, PR #10 yes-and schema docs |
+| `fix: tighten truth contract guards from PR #7` | verdict id, fail handling, hidden-truth sidecar, loose-author canon relax, null author guard, responseId default, normalizeFactText |
+| `fix: harden scenario pack loading...`          | listScenarioPacks resilience, deeper validateScenarioPack, threaded stateDir/worldDir into evidence paths, knowledgeBoundary fallback |
+| `fix: tighten PR #5 smoke + persistence...`     | tighter Ashford lead invariant, JSONL parsing assertions, lead bucket schema/spec, dropped workstation path |
+| `fix: PR #8 visual asset client status...`      | unknown status passthrough |
+| `fix: tighten DM detour validators...`          | action interpretation required fields, story attractor allowedKeys, story consequence rejected_claims, pre-normalize guidance phrases |
+| `docs: address PR #9 instance wiki...`          | default_view definition, deferring typo, promotion atomicity, instance id consistency, target allowlist, may_read grammar |
