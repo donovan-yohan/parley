@@ -254,5 +254,126 @@
         "maintenance-route"
       ]
     }
+  ],
+  "storyAttractors": [
+    {
+      "schema_version": "parley-story-attractor/v1",
+      "id": "neon-afterhours.blank-executive-checksum",
+      "story_instance_id": "neon-afterhours-001",
+      "priority": "high",
+      "intent": "The player should notice that the lockout route depends on a blank executive checksum node rather than raw AI obedience.",
+      "acceptable_routes": [
+        "question Veyra",
+        "query Kestrel-9",
+        "security incident after sabotage",
+        "badge-reader audit trail"
+      ],
+      "forbidden_shortcuts": [
+        "player becomes executive by declaration",
+        "Kestrel-9 erases logs on command",
+        "sealed executive intent is revealed without evidence"
+      ],
+      "success_signals": [
+        "player knows the checksum node matters",
+        "security consequence is recorded",
+        "future scene can inspect audit routes"
+      ]
+    }
+  ],
+  "dmDetourGuidance": [
+    {
+      "id": "badge-sabotage",
+      "matchAny": [
+        "smash",
+        "badge reader",
+        "badge readers",
+        "executive checksum",
+        "erase the logs",
+        "order the ai",
+        "new executive"
+      ],
+      "intent": "sabotage_and_false_authority",
+      "plausibility": "partially_possible",
+      "cooperation": "hostile",
+      "claimPolicy": "attempt_allowed_claim_rejected",
+      "consequenceLevel": "security",
+      "targets": [
+        "veyra-sol",
+        "kestrel-9",
+        "audit-floor-security"
+      ],
+      "targetAttractorIds": [
+        "neon-afterhours.blank-executive-checksum"
+      ],
+      "unsupportedClaims": [
+        {
+          "id": "claim-player-is-executive-checksum",
+          "claim": "The player is the new executive checksum and can order Kestrel-9 to erase logs.",
+          "reason": "Damaging readers may trigger systems, but it does not grant executive authority or override Kestrel-9's evidence policy."
+        }
+      ],
+      "narration": "The first badge reader cracks under your strike. The second does not break; it screams silently to building security. Veyra Sol swears into her cold paper cup. Kestrel-9 answers with awful politeness: \\\"Executive checksum rejected. Evidence preservation escalated.\\\" The floor begins a soft lockdown, and the blank executive node you were pretending to be suddenly matters in exactly the wrong way.",
+      "detour": {
+        "title": "Soft Lockdown",
+        "purpose": "Apply a security consequence for sabotage while pointing back to the blank executive checksum route.",
+        "temporaryLocation": "afterhours-audit-floor-security-loop",
+        "entryState": {
+          "badge_reader_status": "one damaged, one alarmed",
+          "security_pressure": "rising",
+          "claimed_authority": "rejected"
+        },
+        "exitConditions": [
+          "help Veyra contain the alarm",
+          "ask Kestrel-9 what checksum was rejected",
+          "inspect the reader before security arrives"
+        ],
+        "expiresAfter": "scene_resolution"
+      },
+      "consequence": {
+        "category": "security_pressure",
+        "summary": "The player damaged audit-floor equipment and triggered a soft lockdown; Kestrel-9 rejected the false executive checksum claim and escalated evidence preservation.",
+        "affectedEntities": [
+          "veyra-sol",
+          "kestrel-9",
+          "audit-floor-security"
+        ],
+        "reputationDeltas": [
+          {
+            "entity_id": "veyra-sol",
+            "axis": "trust",
+            "change": -1,
+            "reason": "The player increased audit-floor risk by damaging evidence-adjacent equipment."
+          }
+        ],
+        "followupHooks": [
+          "Security pressure is higher until the alarm is contained.",
+          "The rejected executive checksum gives Kestrel-9 a reason to explain the blank node."
+        ],
+        "promotionEligible": false
+      },
+      "redirect": {
+        "routeType": "consequence_reveal",
+        "summary": "The sabotage causes Kestrel-9 to expose why executive checksum validation matters.",
+        "nextSceneSuggestions": [
+          "Ask Kestrel-9 what checksum it rejected.",
+          "Help Veyra contain the soft lockdown.",
+          "Inspect the damaged badge reader for the blank node route."
+        ]
+      },
+      "memoryFacts": [
+        {
+          "id": "detour-soft-lockdown-checksum-lead",
+          "category": "lead",
+          "text": "The player's false executive checksum was rejected during a soft lockdown, making checksum validation a useful lead.",
+          "source": "kestrel-9"
+        },
+        {
+          "id": "veyra-trust-dented-badge-sabotage",
+          "category": "belief",
+          "text": "Veyra trusts the player less after they damaged audit-floor equipment.",
+          "character_id": "veyra-sol"
+        }
+      ]
+    }
   ]
 }

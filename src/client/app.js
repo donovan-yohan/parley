@@ -179,8 +179,11 @@ function render() {
 
   truth.replaceChildren(
     memoryGroup("What changed", view.truthVerdict.accepted_facts),
+    memoryGroup("Consequences", view.truthVerdict.story_consequences ?? []),
     memoryGroup("Leads", view.truthVerdict.leads ?? []),
     memoryGroup("Rumors", view.truthVerdict.rumors),
+    memoryGroup("Character beliefs", view.truthVerdict.character_beliefs ?? []),
+    memoryGroup("Rejected claims", view.truthVerdict.rejected_claims ?? []),
     memoryGroup("Unresolved", view.truthVerdict.unresolved)
   );
 }
@@ -268,6 +271,9 @@ function stateView(state) {
       accepted_facts: state.worldState.canon ?? [],
       leads: state.worldState.leads ?? [],
       rumors: state.worldState.rumors ?? [],
+      character_beliefs: state.worldState.character_beliefs ?? [],
+      rejected_claims: state.worldState.rejected_claims ?? [],
+      story_consequences: state.worldState.story_consequences ?? [],
       unresolved: state.worldState.unresolved ?? []
     } : null,
     visualAssets: state.visualAssets ?? state.worldState?.visual_assets ?? null
@@ -376,7 +382,7 @@ function memoryGroup(label, facts) {
   list.replaceChildren(
     ...(facts.length ? facts.map((fact) => {
       const item = document.createElement("li");
-      item.textContent = fact.text;
+      item.textContent = fact.text ?? fact.summary ?? fact.claim ?? fact.reason ?? JSON.stringify(fact);
       return item;
     }) : [emptyItem("Nothing recorded yet.")])
   );

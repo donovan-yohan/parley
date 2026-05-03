@@ -208,5 +208,123 @@
         "blue-cloth"
       ]
     }
+  ],
+  "storyAttractors": [
+    {
+      "schema_version": "parley-story-attractor/v1",
+      "id": "orchard-welcome.blue-cloth-tradition",
+      "story_instance_id": "orchard-welcome-001",
+      "priority": "high",
+      "intent": "The player should learn that Mossgrove handles secrets through shared work and blue-cloth tradition, not coercion.",
+      "acceptable_routes": [
+        "help with cider hour",
+        "gentle apology after threat",
+        "neighbors gossip after public pressure",
+        "old press shed chore"
+      ],
+      "forbidden_shortcuts": [
+        "threats force confession",
+        "mayor arrests everyone on demand",
+        "private grief is revealed without consent"
+      ],
+      "success_signals": [
+        "player sees blue cloth as help-request custom",
+        "June remains available but cautious",
+        "future scene can reopen trust through work"
+      ]
+    }
+  ],
+  "dmDetourGuidance": [
+    {
+      "id": "public-threat",
+      "matchAny": [
+        "arrest every neighbor",
+        "threaten",
+        "salt the fields",
+        "mayor arrest",
+        "unless someone confesses",
+        "confesses"
+      ],
+      "intent": "coercive_public_pressure",
+      "plausibility": "possible_as_speech",
+      "cooperation": "hostile",
+      "claimPolicy": "attempt_allowed_claim_rejected",
+      "consequenceLevel": "social",
+      "targets": [
+        "june-bellweather",
+        "orchard-row-neighbors"
+      ],
+      "targetAttractorIds": [
+        "orchard-welcome.blue-cloth-tradition"
+      ],
+      "unsupportedClaims": [
+        {
+          "id": "claim-coercion-solves-orchard-secret",
+          "claim": "The mayor will arrest every neighbor and threats to salt the fields will force someone to confess.",
+          "reason": "The player can threaten people, but coercion does not create mayoral authority or unlock private truth."
+        }
+      ],
+      "narration": "You can say it. Mossgrove hears you say it. That is the problem. June Bellweather's smile folds away, and two neighbors suddenly remember chores in the opposite direction. No mayor appears, no confession spills out, and the orchard does not become kinder because you threatened it. June sets the basket down carefully. \\\"If you want the blue cloth to mean anything now, start by helping instead of cornering.\\\"",
+      "detour": {
+        "title": "The Lane Goes Still",
+        "purpose": "Apply social consequence for coercive threats and route back toward repair through shared work.",
+        "temporaryLocation": "orchard-row-lane",
+        "entryState": {
+          "neighbor_trust": "damaged",
+          "june_patience": "strained",
+          "blue_cloth_path": "repair_needed"
+        },
+        "exitConditions": [
+          "apologize and help with cider hour",
+          "carry the basket to the press shed",
+          "ask June how to repair the harm"
+        ],
+        "expiresAfter": "scene_resolution"
+      },
+      "consequence": {
+        "category": "social_reputation",
+        "summary": "The player publicly threatened Mossgrove neighbors; June and the orchard row became guarded, and the blue-cloth path now requires repair through help.",
+        "affectedEntities": [
+          "june-bellweather",
+          "orchard-row-neighbors"
+        ],
+        "reputationDeltas": [
+          {
+            "entity_id": "june-bellweather",
+            "axis": "trust",
+            "change": -1,
+            "reason": "The player tried coercion where the town expects careful help."
+          }
+        ],
+        "followupHooks": [
+          "June may reopen the conversation if the player helps without demanding answers.",
+          "Neighbors will gossip about the threat."
+        ],
+        "promotionEligible": false
+      },
+      "redirect": {
+        "routeType": "repair_route",
+        "summary": "The threat makes June redirect the player toward helping with blue-cloth custom instead of extracting a confession.",
+        "nextSceneSuggestions": [
+          "Apologize to June and offer to help with cider hour.",
+          "Carry the basket to the old press shed quietly.",
+          "Ask June how to repair the harm before asking more."
+        ]
+      },
+      "memoryFacts": [
+        {
+          "id": "detour-blue-cloth-repair-lead",
+          "category": "lead",
+          "text": "After the player's threat, the blue-cloth path can be reopened through apology and shared work rather than coercion.",
+          "source": "june-bellweather"
+        },
+        {
+          "id": "june-trust-dented-public-threat",
+          "category": "belief",
+          "text": "June is guarded because the player tried to force a confession through public threats.",
+          "character_id": "june-bellweather"
+        }
+      ]
+    }
   ]
 }

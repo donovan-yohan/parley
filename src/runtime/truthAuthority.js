@@ -6,9 +6,16 @@ export function judgeTurn({
   narration,
   character,
   characters = character ? [character] : [],
-  proposedFacts
+  proposedFacts,
+  handledRejectedClaims = []
 }) {
-  const rejectedClaims = [];
+  const blockingRejectedClaims = [];
+  const handledClaims = handledRejectedClaims.map((claim) => ({
+    id: claim.id,
+    claim: claim.claim,
+    reason: claim.reason,
+    handled: true
+  }));
   const contractCanonFacts = new Map(
     (scenario?.proposedFacts ?? [])
       .filter((fact) => fact.category === "canon")
@@ -36,7 +43,7 @@ export function judgeTurn({
   const unresolved = proposedFacts.filter((fact) => fact.category === "unresolved");
 
   for (const unsupportedCanonFact of unsupportedCanonFacts) {
-    rejectedClaims.push({
+    blockingRejectedClaims.push({
       id: `unsupported-canon-${unsupportedCanonFact.id}`,
       claim: unsupportedCanonFact.text,
       reason:
@@ -46,7 +53,7 @@ export function judgeTurn({
 
   const missingCharacters = characters.filter((candidate) => !narration.includes(candidate.name));
   for (const missingCharacter of missingCharacters) {
-    rejectedClaims.push({
+    blockingRejectedClaims.push({
       id: `missing-${missingCharacter.id}-response`,
       claim: `${missingCharacter.name} appeared in the turn response.`,
       reason: `The narration does not identify ${missingCharacter.name}.`
@@ -54,7 +61,7 @@ export function judgeTurn({
   }
 
   if (!String(playerAction ?? "").trim()) {
-    rejectedClaims.push({
+    blockingRejectedClaims.push({
       id: "missing-player-action",
       claim: "The player took an inspectable action.",
       reason: "The player action was empty."
@@ -62,7 +69,7 @@ export function judgeTurn({
   }
 
   if (acceptedFacts.length === 0) {
-    rejectedClaims.push({
+    blockingRejectedClaims.push({
       id: "missing-canon-fact",
       claim: "The turn proposed at least one canon fact allowed by the world contract.",
       reason: "No accepted canon facts were proposed for truth review."
@@ -76,9 +83,9 @@ export function judgeTurn({
     scene_id: scene.id,
     scenario_id: scenario?.id,
     authority: "mock-continuity-editor",
-    verdict: rejectedClaims.length === 0 ? "pass" : "revise",
+    verdict: blockingRejectedClaims.length === 0 ? "pass" : "revise",
     accepted_facts: acceptedFacts,
-    rejected_claims: rejectedClaims,
+    rejected_claims: [...blockingRejectedClaims, ...handledClaims],
     rumors,
     leads,
     character_beliefs: beliefs,

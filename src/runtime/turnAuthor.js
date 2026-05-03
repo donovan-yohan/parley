@@ -1,10 +1,17 @@
+import { authorDetourTurn } from "./dm/detourTools.js";
+
 const validFactCategories = new Set(["canon", "rumor", "lead", "belief", "unresolved"]);
 
 export function createScenarioFixtureAuthor() {
   return {
     id: "scenario-fixture-author",
     mode: "deterministic-fixture",
-    async authorTurn({ scenario, playerAction, turnId }) {
+    async authorTurn({ scenario, scene, playerAction, turnId }) {
+      const detourTurn = authorDetourTurn({ turnId, scenario, scene, playerAction });
+      if (detourTurn) {
+        return detourTurn;
+      }
+
       const response = selectScenarioResponse({ scenario, playerAction });
       return {
         responseId: response.id,
@@ -36,6 +43,11 @@ export function normalizeAuthoredTurn({ authoredTurn, turnAuthor, scenario, turn
     narration,
     nextChoices: normalizeNextChoices(authoredTurn.nextChoices, scenario.suggestedPlayerIntents),
     proposedFacts: normalizeProposedFacts({ facts: authoredTurn.proposedFacts, turnId }),
+    actionInterpretation: authoredTurn.actionInterpretation ?? null,
+    detourScene: authoredTurn.detourScene ?? null,
+    storyConsequence: authoredTurn.storyConsequence ?? null,
+    beatRedirect: authoredTurn.beatRedirect ?? null,
+    handledRejectedClaims: normalizeHandledRejectedClaims(authoredTurn.handledRejectedClaims),
     authoring: {
       author: String(authoredTurn.author ?? turnAuthor.id ?? "unknown-turn-author"),
       mode: String(authoredTurn.mode ?? turnAuthor.mode ?? "custom"),
@@ -59,6 +71,23 @@ export function selectScenarioResponse({ scenario, playerAction }) {
   return scenario.responses.find((response) =>
     (response.matchAny ?? []).some((phrase) => normalizedAction.includes(String(phrase).toLowerCase()))
   ) ?? scenario.responses.find((response) => response.id === "fallback") ?? scenario.responses[0];
+}
+
+function normalizeHandledRejectedClaims(claims = []) {
+  if (!Array.isArray(claims)) {
+    throw new Error("turnAuthor handledRejectedClaims must be an array");
+  }
+  return claims.map((claim, index) => {
+    if (!claim || typeof claim !== "object" || Array.isArray(claim)) {
+      throw new Error(`turnAuthor handledRejectedClaims[${index}] must be an object`);
+    }
+    return {
+      id: String(claim.id ?? `handled-claim-${index + 1}`).trim(),
+      claim: String(claim.claim ?? "").trim(),
+      reason: String(claim.reason ?? "Unsupported player claim was rejected.").trim(),
+      handled: claim.handled !== false
+    };
+  }).filter((claim) => claim.claim);
 }
 
 function normalizeNextChoices(nextChoices, fallbackChoices) {

@@ -65,7 +65,12 @@ export async function runPlayerTurn({
     playerAction: trimmedAction,
     narration,
     characters,
-    proposedFacts
+    proposedFacts,
+    handledRejectedClaims: authoredTurn.handledRejectedClaims,
+    actionInterpretation: authoredTurn.actionInterpretation,
+    detourScene: authoredTurn.detourScene,
+    storyConsequence: authoredTurn.storyConsequence,
+    beatRedirect: authoredTurn.beatRedirect
   });
 
   validateTruthVerdict(truthVerdict);
@@ -99,12 +104,14 @@ export async function runPlayerTurn({
     characters: characters.map((character) => character.id),
     visual_assets: visualAssets.assets.map((asset) => asset.id),
     authoring,
+    dm_artifacts: summarizeDmArtifacts(authoredTurn),
     truth_verdict: truthVerdict.id
   };
 
   await appendJsonLine(path.join(resolvedStateDir, "turns.jsonl"), turn);
+  await persistDmArtifacts({ stateDir: resolvedStateDir, authoredTurn });
   await appendJsonLine(path.join(resolvedStateDir, "truth-verdicts.jsonl"), truthVerdict);
-  const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState });
+  const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState, authoredTurn });
   await writeFile(worldStatePath, `${JSON.stringify(worldState, null, 2)}\n`, "utf8");
 
   return {
@@ -277,7 +284,7 @@ function validateTruthVerdict(truthVerdict) {
   }
 }
 
-function buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState }) {
+function buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState, authoredTurn }) {
   const previousCharacters = previousWorldState?.characters ?? [];
   return {
     schema_version: "parley-world-state/v1",
@@ -304,10 +311,43 @@ function buildWorldState({ scenario, scene, turn, characters, truthVerdict, visu
     leads: mergeById(previousWorldState?.leads, truthVerdict.leads),
     character_beliefs: mergeById(previousWorldState?.character_beliefs, truthVerdict.character_beliefs),
     unresolved: mergeById(previousWorldState?.unresolved, truthVerdict.unresolved),
+    rejected_claims: mergeById(previousWorldState?.rejected_claims, truthVerdict.rejected_claims ?? []),
+    action_interpretations: mergeById(previousWorldState?.action_interpretations, compactArray([authoredTurn.actionInterpretation])),
+    detour_scenes: mergeById(previousWorldState?.detour_scenes, compactArray([authoredTurn.detourScene])),
+    story_consequences: mergeById(previousWorldState?.story_consequences, compactArray([authoredTurn.storyConsequence])),
+    beat_redirects: mergeById(previousWorldState?.beat_redirects, compactArray([authoredTurn.beatRedirect])),
     visual_assets: visualAssets,
     latest_turn: turn.id,
     updated_by_truth_verdict: truthVerdict.id
   };
+}
+
+function summarizeDmArtifacts(authoredTurn) {
+  return {
+    action_interpretation: authoredTurn.actionInterpretation?.id ?? null,
+    detour_scene: authoredTurn.detourScene?.id ?? null,
+    story_consequence: authoredTurn.storyConsequence?.id ?? null,
+    beat_redirect: authoredTurn.beatRedirect?.id ?? null
+  };
+}
+
+async function persistDmArtifacts({ stateDir, authoredTurn }) {
+  const artifactFiles = [
+    ["action-interpretations.jsonl", authoredTurn.actionInterpretation],
+    ["detour-scenes.jsonl", authoredTurn.detourScene],
+    ["story-consequences.jsonl", authoredTurn.storyConsequence],
+    ["beat-redirects.jsonl", authoredTurn.beatRedirect]
+  ];
+
+  for (const [fileName, artifact] of artifactFiles) {
+    if (artifact) {
+      await appendJsonLine(path.join(stateDir, fileName), artifact);
+    }
+  }
+}
+
+function compactArray(values) {
+  return values.filter(Boolean);
 }
 
 function mergeById(previous = [], next = []) {
