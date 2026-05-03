@@ -1,0 +1,27 @@
+src/runtime/dm/detourContracts.js
+  466842055215d17d 28,30-31,51-60,123-136
+src/runtime/scenarioPacks.js
+  466842055215d17d 213-218,221-227
+src/runtime/dm/detourTools.js
+  466842055215d17d 132-134,138-143,147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "22f075eff4fa49bff54fd46b4b5d6ae28f29774d",
+  "prompts": {
+    "466842055215d17d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "886aad34-5bae-497d-99f1-17517b2b21b7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 51,
+      "total_deletions": 7,
+      "accepted_lines": 2298,
+      "overriden_lines": 10
+    }
+  }
+}
