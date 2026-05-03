@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { buildScenarioCharacter, persistCharacterMarkdown } from "./belayerCharacterAdapter.js";
 import { defaultScenarioId, loadScenarioPack, scenarioMetadata } from "./scenarioPacks.js";
 import { judgeTurn } from "./truthAuthority.js";
+import { createScenarioFixtureAuthor, normalizeAuthoredTurn } from "./turnAuthor.js";
 
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(runtimeDir, "..", "..");
@@ -16,7 +17,9 @@ export async function runPlayerTurn({
   playerAction,
   stateDir,
   scenePath = defaultScenePath,
-  worldDir
+  worldDir,
+  turnAuthor = createScenarioFixtureAuthor(),
+  truthAuthority = judgeTurn
 }) {
   const trimmedAction = String(playerAction ?? "").trim();
   if (!trimmedAction) {
@@ -37,11 +40,17 @@ export async function runPlayerTurn({
   );
   await Promise.all(characters.map((character) => persistCharacterMarkdown({ character, worldDir: resolvedWorldDir })));
 
-  const response = selectScenarioResponse({ scenario, playerAction: trimmedAction });
-  const narration = response.narration;
-  const nextChoices = response.nextChoices ?? scenario.suggestedPlayerIntents;
-  const proposedFacts = buildProposedFacts({ turnId, responseId: response.id, facts: scenario.proposedFacts });
-  const truthVerdict = judgeTurn({
+  const authoredTurn = await buildAuthoredTurn({
+    turnAuthor,
+    turnId,
+    scenario,
+    scene,
+    playerAction: trimmedAction,
+    characters,
+    previousWorldState
+  });
+  const { narration, nextChoices, proposedFacts, authoring } = authoredTurn;
+  const truthVerdict = await truthAuthority({
     turnId,
     scene,
     scenario,
@@ -50,6 +59,8 @@ export async function runPlayerTurn({
     characters,
     proposedFacts
   });
+
+  validateTruthVerdict(truthVerdict);
 
   if (truthVerdict.verdict !== "pass") {
     await appendJsonLine(path.join(resolvedStateDir, "truth-verdicts.jsonl"), truthVerdict);
@@ -63,6 +74,7 @@ export async function runPlayerTurn({
       nextChoices: [],
       characters,
       truthVerdict,
+      authoring,
       committed: false
     };
   }
@@ -76,6 +88,7 @@ export async function runPlayerTurn({
     narration,
     next_choices: nextChoices,
     characters: characters.map((character) => character.id),
+    authoring,
     truth_verdict: truthVerdict.id
   };
 
@@ -95,6 +108,7 @@ export async function runPlayerTurn({
     characters,
     truthVerdict,
     worldState,
+    authoring,
     committed: true
   };
 }
@@ -202,23 +216,48 @@ async function nextTurnId(stateDir) {
   return `turn-${String(turns.length + 1).padStart(4, "0")}`;
 }
 
-function selectScenarioResponse({ scenario, playerAction }) {
-  const normalizedAction = playerAction.toLowerCase();
-  return scenario.responses.find((response) =>
-    (response.matchAny ?? []).some((phrase) => normalizedAction.includes(String(phrase).toLowerCase()))
-  ) ?? scenario.responses.find((response) => response.id === "fallback") ?? scenario.responses[0];
+async function buildAuthoredTurn({ turnAuthor, turnId, scenario, scene, playerAction, characters, previousWorldState }) {
+  const resolvedTurnAuthor = typeof turnAuthor === "function"
+    ? { id: "custom-turn-author", mode: "custom", authorTurn: turnAuthor }
+    : turnAuthor;
+
+  if (!resolvedTurnAuthor?.authorTurn) {
+    throw new Error("turnAuthor must provide authorTurn(context)");
+  }
+
+  const authoredTurn = await resolvedTurnAuthor.authorTurn({
+    turnId,
+    scenario,
+    scene,
+    playerAction,
+    characters,
+    previousWorldState
+  });
+
+  return normalizeAuthoredTurn({ authoredTurn, turnAuthor: resolvedTurnAuthor, scenario, turnId });
 }
 
-function buildProposedFacts({ turnId, responseId, facts }) {
-  return facts
-    .filter((fact) => {
-      const responseIds = fact.responseIds ?? ["*"];
-      return responseIds.includes("*") || responseIds.includes(responseId);
-    })
-    .map(({ responseIds, ...fact }) => ({
-      ...fact,
-      evidence_turn: turnId
-    }));
+function validateTruthVerdict(truthVerdict) {
+  if (!truthVerdict || typeof truthVerdict !== "object") {
+    throw new Error("truthAuthority must return a truth verdict object");
+  }
+
+  if (!["pass", "revise"].includes(truthVerdict.verdict)) {
+    throw new Error(`truthAuthority returned invalid verdict ${truthVerdict.verdict}`);
+  }
+
+  for (const key of [
+    "accepted_facts",
+    "rejected_claims",
+    "rumors",
+    "leads",
+    "character_beliefs",
+    "unresolved"
+  ]) {
+    if (!Array.isArray(truthVerdict[key])) {
+      throw new Error(`truthAuthority verdict missing array ${key}`);
+    }
+  }
 }
 
 function buildWorldState({ scenario, scene, turn, characters, truthVerdict, previousWorldState }) {
