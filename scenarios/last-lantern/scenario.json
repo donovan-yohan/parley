@@ -202,5 +202,140 @@
         "ashford-name"
       ]
     }
+  ],
+  "storyAttractors": [
+    {
+      "schema_version": "parley-story-attractor/v1",
+      "id": "last-lantern.notice-drover",
+      "story_instance_id": "materialized-at-runtime",
+      "priority": "high",
+      "intent": "The player should understand that the red-scarfed drover matters to the Ashford mystery.",
+      "acceptable_routes": [
+        "direct questioning",
+        "room reaction after public disruption",
+        "private warning from Mara",
+        "drover exploits player distraction"
+      ],
+      "forbidden_shortcuts": [
+        "Mara reveals author-only hidden truth",
+        "drover confesses without pressure",
+        "player claim becomes canon without evidence"
+      ],
+      "success_signals": [
+        "player knows drover is relevant",
+        "story memory contains a drover lead",
+        "future scene can follow or investigate drover"
+      ]
+    }
+  ],
+  "dmDetourGuidance": [
+    {
+      "id": "table-outburst",
+      "matchAny": [
+        "leap onto a table",
+        "climb on table",
+        "table",
+        "own the last lantern",
+        "own",
+        "secrets",
+        "hand over"
+      ],
+      "intent": "performative_disruption",
+      "plausibility": "possible",
+      "cooperation": "disruptive",
+      "claimPolicy": "attempt_allowed_claim_rejected",
+      "consequenceLevel": "social",
+      "targets": [
+        "mara-underbough",
+        "last-lantern-patrons",
+        "red-scarfed-drover"
+      ],
+      "targetAttractorIds": [
+        "last-lantern.notice-drover"
+      ],
+      "unsupportedClaims": [
+        {
+          "id": "claim-player-owns-last-lantern",
+          "claim": "The player owns the Last Lantern and can demand everyone hand over their secrets.",
+          "reason": "A public declaration is speech, not evidence of legal ownership or authority over patrons."
+        }
+      ],
+      "narration": "You get one boot on the table before the room goes knife-quiet. Mara Underbough does not shout; she sets both hands on the bar and lets disappointment do the heavy lifting. You can make a scene, sure. You cannot make the Last Lantern yours by saying so. Near the cold hearth, the red-scarfed drover smiles like your outburst just gave him cover to leave.",
+      "detour": {
+        "title": "The Room Turns Quiet",
+        "purpose": "Apply social consequence for the table outburst and surface the red-scarfed drover as a lead.",
+        "temporaryLocation": "last-lantern-tavern-common-room",
+        "entryState": {
+          "player_position": "standing on a tavern table",
+          "social_pressure": "high",
+          "mara_trust": "reduced"
+        },
+        "exitConditions": [
+          "step down and repair trust",
+          "follow the drover outside",
+          "ask Mara why the drover enjoyed the disruption"
+        ],
+        "expiresAfter": "scene_resolution"
+      },
+      "consequence": {
+        "category": "social_reputation",
+        "summary": "The player publicly disrupted the Last Lantern by climbing onto a table and declaring ownership; Mara trusts them less, and the red-scarfed drover used the attention shift.",
+        "affectedEntities": [
+          "mara-underbough",
+          "last-lantern-patrons",
+          "red-scarfed-drover"
+        ],
+        "reputationDeltas": [
+          {
+            "entity_id": "mara-underbough",
+            "axis": "trust",
+            "change": -1,
+            "reason": "The player made a public scene instead of asking carefully."
+          }
+        ],
+        "followupHooks": [
+          "Mara is more guarded until the player repairs trust.",
+          "The red-scarfed drover may exploit the player's outburst."
+        ],
+        "promotionEligible": false
+      },
+      "redirect": {
+        "routeType": "consequence_reveal",
+        "summary": "The table outburst makes the red-scarfed drover visibly amused, giving the player a new way to notice him.",
+        "nextSceneSuggestions": [
+          "Step down and apologize to Mara.",
+          "Follow the red-scarfed drover outside.",
+          "Ask Mara why the drover enjoyed the disruption."
+        ]
+      },
+      "memoryFacts": [
+        {
+          "id": "detour-red-scarfed-drover-reaction",
+          "category": "lead",
+          "text": "The red-scarfed drover reacted with amusement during the player's table outburst and may be exploiting the distraction.",
+          "source": "dm-detour"
+        },
+        {
+          "id": "mara-trust-dented-table-outburst",
+          "category": "belief",
+          "text": "Mara is more guarded toward the player after the table outburst.",
+          "character_id": "mara-underbough"
+        }
+      ],
+      "matchAnyGroups": [
+        [
+          "leap onto a table",
+          "climb on table",
+          "onto a table"
+        ],
+        [
+          "claim i own",
+          "declare i own",
+          "own the last lantern",
+          "demand everyone hand over",
+          "hand over their secrets"
+        ]
+      ]
+    }
   ]
 }

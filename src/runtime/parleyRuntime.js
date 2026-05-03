@@ -3,6 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildScenarioCharacter, persistCharacterMarkdown } from "./belayerCharacterAdapter.js";
+import {
+  validateActionInterpretation,
+  validateBeatRedirect,
+  validateDetourScene,
+  validateStoryConsequence
+} from "./dm/detourContracts.js";
 import { defaultScenarioId, loadScenarioPack, scenarioMetadata } from "./scenarioPacks.js";
 import { judgeTurn } from "./truthAuthority.js";
 import { createScenarioFixtureAuthor, normalizeAuthoredTurn } from "./turnAuthor.js";
@@ -65,7 +71,12 @@ export async function runPlayerTurn({
     playerAction: trimmedAction,
     narration,
     characters,
-    proposedFacts
+    proposedFacts,
+    handledRejectedClaims: authoredTurn.handledRejectedClaims,
+    actionInterpretation: authoredTurn.actionInterpretation,
+    detourScene: authoredTurn.detourScene,
+    storyConsequence: authoredTurn.storyConsequence,
+    beatRedirect: authoredTurn.beatRedirect
   });
 
   validateTruthVerdict(truthVerdict);
@@ -99,12 +110,14 @@ export async function runPlayerTurn({
     characters: characters.map((character) => character.id),
     visual_assets: visualAssets.assets.map((asset) => asset.id),
     authoring,
+    dm_artifacts: summarizeDmArtifacts(authoredTurn),
     truth_verdict: truthVerdict.id
   };
 
   await appendJsonLine(path.join(resolvedStateDir, "turns.jsonl"), turn);
+  await persistDmArtifacts({ stateDir: resolvedStateDir, authoredTurn });
   await appendJsonLine(path.join(resolvedStateDir, "truth-verdicts.jsonl"), truthVerdict);
-  const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState });
+  const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState, authoredTurn });
   await writeFile(worldStatePath, `${JSON.stringify(worldState, null, 2)}\n`, "utf8");
 
   return {
@@ -251,7 +264,31 @@ async function buildAuthoredTurn({ turnAuthor, turnId, scenario, scene, playerAc
     previousWorldState
   });
 
+  validateDmArtifacts({ authoredTurn, turnId });
+
   return normalizeAuthoredTurn({ authoredTurn, turnAuthor: resolvedTurnAuthor, scenario, turnId });
+}
+
+function validateDmArtifacts({ authoredTurn, turnId }) {
+  const artifactValidators = [
+    ["actionInterpretation", validateActionInterpretation],
+    ["detourScene", validateDetourScene],
+    ["storyConsequence", validateStoryConsequence],
+    ["beatRedirect", validateBeatRedirect]
+  ];
+
+  for (const [key, validator] of artifactValidators) {
+    if (!authoredTurn[key]) {
+      continue;
+    }
+    const artifact = validator(authoredTurn[key]);
+    if (artifact.source_turn_id && artifact.source_turn_id !== turnId) {
+      throw new Error(`${key} source_turn_id must match ${turnId}`);
+    }
+    if (artifact.turn_id && artifact.turn_id !== turnId) {
+      throw new Error(`${key} turn_id must match ${turnId}`);
+    }
+  }
 }
 
 function validateTruthVerdict(truthVerdict) {
@@ -277,7 +314,7 @@ function validateTruthVerdict(truthVerdict) {
   }
 }
 
-function buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState }) {
+function buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState, authoredTurn }) {
   const previousCharacters = previousWorldState?.characters ?? [];
   return {
     schema_version: "parley-world-state/v1",
@@ -304,10 +341,43 @@ function buildWorldState({ scenario, scene, turn, characters, truthVerdict, visu
     leads: mergeById(previousWorldState?.leads, truthVerdict.leads),
     character_beliefs: mergeById(previousWorldState?.character_beliefs, truthVerdict.character_beliefs),
     unresolved: mergeById(previousWorldState?.unresolved, truthVerdict.unresolved),
+    rejected_claims: mergeById(previousWorldState?.rejected_claims, truthVerdict.rejected_claims ?? []),
+    action_interpretations: mergeById(previousWorldState?.action_interpretations, compactArray([authoredTurn.actionInterpretation])),
+    detour_scenes: mergeById(previousWorldState?.detour_scenes, compactArray([authoredTurn.detourScene])),
+    story_consequences: mergeById(previousWorldState?.story_consequences, compactArray([authoredTurn.storyConsequence])),
+    beat_redirects: mergeById(previousWorldState?.beat_redirects, compactArray([authoredTurn.beatRedirect])),
     visual_assets: visualAssets,
     latest_turn: turn.id,
     updated_by_truth_verdict: truthVerdict.id
   };
+}
+
+function summarizeDmArtifacts(authoredTurn) {
+  return {
+    action_interpretation: authoredTurn.actionInterpretation?.id ?? null,
+    detour_scene: authoredTurn.detourScene?.id ?? null,
+    story_consequence: authoredTurn.storyConsequence?.id ?? null,
+    beat_redirect: authoredTurn.beatRedirect?.id ?? null
+  };
+}
+
+async function persistDmArtifacts({ stateDir, authoredTurn }) {
+  const artifactFiles = [
+    ["action-interpretations.jsonl", authoredTurn.actionInterpretation],
+    ["detour-scenes.jsonl", authoredTurn.detourScene],
+    ["story-consequences.jsonl", authoredTurn.storyConsequence],
+    ["beat-redirects.jsonl", authoredTurn.beatRedirect]
+  ];
+
+  for (const [fileName, artifact] of artifactFiles) {
+    if (artifact) {
+      await appendJsonLine(path.join(stateDir, fileName), artifact);
+    }
+  }
+}
+
+function compactArray(values) {
+  return values.filter(Boolean);
 }
 
 function mergeById(previous = [], next = []) {
@@ -316,10 +386,22 @@ function mergeById(previous = [], next = []) {
     if (!item) {
       continue;
     }
-    const key = item.id ?? item.text ?? item.name ?? JSON.stringify(item);
+    const key = memoryMergeKey(item);
     merged.set(key, item);
   }
   return [...merged.values()];
+}
+
+function memoryMergeKey(item) {
+  const semanticKey = item.text ?? item.claim ?? item.summary ?? item.name;
+  if (semanticKey) {
+    return normalizeMemoryKey(semanticKey);
+  }
+  return item.id ?? JSON.stringify(item);
+}
+
+function normalizeMemoryKey(value) {
+  return String(value).trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 async function appendJsonLine(filePath, value) {
