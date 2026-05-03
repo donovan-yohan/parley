@@ -39,6 +39,7 @@ Do not make Belayer story-aware. Use Belayer generated talents as Parley's chara
 - `brainstorm.md` — original product brainstorm.
 - `docs/specs/last-lantern-live-storyteller-flow.md` — Belayer live storyteller flow spec.
 - `docs/specs/2026-05-01-parley-nightshift-mvp.md` — current MVP/night-shift spec.
+- `docs/specs/2026-05-01-nightshift-addendum-stacked-prs-ui-prose.md` — night-shift addendum for stacked PRs, UI, and prose goals.
 - `examples/last-lantern/scene.yaml` — current scene seed.
 - `examples/last-lantern/artifacts/` — static proof artifacts.
 - `scripts/smoke-last-lantern.sh` — current smoke script; known to drift against installed/latest Belayer.
