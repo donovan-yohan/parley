@@ -1,0 +1,29 @@
+src/runtime/belayerCharacterAdapter.js
+  466842055215d17d 108
+src/runtime/scenarioPacks.js
+  466842055215d17d 14,20-28,105-118,122,127,136-174
+src/runtime/truthAuthority.js
+  466842055215d17d 10-12,103,115-129
+src/runtime/parleyRuntime.js
+  466842055215d17d 79-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "e8fae97b5223fedd71fe16ccd4b4b1a54404bc9a",
+  "prompts": {
+    "466842055215d17d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "886aad34-5bae-497d-99f1-17517b2b21b7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 90,
+      "total_deletions": 8,
+      "accepted_lines": 2339,
+      "overriden_lines": 5
+    }
+  }
+}
