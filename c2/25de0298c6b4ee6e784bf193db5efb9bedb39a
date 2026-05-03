@@ -1,0 +1,25 @@
+scripts/smoke-last-lantern.sh
+  e7a40139c52fd7f4 6-7,35-38,64-70,73-75,84-87
+examples/last-lantern/README.md
+  e7a40139c52fd7f4 13-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "c225de0298c6b4ee6e784bf193db5efb9bedb39a",
+  "prompts": {
+    "e7a40139c52fd7f4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019de93e-ff5f-74c2-9b40-104037129906",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 26,
+      "overriden_lines": 0
+    }
+  }
+}
