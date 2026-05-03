@@ -194,6 +194,26 @@ test("runtime rejects raw unvalidated detour artifacts from custom turn authors"
   );
 });
 
+test("repeating the same detour action does not duplicate semantic story memory", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-detour-dedupe-"));
+  const resultOne = await runPlayerTurn({
+    scenarioId: "neon-afterhours",
+    stateDir: path.join(rootDir, "state"),
+    worldDir: path.join(rootDir, "world"),
+    playerAction: "I smash the badge reader, declare I am the compliance director, and order Kestrel-9 to delete every audit log."
+  });
+  const resultTwo = await runPlayerTurn({
+    scenarioId: "neon-afterhours",
+    stateDir: path.join(rootDir, "state"),
+    worldDir: path.join(rootDir, "world"),
+    playerAction: "I smash the badge reader, declare I am the compliance director, and order Kestrel-9 to delete every audit log."
+  });
+
+  assert.equal(resultOne.worldState.story_consequences.length, 1);
+  assert.equal(resultTwo.worldState.story_consequences.length, 1);
+  assert.equal(resultTwo.worldState.rejected_claims.length, 1);
+});
+
 test("scenario-specific extreme actions produce proportional detours", async () => {
   const cases = [
     {

@@ -386,10 +386,22 @@ function mergeById(previous = [], next = []) {
     if (!item) {
       continue;
     }
-    const key = item.id ?? item.text ?? item.name ?? JSON.stringify(item);
+    const key = memoryMergeKey(item);
     merged.set(key, item);
   }
   return [...merged.values()];
+}
+
+function memoryMergeKey(item) {
+  const semanticKey = item.text ?? item.claim ?? item.summary ?? item.name;
+  if (semanticKey) {
+    return normalizeMemoryKey(semanticKey);
+  }
+  return item.id ?? JSON.stringify(item);
+}
+
+function normalizeMemoryKey(value) {
+  return String(value).trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 async function appendJsonLine(filePath, value) {
