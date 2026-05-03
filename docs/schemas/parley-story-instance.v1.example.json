@@ -1,0 +1,23 @@
+{
+  "schema_version": "parley-story-instance/v1",
+  "id": "first-rumor-001",
+  "world_instance": "kyle-last-lantern-first-rumor",
+  "source": {
+    "story_template": "last-lantern",
+    "story_template_version": "0.1.0",
+    "story_template_hash": "sha256:example-story-template-hash"
+  },
+  "status": "active",
+  "paths": {
+    "wiki": ".",
+    "state": "state",
+    "turns": "state/turns.jsonl",
+    "truth_verdicts": "state/truth-verdicts.jsonl",
+    "promotion_candidates": "state/promotion-candidates.jsonl",
+    "promotions": "state/promotions.jsonl"
+  },
+  "active_scene": "last-lantern-tavern",
+  "created_by": "dm:kyle",
+  "materialized_at": "2026-05-03T00:00:00Z",
+  "updated_at": "2026-05-03T00:00:00Z"
+}

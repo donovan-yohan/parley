@@ -347,3 +347,31 @@ Use this doc to review whether the architecture has the right boundaries:
 - [ ] Strict truth review gates durable canon.
 - [ ] Story Memory is inspectable, cumulative, and not just prose.
 - [ ] Demo fixtures do not become the long-term storytelling contract.
+
+## Template / Instance Source of Truth
+
+The current implementation is still scenario-centric. The next architecture step
+splits reusable seed material from gameplay truth:
+
+```text
+world template + story template
+  ↓ deterministic materialization
+world instance + story instance
+  ↓ gameplay agents, truth authority, visual assets, story logs
+instance-local canon and state
+```
+
+Gameplay agents should not read templates. They should read only the active
+world/story instance. This prevents original template canon from competing with
+the player's evolved instance canon.
+
+See [`../specs/parley-template-instance-source-of-truth.md`](../specs/parley-template-instance-source-of-truth.md).
+
+Near-term open architecture additions:
+
+- Current `worlds/*` and `scenarios/*` are transitional template roots. Runtime
+  migration should materialize active world/story instances and bind gameplay to
+  those instance paths only.
+- NPC context must be filtered by knowledge scope, witnessed turns,
+  relationships, and reluctance-to-share guidance. Character agents should not
+  receive the full world wiki.

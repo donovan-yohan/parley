@@ -67,3 +67,24 @@ That means:
   - an unmatched player action can be authored by a loose author while the strict truth contract still governs persisted state;
   - async truth authorities are awaited before persistence;
   - loose authors cannot directly commit unsupported canon or spoof an allowed canon ID with different text.
+
+## Instance-Bound Future Context
+
+The future LLM-style author should not receive raw template paths or template
+records. Deterministic setup code should first materialize the chosen world and
+story templates into an active world/story instance. The author then receives an
+instance-derived gameplay packet:
+
+- active world instance summary;
+- active story instance summary;
+- active scene;
+- player action;
+- present characters with filtered knowledge/sharing guidance;
+- previous instance state;
+- recent story-log summary.
+
+It should not receive `worlds/<template-id>/...`, `scenarios/<template-id>/...`,
+or full hidden-truth material unless the role is explicitly GM/validator rather
+than in-character NPC. See
+[`parley-template-instance-source-of-truth.md`](./parley-template-instance-source-of-truth.md)
+and [`parley-character-knowledge-privacy.md`](./parley-character-knowledge-privacy.md).

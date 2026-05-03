@@ -161,3 +161,25 @@ keeps lineage but starts a fresh play log.
 - multi-world index (one world per run is fine)
 - hosted bible browser (read in editor for now)
 - KBrain/GBrain/MCP-backed bible (Markdown is enough; that's a later seam)
+
+## Template / Instance Split
+
+This document describes the first prototype layout where `worlds/<world-slug>/`
+acts as both reusable world seed and local runtime state holder. The next
+architecture splits that into template roots and materialized instance roots. See
+[`parley-template-instance-source-of-truth.md`](./parley-template-instance-source-of-truth.md).
+
+Long term, gameplay agents should not read `worlds/<world-slug>/` as the live
+source of truth. That directory is treated as template seed material until the
+runtime migrates. Deterministic setup code materializes it into an instance:
+
+```text
+worlds/<world-slug>/                  # transitional world template seed
+scenarios/<story-id>/scenario.json    # transitional story template seed
+  ↓ deterministic materializer
+instances/<world-instance-id>/world/  # active world wiki/canon during play
+instances/<world-instance-id>/stories/<story-instance-id>/ # active story wiki/log
+```
+
+After materialization, gameplay agents read and write only the instance. Template
+roots are authoring/distribution artifacts, not runtime truth.

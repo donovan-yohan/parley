@@ -152,3 +152,19 @@ Once Honcho integrates, peer beliefs (`Mara distrusts Garrick`) move out of
 character pages and into Honcho perspective stores. The character record stays
 stable. This is intentionally deferred — the contract above does not require
 Honcho to ship.
+
+## Instance Character Knowledge / Non-Omniscience
+
+In the template/instance architecture, template character records may remain
+compact, but materialized instance character records should grow toward
+`parley-character/v2` with machine-readable context boundaries:
+
+- `knowledge_scope.knows`, `suspects`, `mistaken_beliefs`, `forbidden`;
+- `knowledge_scope.may_read` and `must_not_read`;
+- `sharing_guidance` for reluctance, trust, and disclosure conditions;
+- `relationships` keyed by player or other character id.
+
+The goal is to keep NPCs true to themselves without handing them the full world
+wiki. A character context builder should filter hidden truth, full story logs,
+pending promotion candidates, template roots, and private other-character beliefs.
+See [`parley-character-knowledge-privacy.md`](./parley-character-knowledge-privacy.md).

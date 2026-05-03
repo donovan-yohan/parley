@@ -29,8 +29,11 @@ Do not make Belayer story-aware. Use Belayer generated talents as Parley's chara
 - Every generated NPC becomes reusable by default.
 - Character records should include tags like `location`, `role`, `importance`, `faction`, `scene`, `tone`.
 - Default generated NPC lifecycle is `resumable`.
-- A second LLM-style truth authority judges what becomes established canon.
+- A second LLM-style truth authority judges claims and recommends what is eligible for canon or promotion.
 - Distinguish canon, rumor, character belief, unresolved mystery, and author-only hidden truth.
+- During play, gameplay agents operate only on materialized world/story instances; deterministic setup may read templates, but agents should not read or mutate templates.
+- Significant story events become promotion candidates first. DM/human acceptance promotes them into world-instance canon.
+- NPC/character context must be filtered by knowledge scope, relationships, witnessed events, and reluctance-to-share guidance so characters do not become omniscient.
 - Start file-backed and inspectable. Honcho/graph/image generation are integration seams, not first-slice blockers.
 - UI should be a simple text-driven HTML experience inspired by Twine / interactive fiction: transcript + input + next choices + NPC list.
 

@@ -9,6 +9,9 @@ generated from these examples.
 | File                                  | Contract                       |
 |---------------------------------------|--------------------------------|
 | `parley-character.v1.example.json`    | `parley-character/v1`          |
+| `parley-instance.v1.example.json`     | `parley-instance/v1`           |
+| `parley-story-instance.v1.example.json` | `parley-story-instance/v1`   |
+| `parley-promotion-candidate.v1.example.json` | `parley-promotion-candidate/v1` |
 | `parley-truth-verdict.v1.example.json`| `parley-truth-verdict/v1`      |
 | `parley-world-state.v1.example.json`  | `parley-world-state/v1`        |
 | `parley-turn.v1.example.json`         | `parley-turn/v1`               |
