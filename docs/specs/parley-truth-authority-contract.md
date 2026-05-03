@@ -30,7 +30,7 @@ It does not:
 It returns a verdict object. The runtime applies (or rejects) the delta based
 on the verdict.
 
-## Five Truth Categories
+## Six Truth Categories
 
 Every claim in a turn is bucketed into exactly one of these:
 
@@ -39,8 +39,15 @@ Every claim in a turn is bucketed into exactly one of these:
 | `canon`            | "Mara is the tavernkeep at the Last Lantern."              | `world-state.timeline` + `characters` entry   |
 | `character_belief` | "Mara thinks Garrick is lying about the toll."             | `open_threads` with `kind=belief`, attributed |
 | `rumor`            | "They say the north stones move when no one watches."      | `open_threads` with `kind=rumor`              |
+| `lead`             | "The old north road shows recent wagon ruts worth following." | `world-state.leads`, kept until promoted/dropped |
 | `unresolved`       | "Something happened with the Ashford line. Unclear what."  | `open_threads` with `kind=mystery`            |
 | `hidden_truth`     | Author-only fact not yet shown to player                   | NOT in world-state. Author-only sidecar.      |
+
+`lead` is distinct from `rumor` (which is a public-facing whisper) and from
+`unresolved` (which is a player-visible open mystery). Leads describe a
+specific next-step opportunity the runtime should keep alive in
+`world-state.leads` until either promoted to `canon` (via
+`parley-canon-promotion-policy`) or explicitly dropped.
 
 Hidden truths must never be written to player-visible artifacts. They live in a
 separate file (`worlds/<w>/state/hidden-truth.jsonl`) the UI does not read.

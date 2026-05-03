@@ -46,10 +46,24 @@ test("player input creates Mara response, reusable character, and artifacts", as
   assert.match(turns, /I ask who remembers the old north road\./);
   assert.match(turns, /Mara Underbough/);
 
-  const truth = await readFile(path.join(stateDir, "truth-verdicts.jsonl"), "utf8");
-  assert.match(truth, /old-north-road/);
-  assert.match(truth, /rumor/);
-  assert.match(truth, /lead/);
+  const truthLines = (await readFile(path.join(stateDir, "truth-verdicts.jsonl"), "utf8"))
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  assert.equal(truthLines.length, 1);
+  const persistedVerdict = truthLines[0];
+  assert.ok(
+    persistedVerdict.leads.some((entry) => entry.id === "old-north-road-lead" && entry.category === "lead"),
+    "expected the old-north-road lead to be persisted with category=lead"
+  );
+  assert.ok(
+    persistedVerdict.rumors.some((entry) => entry.id === "old-north-road-rumor" && entry.category === "rumor"),
+    "expected the old-north-road rumor to be persisted with category=rumor"
+  );
+  assert.ok(
+    !persistedVerdict.accepted_facts.some((fact) => /ashford/i.test(fact.text)),
+    "Ashford-name should never be promoted to canon by the deterministic mock authority"
+  );
 });
 
 test("scene seed scalars ignore inline comments and unwrap quoted values", async () => {
