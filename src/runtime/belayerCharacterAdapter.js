@@ -1,44 +1,80 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-export function buildMaraUnderbough({ scene, sourceRequest }) {
+export function buildScenarioCharacter({ scenario, characterDefinition, sourceRequest, scene = scenario.scene }) {
   const tags = [
-    "location:last-lantern-tavern",
-    "role:tavernkeep",
-    "importance:recurring",
-    "faction:last-lantern-staff",
-    `scene:${scene.id}`,
-    "tone:warm-watchful"
+    ...(characterDefinition.tags ?? []),
+    `scene:${scene.id}`
   ];
 
   return {
     schema_version: "parley-character/v1",
-    id: "mara-underbough",
-    name: "Mara Underbough",
-    reusable: true,
-    lifecycle: "resumable",
-    tags,
-    world: "last-lantern",
+    id: characterDefinition.id,
+    name: characterDefinition.name,
+    reusable: characterDefinition.reusable ?? true,
+    lifecycle: characterDefinition.lifecycle ?? "resumable",
+    tags: [...new Set(tags)],
+    world: characterDefinition.world ?? scenario.world.id,
     scene: scene.id,
+    role: characterDefinition.role,
+    faction: characterDefinition.faction,
+    tone: characterDefinition.tone,
+    importance: characterDefinition.importance,
+    knowledgeBoundary: characterDefinition.knowledgeBoundary,
     belayerGeneratedTalent: {
       schema_version: "belayer-generated-talent/v1",
-      id: "mara-underbough",
+      id: characterDefinition.id,
       domain: "story",
-      role: "tavernkeep",
-      lifecycle: "resumable",
+      role: characterDefinition.role,
+      lifecycle: characterDefinition.lifecycle ?? "resumable",
       status: "generated",
       source_request: sourceRequest,
       metadata: {
-        voice: "warm and watchful",
-        knowledge_boundary: "Knows local rumors and visible tavern history, not author-only hidden truth."
+        faction: characterDefinition.faction,
+        tone: characterDefinition.tone,
+        importance: characterDefinition.importance,
+        knowledge_boundary: characterDefinition.knowledgeBoundary
       }
     },
-    portrait: {
+    portrait: characterDefinition.portrait ?? {
+      status: "missing"
+    }
+  };
+}
+
+export function buildMaraUnderbough({ scene, sourceRequest }) {
+  return buildScenarioCharacter({
+    scene,
+    sourceRequest,
+    scenario: {
+      world: { id: "last-lantern" },
+      scene
+    },
+    characterDefinition: {
+      id: "mara-underbough",
+      name: "Mara Underbough",
+      role: "tavernkeep",
+      reusable: true,
+      lifecycle: "resumable",
+      world: "last-lantern",
+      faction: "last-lantern-staff",
+      tone: "warm-watchful",
+      importance: "recurring",
+      knowledgeBoundary: "Knows local rumors and visible tavern history, not author-only hidden truth.",
+      tags: [
+        "location:last-lantern-tavern",
+        "role:tavernkeep",
+        "importance:recurring",
+        "faction:last-lantern-staff",
+        "tone:warm-watchful"
+      ],
+      portrait: {
       status: "missing",
       prompt_path: "worlds/last-lantern/characters/mara-underbough.md#portrait-prompt",
       asset_path: "worlds/last-lantern/assets/portraits/mara-underbough.png"
     }
-  };
+    }
+  });
 }
 
 export async function persistCharacterMarkdown({ character, worldDir }) {
@@ -49,8 +85,8 @@ export async function persistCharacterMarkdown({ character, worldDir }) {
 
 Schema: \`${character.schema_version}\`
 
-Mara Underbough is a reusable Parley character backed by a Belayer generated
-talent record. Parley owns the story-facing metadata below; Belayer only needs
+${character.name} is a reusable Parley character backed by a Belayer generated
+talent record. Parley owns the story-facing metadata below; Belayer only sees
 the generic generated-talent fields.
 
 ## Tags
@@ -72,10 +108,13 @@ ${character.belayerGeneratedTalent.metadata.knowledge_boundary}
 
 ## Portrait Prompt
 
-Use \`worlds/last-lantern/art-style.md\` as the style source. Portrait should
-show a middle-aged tavernkeep with practical clothes, lamplight on weathered
-wood, and a warm but watchful expression. Do not imply she knows hidden
-author-only truth.
+Portrait metadata is tracked in the character record:
+
+- status: \`${character.portrait?.status ?? "missing"}\`
+- prompt_path: \`${character.portrait?.prompt_path ?? "not-set"}\`
+- asset_path: \`${character.portrait?.asset_path ?? "not-set"}\`
+
+Do not imply the character knows hidden author-only truth.
 `;
 
   try {

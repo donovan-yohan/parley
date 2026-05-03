@@ -7,6 +7,7 @@
     "start": "node src/server.js",
     "smoke:runtime": "node scripts/smoke-parley-runtime.mjs",
     "smoke:e2e": "node scripts/smoke-parley-e2e.mjs",
+    "smoke:scenarios": "node scripts/smoke-parley-scenarios.mjs",
     "test": "node --test"
   },
   "engines": {
