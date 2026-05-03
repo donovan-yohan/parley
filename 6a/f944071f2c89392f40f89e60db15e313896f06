@@ -1,0 +1,29 @@
+docs/schemas/parley-promotion-candidate.v1.example.json
+  466842055215d17d 8-10
+docs/specs/parley-character-knowledge-privacy.md
+  466842055215d17d 67-102
+docs/plans/2026-05-03-instance-wiki-authoring.md
+  466842055215d17d 140-144,162,165-174
+docs/specs/parley-canon-promotion-policy.md
+  466842055215d17d 38,40-42,46,101,111-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "6af944071f2c89392f40f89e60db15e313896f06",
+  "prompts": {
+    "466842055215d17d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "886aad34-5bae-497d-99f1-17517b2b21b7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 90,
+      "total_deletions": 16,
+      "accepted_lines": 2347,
+      "overriden_lines": 0
+    }
+  }
+}
