@@ -6,7 +6,7 @@ world: orchard-welcome
 visual:
   status: draft
   environment_type: cozy orchard lane and farmhouse edge
-  time_of_day: late golden afternoon
+  time_of_day: soft morning
   composition: visual novel background, warm wide establishing shot with path and orchard rows, quiet lower third
   landmarks:
     - lantern pear trees

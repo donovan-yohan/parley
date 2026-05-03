@@ -186,7 +186,9 @@ function render() {
 }
 
 function renderSceneArt(view) {
-  const background = view?.visualAssets?.assets?.find((asset) => asset.kind === "background");
+  const background = view?.visualAssets?.assets?.find(
+    (asset) => asset.kind === "background" && asset.entity_id === view.scene?.id
+  ) ?? view?.visualAssets?.assets?.find((asset) => asset.kind === "background");
   sceneArt.replaceChildren();
   sceneArt.className = `scene-art ${background?.status ?? "missing"}`;
 
@@ -247,6 +249,9 @@ function assetStatusLabel(asset, noun) {
   if (status === "generating") {
     return `${noun} generating`;
   }
+  if (status === "deferred") {
+    return `${noun} deferred`;
+  }
   return `${noun} missing`;
 }
 
@@ -256,6 +261,7 @@ function stateView(state) {
   }
 
   return {
+    scene: state.scene,
     nextChoices: state.nextChoices ?? [],
     characters: state.characters ?? [],
     truthVerdict: state.worldState ? {

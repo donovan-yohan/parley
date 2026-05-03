@@ -137,7 +137,7 @@ function formatVisualMarkdown(visual) {
   }
 
   return Object.entries(visual)
-    .filter(([, value]) => value !== undefined && value !== null)
+    .filter(([, value]) => value !== undefined && value !== null && (typeof value !== "object" || Array.isArray(value)))
     .map(([key, value]) => `- ${key}: ${Array.isArray(value) ? value.join("; ") : String(value)}`)
     .join("\n");
 }

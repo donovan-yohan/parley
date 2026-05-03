@@ -72,6 +72,78 @@ test("visual asset preparation composes reusable portrait and visual novel backg
   );
 });
 
+test("location visual records drive reusable background prompts", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-location-visual-assets-"));
+  const worldDir = path.join(rootDir, "world");
+  await mkdir(path.join(worldDir, "lore", "locations"), { recursive: true });
+  await writeFile(path.join(worldDir, "art-style.md"), "schema_version: parley-art-style/v1\nbackground: test\n", "utf8");
+  await writeFile(
+    path.join(worldDir, "lore", "locations", "last-lantern-tavern.md"),
+    [
+      "---",
+      "schema_version: parley-location/v1",
+      "id: last-lantern-tavern",
+      "name: Location Record Tavern",
+      "world: last-lantern",
+      "visual:",
+      "  status: draft",
+      "  environment_type: durable location record interior",
+      "  time_of_day: location-record-midnight",
+      "  landmarks:",
+      "    - location record blue hearth",
+      "  safe_overlay_zones:",
+      "    - bottom third",
+      "  negative:",
+      "    - no fake scenario landmark",
+      "background:",
+      "  status: missing",
+      "  prompt_path: worlds/last-lantern/assets/backgrounds/location-record.prompt.md",
+      "  asset_path: worlds/last-lantern/assets/backgrounds/location-record.png",
+      "  aspect_ratio: landscape",
+      "---",
+      "",
+      "# Location Record Tavern"
+    ].join("\n"),
+    "utf8"
+  );
+
+  const scenario = structuredClone(await loadScenarioPack("last-lantern"));
+  scenario.scene.visual = {
+    status: "draft",
+    environment_type: "stale scenario-only interior",
+    landmarks: ["stale scenario landmark"]
+  };
+
+  const manifest = await prepareVisualAssetsForScenario({ scenario, scene: scenario.scene, characters: scenario.characters, worldDir });
+  const background = manifest.assets.find((asset) => asset.kind === "background");
+  assert.equal(background.entity_name, "Location Record Tavern");
+  assert.equal(background.prompt_path, "assets/backgrounds/location-record.prompt.md");
+
+  const backgroundPrompt = await readFile(path.join(worldDir, "assets", "backgrounds", "location-record.prompt.md"), "utf8");
+  assert.match(backgroundPrompt, /location-record-midnight/);
+  assert.match(backgroundPrompt, /location record blue hearth/);
+  assert.doesNotMatch(backgroundPrompt, /stale scenario landmark/);
+});
+
+test("deferred portrait status is preserved and does not request a prompt", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-visual-deferred-"));
+  const worldDir = path.join(rootDir, "world");
+  const scenario = await loadScenarioPack("neon-afterhours");
+
+  const manifest = await prepareVisualAssetsForScenario({
+    scenario,
+    scene: scenario.scene,
+    characters: scenario.characters,
+    worldDir
+  });
+
+  const deferred = manifest.assets.find((asset) => asset.id === "portrait:kestrel-9");
+  assert.equal(deferred.status, "deferred");
+  assert.equal(deferred.public_url, null);
+  assert.equal(deferred.prompt_hash, null);
+  await assert.rejects(stat(path.join(worldDir, "assets", "portraits", "kestrel-9.prompt.md")), /ENOENT/);
+});
+
 test("runtime attaches visual asset requests to world state without generating every turn", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-runtime-visual-assets-"));
   const stateDir = path.join(rootDir, "state");
@@ -228,6 +300,46 @@ test("locked visual prompts are not overwritten and missing images do not get pu
   assert.equal(portrait.status, "locked");
   assert.equal(portrait.public_url, null, "locked metadata without a real image should not expose a dead URL");
   assert.equal(await readFile(promptPath, "utf8"), "KEEP THIS LOCKED PROMPT");
+});
+
+test("locked generated asset with missing prompt writes a fresh prompt hash", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-visual-missing-locked-prompt-"));
+  const worldDir = path.join(rootDir, "world");
+  await mkdir(path.join(worldDir, "assets"), { recursive: true });
+  await writeFile(
+    path.join(worldDir, "assets", "manifest.json"),
+    JSON.stringify({
+      schema_version: "parley-asset-manifest/v1",
+      world: { id: "last-lantern" },
+      assets: [
+        {
+          id: "portrait:mara-underbough",
+          kind: "portrait",
+          entity_id: "mara-underbough",
+          status: "locked",
+          prompt_hash: "OLD_LOCKED_HASH",
+          prompt_path: "assets/portraits/mara-underbough.prompt.md",
+          asset_path: "assets/portraits/mara-underbough.png"
+        }
+      ]
+    }, null, 2),
+    "utf8"
+  );
+
+  const scenario = await loadScenarioPack("last-lantern");
+  const manifest = await prepareVisualAssetsForScenario({
+    scenario,
+    scene: scenario.scene,
+    characters: scenario.characters,
+    worldDir
+  });
+
+  const portrait = manifest.assets.find((asset) => asset.id === "portrait:mara-underbough");
+  const writtenPrompt = await readFile(path.join(worldDir, "assets", "portraits", "mara-underbough.prompt.md"), "utf8");
+  assert.equal(portrait.status, "locked");
+  assert.notEqual(portrait.prompt_hash, "OLD_LOCKED_HASH");
+  assert.match(portrait.prompt_hash, /^[a-f0-9]{64}$/);
+  assert.match(writtenPrompt, /Mara Underbough/);
 });
 
 test("loadCurrentState reloads updated visual manifest instead of stale world-state asset data", async () => {

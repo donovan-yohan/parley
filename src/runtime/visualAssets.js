@@ -19,14 +19,16 @@ export async function prepareVisualAssetsForScenario({ scenario, scene = scenari
   }
 
   const styleGuide = await readWorldArtStyle({ scenario, worldDir });
+  const locationRecord = await readLocationRecord({ scene, worldDir });
+  const sceneContract = mergeSceneWithLocationRecord({ scene, locationRecord });
   const previousManifest = await readAssetManifest(worldDir);
   const assets = [];
 
   for (const character of characters ?? []) {
-    assets.push(await preparePortraitAsset({ scenario, scene, character, worldDir, styleGuide, previousManifest }));
+    assets.push(await preparePortraitAsset({ scenario, scene: sceneContract, character, worldDir, styleGuide, previousManifest }));
   }
 
-  assets.push(await prepareBackgroundAsset({ scenario, scene, worldDir, styleGuide, previousManifest }));
+  assets.push(await prepareBackgroundAsset({ scenario, scene: sceneContract, worldDir, styleGuide, previousManifest }));
 
   const manifest = {
     schema_version: manifestSchemaVersion,
@@ -101,14 +103,20 @@ async function preparePortraitAsset({ scenario, scene, character, worldDir, styl
     }),
     scenarioId: scenario.id,
     aspectRatio: character.portrait?.aspect_ratio ?? "portrait",
+    requestedStatus: character.portrait?.status,
     visualProfile: character.visual ?? defaultCharacterVisual(character)
   });
   const prompt = composePortraitPrompt({ scenario, scene, character, asset, styleGuide });
-  asset.prompt_hash = ["generated", "locked"].includes(asset.status) && asset.previous_prompt_hash
-    ? asset.previous_prompt_hash
-    : hashPrompt(prompt);
+  const skipPromptWrite = shouldSkipPromptWrite({ asset, worldDir });
+  asset.prompt_hash = asset.status === "deferred"
+    ? null
+    : skipPromptWrite && asset.previous_prompt_hash
+      ? asset.previous_prompt_hash
+      : hashPrompt(prompt);
   delete asset.previous_prompt_hash;
-  await writePrompt({ worldDir, relativePath: asset.prompt_path, prompt, skipIfExists: ["generated", "locked"].includes(asset.status) });
+  if (asset.status !== "deferred") {
+    await writePrompt({ worldDir, relativePath: asset.prompt_path, prompt, skipIfExists: skipPromptWrite });
+  }
   return asset;
 }
 
@@ -137,14 +145,20 @@ async function prepareBackgroundAsset({ scenario, scene, worldDir, styleGuide, p
     }),
     scenarioId: scenario.id,
     aspectRatio: sceneBackground.aspect_ratio ?? "landscape",
+    requestedStatus: sceneBackground.status,
     visualProfile: scene.visual ?? defaultSceneVisual(scene)
   });
   const prompt = composeBackgroundPrompt({ scenario, scene, asset, styleGuide });
-  asset.prompt_hash = ["generated", "locked"].includes(asset.status) && asset.previous_prompt_hash
-    ? asset.previous_prompt_hash
-    : hashPrompt(prompt);
+  const skipPromptWrite = shouldSkipPromptWrite({ asset, worldDir });
+  asset.prompt_hash = asset.status === "deferred"
+    ? null
+    : skipPromptWrite && asset.previous_prompt_hash
+      ? asset.previous_prompt_hash
+      : hashPrompt(prompt);
   delete asset.previous_prompt_hash;
-  await writePrompt({ worldDir, relativePath: asset.prompt_path, prompt, skipIfExists: ["generated", "locked"].includes(asset.status) });
+  if (asset.status !== "deferred") {
+    await writePrompt({ worldDir, relativePath: asset.prompt_path, prompt, skipIfExists: skipPromptWrite });
+  }
   return asset;
 }
 
@@ -160,15 +174,17 @@ function createAssetRecord({
   assetRelativePath,
   scenarioId,
   aspectRatio,
+  requestedStatus,
   visualProfile
 }) {
   const previous = previousManifest?.assets?.find((asset) => asset.id === id);
   const assetExists = fileExistsSyncish(path.join(worldDir, assetRelativePath));
+  const pausedStatus = normalizePausedStatus(requestedStatus) ?? normalizePausedStatus(previous?.status);
   const status = previous?.status === "locked"
     ? "locked"
     : assetExists
       ? "generated"
-      : "prompt_ready";
+      : pausedStatus ?? "prompt_ready";
   const publicUrl = ["generated", "locked"].includes(status) && assetExists
     ? `/world-assets/${assetRelativePath}?scenario=${encodeURIComponent(scenarioId)}`
     : null;
@@ -196,6 +212,14 @@ function createAssetRecord({
       provider: "hermes-managed"
     }
   };
+}
+
+function shouldSkipPromptWrite({ asset, worldDir }) {
+  return ["generated", "locked"].includes(asset.status) && fileExistsSyncish(path.join(worldDir, asset.prompt_path));
+}
+
+function normalizePausedStatus(status) {
+  return ["deferred", "failed", "generating"].includes(status) ? status : null;
 }
 
 async function writePrompt({ worldDir, relativePath, prompt, skipIfExists = false }) {
@@ -348,6 +372,83 @@ function formatList(items) {
 
 function humanizeKey(key) {
   return key.replaceAll("_", " ");
+}
+
+async function readLocationRecord({ scene, worldDir }) {
+  const raw = await readTextIfExists(path.join(worldDir, "lore", "locations", `${scene.id}.md`));
+  if (!raw) {
+    return null;
+  }
+  const record = parseLocationFrontmatter(raw);
+  if (record.id && record.id !== scene.id) {
+    throw new Error(`Location visual record id ${record.id} does not match scene ${scene.id}`);
+  }
+  return record;
+}
+
+function mergeSceneWithLocationRecord({ scene, locationRecord }) {
+  if (!locationRecord) {
+    return scene;
+  }
+  return {
+    ...scene,
+    title: locationRecord.name ?? scene.title,
+    visual: locationRecord.visual ?? scene.visual,
+    background: {
+      ...(scene.background ?? {}),
+      ...(locationRecord.background ?? {})
+    }
+  };
+}
+
+function parseLocationFrontmatter(raw) {
+  const match = raw.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) {
+    return {};
+  }
+
+  const record = {};
+  let section = null;
+  let listKey = null;
+  for (const line of match[1].split("\n")) {
+    if (!line.trim()) {
+      continue;
+    }
+
+    const topLevel = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+    if (topLevel) {
+      const [, key, value] = topLevel;
+      if (value === "") {
+        record[key] = {};
+        section = key;
+        listKey = null;
+      } else {
+        record[key] = value;
+        section = null;
+        listKey = null;
+      }
+      continue;
+    }
+
+    const nested = line.match(/^  ([A-Za-z0-9_-]+):\s*(.*)$/);
+    if (nested && section) {
+      const [, key, value] = nested;
+      if (value === "") {
+        record[section][key] = [];
+        listKey = key;
+      } else {
+        record[section][key] = value;
+        listKey = null;
+      }
+      continue;
+    }
+
+    const listItem = line.match(/^    -\s*(.*)$/);
+    if (listItem && section && listKey) {
+      record[section][listKey].push(listItem[1]);
+    }
+  }
+  return record;
 }
 
 async function readWorldArtStyle({ scenario, worldDir }) {
