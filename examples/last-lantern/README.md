@@ -16,6 +16,11 @@ generated resumable talent, and verifies that Belayer can list and inspect the
 generated talent from the crag pool. To intentionally reuse a non-temporary
 Belayer home for the smoke run, set `SMOKE_BELAYER_HOME=/path/to/home`.
 
+This smoke requires a Belayer build with `crag` support and either the current
+`team generated` command group or the older `talent generated` alias. If the
+installed Belayer is too old, the script exits before mutating state and prints
+the missing command.
+
 The static artifacts in `artifacts/` draft the product-facing scene loop:
 
 1. The player enters the tavern and asks about old roads.

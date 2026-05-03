@@ -6,6 +6,31 @@ BELAYER_BIN="${BELAYER_BIN:-belayer}"
 SMOKE_HOME="${SMOKE_BELAYER_HOME:-}"
 CLEANUP_SMOKE_HOME=0
 
+if ! command -v "$BELAYER_BIN" >/dev/null 2>&1; then
+  echo "Belayer smoke requires BELAYER_BIN to point at a belayer executable." >&2
+  echo "Current BELAYER_BIN=$BELAYER_BIN" >&2
+  exit 1
+fi
+
+if ! "$BELAYER_BIN" crag --help >/dev/null 2>&1; then
+  echo "Belayer smoke requires a belayer build with crag support." >&2
+  echo "The installed '$BELAYER_BIN' does not expose 'belayer crag'." >&2
+  echo "Use a newer Belayer source build, then rerun with BELAYER_BIN=/path/to/belayer." >&2
+  exit 1
+fi
+
+GENERATED_CMD=()
+if "$BELAYER_BIN" team generated --help >/dev/null 2>&1; then
+  GENERATED_CMD=("$BELAYER_BIN" team generated)
+elif "$BELAYER_BIN" talent generated --help >/dev/null 2>&1; then
+  GENERATED_CMD=("$BELAYER_BIN" talent generated)
+else
+  echo "Belayer smoke requires generated talent support." >&2
+  echo "Expected either 'belayer team generated' or legacy 'belayer talent generated'." >&2
+  echo "Use a newer Belayer source build, then rerun with BELAYER_BIN=/path/to/belayer." >&2
+  exit 1
+fi
+
 if [[ -z "$SMOKE_HOME" ]]; then
   SMOKE_HOME="$(mktemp -d "${TMPDIR:-/tmp}/parley-last-lantern.XXXXXX")"
   CLEANUP_SMOKE_HOME=1
@@ -17,7 +42,7 @@ export BELAYER_HOME="$SMOKE_HOME"
 
 "$BELAYER_BIN" crag init last-lantern --kind story --description "Parley Last Lantern smoke crag" >/dev/null
 "$BELAYER_BIN" crag link last-lantern --target "$ROOT" >/dev/null
-"$BELAYER_BIN" talent generated persist last-lantern mara-underbough \
+"${GENERATED_CMD[@]}" persist last-lantern mara-underbough \
   --domain story \
   --role tavernkeep \
   --lifecycle resumable \
@@ -29,8 +54,8 @@ export BELAYER_HOME="$SMOKE_HOME"
   --note "First appeared in examples/last-lantern/artifacts/turns.jsonl." \
   --force >/dev/null
 
-LIST="$("$BELAYER_BIN" talent generated list last-lantern)"
-if ! grep -qE '^mara-underbough[[:space:]]+story[[:space:]]+tavernkeep[[:space:]]+resumable[[:space:]]+generated([[:space:]]|$)' <<<"$LIST"; then
+LIST="$("${GENERATED_CMD[@]}" list last-lantern)"
+if ! grep -Eq '(^|[[:space:]])mara-underbough[[:space:]]+story[[:space:]]+tavernkeep[[:space:]]+resumable[[:space:]]+generated($|[[:space:]])' <<<"$LIST"; then
   echo "generated talent list did not include expected row" >&2
   echo "$LIST" >&2
   exit 1

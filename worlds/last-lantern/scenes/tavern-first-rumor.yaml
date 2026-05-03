@@ -1,0 +1,11 @@
+schema_version: parley-scene/v1
+id: last-lantern-tavern
+title: Last Lantern Tavern
+crag: last-lantern
+climb: first-rumor
+seed_path: examples/last-lantern/scene.yaml
+player_prompt: I ask who remembers the old north road.
+required_character:
+  id: mara-underbough
+  role: tavernkeep
+  lifecycle: resumable
