@@ -1,0 +1,79 @@
+{
+  "schema_version": "parley-character/v1",
+  "id": "mara-underbough",
+  "name": "Mara Underbough",
+  "talent_id": "belayer/talents/mara-underbough",
+  "lifecycle": "resumable",
+  "source_request": "turn-0002",
+  "domain": "story",
+  "role": "tavernkeep",
+  "world": "last-lantern",
+  "tags": {
+    "location": ["last-lantern-tavern"],
+    "role": "tavernkeep",
+    "importance": "recurring",
+    "faction": [],
+    "scene": ["tavern-first-rumor"],
+    "tone": ["weary", "wry", "guarded"],
+    "memory_scope": "arc",
+    "portrait": "prompt_ready"
+  },
+  "voice": {
+    "register": "low, dry, plainspoken",
+    "tics": ["uses old-road slang", "deflects with a question"],
+    "do_not": ["over-explain", "deliver expository lore dumps"]
+  },
+  "knowledge_scope": {
+    "knows": [
+      "Local rumors traded in the Last Lantern.",
+      "Names of the regulars and their tabs.",
+      "The Ashford name causes trouble in this tavern."
+    ],
+    "suspects": [
+      "Ashford lineage trouble — won't say it loud."
+    ],
+    "forbidden": [
+      "Author-only hidden truth about the north stones.",
+      "Anything outside the tavern's social reach."
+    ]
+  },
+  "visual": {
+    "age_range": "50s",
+    "build": "stout, broad-shouldered",
+    "features": [
+      "ash-grey hair pulled back",
+      "burn scar across left forearm",
+      "ink-stained apron"
+    ],
+    "wardrobe": "wool tunic, leather apron, copper key on a thong",
+    "signature": "carries a chipped blue bowl",
+    "negatives": [
+      "no anachronistic clothing",
+      "no medieval armor"
+    ]
+  },
+  "portrait": {
+    "status": "prompt_ready",
+    "prompt_path": "worlds/last-lantern/assets/portraits/mara-underbough.prompt.md",
+    "asset_path": null,
+    "seed": 17492,
+    "style_ref": "worlds/last-lantern/art-style.md"
+  },
+  "provenance": {
+    "created_in_turn": "turn-0002",
+    "established_facts": [
+      {
+        "artifact": "worlds/last-lantern/state/world-state.json",
+        "fact_id": "tavernkeeper-mara-warned-ashford-name"
+      }
+    ],
+    "rumors_introduced": [
+      {
+        "artifact": "worlds/last-lantern/state/world-state.json",
+        "rumor_id": "north-stones-old-debts"
+      }
+    ]
+  },
+  "created_at": "2026-05-02T00:00:00Z",
+  "updated_at": "2026-05-02T00:00:00Z"
+}

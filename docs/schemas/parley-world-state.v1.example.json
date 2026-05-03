@@ -1,0 +1,64 @@
+{
+  "schema_version": "parley-world-state/v1",
+  "world": {
+    "id": "last-lantern",
+    "name": "Last Lantern",
+    "premise": "A rain-soaked crossroads tavern where travelers trade rumors before the old roads.",
+    "tone": "grounded fantasy mystery"
+  },
+  "active_scene": "tavern-first-rumor",
+  "timeline": [
+    {
+      "id": "turn-0001",
+      "summary": "The player entered the tavern and asked who remembers the old north road.",
+      "participants": ["player"],
+      "verdict_id": "verdict-0001"
+    },
+    {
+      "id": "turn-0003",
+      "summary": "Mara Underbough warned the player not to say the Ashford name loudly.",
+      "participants": ["player", "mara-underbough"],
+      "verdict_id": "verdict-0002"
+    }
+  ],
+  "characters": [
+    {
+      "id": "mara-underbough",
+      "name": "Mara Underbough",
+      "page": "worlds/last-lantern/characters/mara-underbough.md",
+      "importance": "recurring",
+      "location": "last-lantern-tavern",
+      "last_seen_turn": "turn-0003"
+    }
+  ],
+  "locations": [
+    {
+      "id": "last-lantern-tavern",
+      "name": "Last Lantern Tavern",
+      "page": "worlds/last-lantern/lore/locations/last-lantern-tavern.md",
+      "state": "Warm, crowded, and tense when the Ashford name is spoken."
+    }
+  ],
+  "open_threads": [
+    {
+      "id": "ashford-name",
+      "kind": "mystery",
+      "summary": "The Ashford name should not be spoken loudly in the Last Lantern.",
+      "status": "open",
+      "introduced_in_turn": "turn-0003"
+    },
+    {
+      "id": "north-stones-old-debts",
+      "kind": "rumor",
+      "summary": "The old north road and its stones are tied to old debts.",
+      "status": "open",
+      "introduced_in_turn": "turn-0003"
+    }
+  ],
+  "next_choices": [
+    { "id": "ask-ashford", "label": "Ask about the Ashford name." },
+    { "id": "ask-north-stones", "label": "Ask about the north stones." },
+    { "id": "scan-room", "label": "Scan the room for who reacted." }
+  ],
+  "updated_at": "2026-05-02T00:00:00Z"
+}
