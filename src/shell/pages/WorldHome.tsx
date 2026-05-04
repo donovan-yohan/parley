@@ -8,7 +8,7 @@
 import { h } from "preact";
 import type { VNode } from "preact";
 import { useState, useEffect } from "preact/hooks";
-import { getStories, createStory } from "../../sdk/api.js";
+import { getStories, createStory, getInstances } from "../../sdk/api.js";
 import type { StorySummary, InstanceSummary } from "../../sdk/api.js";
 import { navigate } from "../router.js";
 import { applyThemeForWorld } from "../state/worldStore.js";
@@ -23,14 +23,6 @@ interface WorldHomeProps {
 interface StoryGroup {
   templateId: string;
   instances: StorySummary[];
-}
-
-async function fetchInstances(worldId: string): Promise<InstanceSummary[]> {
-  const params = new URLSearchParams({ world: worldId });
-  const response = await fetch(`/api/instances?${params.toString()}`);
-  if (!response.ok) return [];
-  const data = await response.json() as { instances: InstanceSummary[] };
-  return data.instances;
 }
 
 export function WorldHome({ worldId, instanceId }: WorldHomeProps): VNode {
@@ -54,7 +46,7 @@ export function WorldHome({ worldId, instanceId }: WorldHomeProps): VNode {
     Promise.all([
       loadStoriesData(),
       loadWorldMeta(),
-      fetchInstances(worldId).then(setInstances),
+      getInstances(worldId).then(setInstances),
     ])
       .catch((err) => {
         setError(err instanceof Error ? err.message : "Could not load stories.");
@@ -127,7 +119,7 @@ export function WorldHome({ worldId, instanceId }: WorldHomeProps): VNode {
         >
           ‹ Parley
         </button>
-        <div class="world-title-group" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div class="world-title-group">
           <h1 class="world-title">{worldName}</h1>
           {worldTone && (
             <span class="header-meta">{worldTone}</span>
@@ -137,7 +129,7 @@ export function WorldHome({ worldId, instanceId }: WorldHomeProps): VNode {
           worldId={worldId}
           currentInstanceId={instanceId}
           instances={instances}
-          onInstancesChange={() => fetchInstances(worldId).then(setInstances)}
+          onInstancesChange={() => getInstances(worldId).then(setInstances)}
         />
       </header>
 
@@ -251,7 +243,7 @@ interface StoryInstanceRowProps {
 }
 
 function StoryInstanceRow({ story, onClick }: StoryInstanceRowProps): VNode {
-  const lastPlayed = (story as StorySummary & { lastPlayedAt?: string }).lastPlayedAt;
+  const lastPlayed = story.lastPlayedAt;
   return (
     <div class="story-instance-row" onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}>
       <span class="story-instance-label">

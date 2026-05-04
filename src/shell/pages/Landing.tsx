@@ -8,8 +8,8 @@
 import { h } from "preact";
 import type { VNode } from "preact";
 import { useState, useEffect } from "preact/hooks";
-import { getStories, createInstance } from "../../sdk/api.js";
-import type { WorldSummary, StorySummary } from "../../sdk/api.js";
+import { getStories, createInstance, getInstances, sortByLastPlayedDesc } from "../../sdk/api.js";
+import type { WorldSummary } from "../../sdk/api.js";
 import { navigate } from "../router.js";
 import {
   useStore,
@@ -22,14 +22,6 @@ import {
 } from "../state/worldStore.js";
 import { RecencyRail } from "../components/RecencyRail.js";
 import type { RecencyItem } from "../components/RecencyRail.js";
-
-// Use the full instances list endpoint
-async function fetchInstances(worldId: string) {
-  const params = new URLSearchParams({ world: worldId });
-  const data = await fetch(`/api/instances?${params.toString()}`);
-  if (!data.ok) return { instances: [] };
-  return data.json() as Promise<{ instances: Array<{ worldId: string; instanceId: string; displayName: string; createdAt: string; lastPlayedAt: string | null }> }>;
-}
 
 export function Landing(): VNode {
   const worlds = useStore(selectWorlds);
@@ -53,7 +45,7 @@ export function Landing(): VNode {
     const items: RecencyItem[] = [];
     for (const world of worldList) {
       try {
-        const { instances } = await fetchInstances(world.id);
+        const instances = await getInstances(world.id);
         for (const inst of instances) {
           const { instances: stories } = await getStories(world.id, inst.instanceId);
           for (const story of stories) {
@@ -63,7 +55,7 @@ export function Landing(): VNode {
                 instanceId: inst.instanceId,
                 storyId: story.storyId,
                 worldName: world.name,
-                lastPlayedAt: (story as StorySummary & { lastPlayedAt?: string }).lastPlayedAt ?? inst.lastPlayedAt,
+                lastPlayedAt: story.lastPlayedAt ?? inst.lastPlayedAt,
                 turnCount: story.turnCount,
               });
             }
@@ -73,32 +65,18 @@ export function Landing(): VNode {
         // Skip worlds that fail to load instances/stories
       }
     }
-    // Sort by lastPlayedAt desc
-    items.sort((a, b) => {
-      if (!a.lastPlayedAt && !b.lastPlayedAt) return 0;
-      if (!a.lastPlayedAt) return 1;
-      if (!b.lastPlayedAt) return -1;
-      return new Date(b.lastPlayedAt).getTime() - new Date(a.lastPlayedAt).getTime();
-    });
-    return items.slice(0, 8);
+    return sortByLastPlayedDesc(items).slice(0, 8);
   }
 
   async function handleWorldClick(world: WorldSummary) {
     try {
-      const { instances } = await fetchInstances(world.id);
+      const instances = await getInstances(world.id);
       if (instances.length > 0) {
-        // Navigate to most-recent instance's L2
-        const mostRecent = [...instances].sort((a, b) => {
-          if (!a.lastPlayedAt && !b.lastPlayedAt) return 0;
-          if (!a.lastPlayedAt) return 1;
-          if (!b.lastPlayedAt) return -1;
-          return new Date(b.lastPlayedAt).getTime() - new Date(a.lastPlayedAt).getTime();
-        })[0];
+        const mostRecent = sortByLastPlayedDesc(instances)[0];
         navigate(
           `/world/${encodeURIComponent(world.id)}/${encodeURIComponent(mostRecent.instanceId)}`
         );
       } else {
-        // Create the first instance then navigate
         const newInstance = await createInstance(world.id);
         navigate(
           `/world/${encodeURIComponent(world.id)}/${encodeURIComponent(newInstance.instanceId)}`

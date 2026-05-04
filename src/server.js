@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { mkdir, readdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -351,14 +351,28 @@ async function handleCreateInstance(worldId, displayName) {
 }
 
 async function handleRenameInstance(worldId, instanceId, displayName) {
-  const instanceDir = path.join(repoRoot, "instances", worldId, instanceId);
-  const instanceJsonPath = path.join(instanceDir, "instance.json");
+  // Safety: resolve the instance dir and ensure it stays inside instances/.
+  // Without this, "../" segments in worldId or instanceId would let a
+  // crafted PATCH request rewrite arbitrary instance.json files.
+  const instancesRoot = path.resolve(path.join(repoRoot, "instances"));
+  const resolvedInstanceDir = path.resolve(path.join(repoRoot, "instances", worldId, instanceId));
+  if (!resolvedInstanceDir.startsWith(instancesRoot + path.sep)) {
+    const error = new Error("Path traversal detected");
+    error.statusCode = 400;
+    throw error;
+  }
+  const instanceJsonPath = path.join(resolvedInstanceDir, "instance.json");
   let meta = { displayName: instanceId, createdAt: null, lastPlayedAt: null };
   try {
     const raw = await readFile(instanceJsonPath, "utf8");
     meta = { ...meta, ...JSON.parse(raw) };
-  } catch {
-    // Missing instance.json — use defaults
+  } catch (err) {
+    // Missing instance.json is OK — we'll create it below.
+    // Re-throw any other error (permissions, IO) so we don't silently
+    // overwrite a file we couldn't read for a real reason.
+    if (err.code !== "ENOENT") {
+      throw err;
+    }
   }
   meta.displayName = displayName;
   await writeFile(instanceJsonPath, `${JSON.stringify(meta, null, 2)}\n`, "utf8");
@@ -455,15 +469,15 @@ async function handleGetStory(worldId, instanceId, storyId) {
   const safeWorldId = validateId(worldId, "worldId");
   const safeInstanceId = validateId(instanceId, "instanceId");
   const safeStoryId = validateId(storyId, "storyId");
-  const storyJsonPath = path.join(
+  const storyDir = path.join(
     repoRoot,
     "instances",
     safeWorldId,
     safeInstanceId,
     "stories",
-    safeStoryId,
-    "story.json"
+    safeStoryId
   );
+  const storyJsonPath = path.join(storyDir, "story.json");
   let storyMeta = { status: "in_progress", turnCount: 0 };
   try {
     const raw = await readFile(storyJsonPath, "utf8");
@@ -476,13 +490,33 @@ async function handleGetStory(worldId, instanceId, storyId) {
     }
     throw error;
   }
+  const turns = await readStoryTurns(storyDir);
   return {
     worldId: safeWorldId,
     instanceId: safeInstanceId,
     storyId: safeStoryId,
     status: storyMeta.status ?? "in_progress",
-    turnCount: storyMeta.turnCount ?? 0
+    turnCount: storyMeta.turnCount ?? 0,
+    turns
   };
+}
+
+async function readStoryTurns(storyDir) {
+  const turnsPath = path.join(storyDir, "turns.jsonl");
+  try {
+    const raw = await readFile(turnsPath, "utf8");
+    return raw
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        try { return JSON.parse(line); } catch { return null; }
+      })
+      .filter(Boolean);
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
 }
 
 async function handleRunTurnNew(worldId, instanceId, storyId, playerAction) {
@@ -532,7 +566,8 @@ async function handleRunTurnNew(worldId, instanceId, storyId, playerAction) {
     const playedAt = new Date().toISOString();
 
     if (safeStoryId) {
-      const storyJsonPath = path.join(instanceDir, "stories", safeStoryId, "story.json");
+      const storyDir = path.join(instanceDir, "stories", safeStoryId);
+      const storyJsonPath = path.join(storyDir, "story.json");
       try {
         const raw = await readFile(storyJsonPath, "utf8");
         const storyMeta = JSON.parse(raw);
@@ -544,6 +579,18 @@ async function handleRunTurnNew(worldId, instanceId, storyId, playerAction) {
           throw error;
         }
         // No story.json yet — nothing to update.
+      }
+      // Append turn to per-story log so resumes can rehydrate the transcript.
+      try {
+        const turnRecord = {
+          playerAction,
+          authoredTurn,
+          recordedAt: playedAt
+        };
+        await mkdir(storyDir, { recursive: true });
+        await appendFile(path.join(storyDir, "turns.jsonl"), `${JSON.stringify(turnRecord)}\n`, "utf8");
+      } catch {
+        // Best effort: a missing log shouldn't break a successful turn return.
       }
     }
 

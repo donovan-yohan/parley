@@ -10,8 +10,25 @@ export { registerSlot, useSlot, PluginSlot } from "./slots.js";
 export type { SlotName, SlotContext } from "./slots.js";
 
 // API client
-export { getWorlds, getInstance, createInstance, getStory, getStories, createStory, runTurn } from "./api.js";
-export type { WorldSummary, InstanceSummary, StorySummary, RunTurnInput } from "./api.js";
+export {
+  getWorlds,
+  getInstance,
+  getInstances,
+  createInstance,
+  getStory,
+  getStories,
+  createStory,
+  runTurn,
+  sortByLastPlayedDesc
+} from "./api.js";
+export type {
+  WorldSummary,
+  InstanceSummary,
+  StorySummary,
+  StoryDetail,
+  PersistedTurn,
+  RunTurnInput
+} from "./api.js";
 
 // Utilities
 export { fetchJSON, cn, timeAgo, useI18n } from "./utils.js";

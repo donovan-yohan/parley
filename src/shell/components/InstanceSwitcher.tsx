@@ -12,7 +12,7 @@
 import { h, Fragment } from "preact";
 import type { VNode } from "preact";
 import { useState, useRef, useEffect } from "preact/hooks";
-import { createInstance } from "../../sdk/api.js";
+import { createInstance, sortByLastPlayedDesc } from "../../sdk/api.js";
 import type { InstanceSummary } from "../../sdk/api.js";
 import { navigate } from "../router.js";
 import { fetchJSON } from "../../sdk/utils.js";
@@ -101,16 +101,7 @@ export function InstanceSwitcher({
       if (instanceId === currentInstanceId) {
         const remaining = instances.filter((i) => i.instanceId !== instanceId);
         if (remaining.length > 0) {
-          // Sort by lastPlayedAt desc
-          const next = [...remaining].sort((a, b) => {
-            if (!a.lastPlayedAt && !b.lastPlayedAt) return 0;
-            if (!a.lastPlayedAt) return 1;
-            if (!b.lastPlayedAt) return -1;
-            return (
-              new Date(b.lastPlayedAt).getTime() -
-              new Date(a.lastPlayedAt).getTime()
-            );
-          })[0];
+          const next = sortByLastPlayedDesc(remaining)[0];
           navigate(`/world/${encodeURIComponent(worldId)}/${encodeURIComponent(next.instanceId)}`);
         } else {
           navigate("/");

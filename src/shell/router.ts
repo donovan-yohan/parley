@@ -23,6 +23,15 @@ export type Route =
  * Parse a hash string (including the leading `#`) into a Route.
  * Invalid or unrecognised hashes fall back to `{ kind: "landing" }`.
  */
+/** Decode a URI segment, returning null on URIError so the caller can fall back. */
+function safeDecode(segment: string): string | null {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return null;
+  }
+}
+
 export function parseRoute(hash: string): Route {
   // Normalise: strip leading `#` and then leading `/`
   const raw = hash.startsWith("#") ? hash.slice(1) : hash;
@@ -37,22 +46,24 @@ export function parseRoute(hash: string): Route {
     /^world\/([^/]+)\/([^/]+)\/story\/([^/]+)$/
   );
   if (storyMatch) {
-    return {
-      kind: "storyPlay",
-      worldId: decodeURIComponent(storyMatch[1]),
-      instanceId: decodeURIComponent(storyMatch[2]),
-      storyId: decodeURIComponent(storyMatch[3]),
-    };
+    const worldId = safeDecode(storyMatch[1]);
+    const instanceId = safeDecode(storyMatch[2]);
+    const storyId = safeDecode(storyMatch[3]);
+    if (worldId !== null && instanceId !== null && storyId !== null) {
+      return { kind: "storyPlay", worldId, instanceId, storyId };
+    }
+    return { kind: "landing" };
   }
 
   // #/world/:worldId/:instanceId
   const worldMatch = path.match(/^world\/([^/]+)\/([^/]+)$/);
   if (worldMatch) {
-    return {
-      kind: "worldHome",
-      worldId: decodeURIComponent(worldMatch[1]),
-      instanceId: decodeURIComponent(worldMatch[2]),
-    };
+    const worldId = safeDecode(worldMatch[1]);
+    const instanceId = safeDecode(worldMatch[2]);
+    if (worldId !== null && instanceId !== null) {
+      return { kind: "worldHome", worldId, instanceId };
+    }
+    return { kind: "landing" };
   }
 
   return { kind: "landing" };

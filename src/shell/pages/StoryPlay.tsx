@@ -11,7 +11,6 @@ import { h, Fragment } from "preact";
 import type { VNode } from "preact";
 import { useState, useEffect, useRef } from "preact/hooks";
 import { runTurn, getStory } from "../../sdk/api.js";
-import type { AuthoredTurn } from "../../runtime/agentAuthor.js";
 import { navigate } from "../router.js";
 import { applyThemeForWorld } from "../state/worldStore.js";
 import { SceneBackdrop } from "../components/SceneBackdrop.js";
@@ -58,6 +57,33 @@ export function StoryPlay({ worldId, instanceId, storyId }: StoryPlayProps): VNo
     try {
       const story = await getStory({ worldId, instanceId, storyId });
       setTurnCount(story.turnCount);
+      // Rehydrate transcript from persisted turns so resuming from L1's
+      // recency rail or L2's instance switcher shows prior history.
+      const replay: TranscriptEntry[] = [];
+      for (const t of story.turns ?? []) {
+        if (t.playerAction) {
+          replay.push({ type: "player", text: t.playerAction });
+        }
+        if (t.authoredTurn?.narration) {
+          replay.push({ type: "narration", text: t.authoredTurn.narration });
+        }
+        for (const speaker of t.authoredTurn?.speakers ?? []) {
+          if (speaker.quote) {
+            replay.push({
+              type: "speaker",
+              characterId: speaker.characterId,
+              quote: speaker.quote
+            });
+          }
+        }
+      }
+      setTranscript(replay);
+      // Seed the next-choices from the most recent turn so the suggested
+      // intent buttons are available immediately on resume.
+      const lastTurn = (story.turns ?? [])[story.turns.length - 1];
+      if (lastTurn?.authoredTurn?.nextChoices) {
+        setNextChoices(lastTurn.authoredTurn.nextChoices);
+      }
       setStoryLoaded(true);
     } catch {
       // Story might be brand new — that's fine
@@ -80,13 +106,11 @@ export function StoryPlay({ worldId, instanceId, storyId }: StoryPlayProps): VNo
     try {
       const result = await runTurn({ worldId, instanceId, storyId, playerAction: action });
 
-      // Check for rejection verdict (the server sets a "verdict" field when revise)
-      const maybeVerdict = result as AuthoredTurn & { verdict?: string; rejectionMessage?: string };
-      if (maybeVerdict.verdict === "revise") {
-        // Rejection: don't modify transcript, show pill
-        // Remove the player action we just appended
+      if (result.verdict === "revise") {
+        // Rejection: don't modify transcript, show pill.
+        // Remove the player action we just appended.
         setTranscript((prev) => prev.slice(0, -1));
-        setRejectionMessage(maybeVerdict.rejectionMessage ?? "That action isn't allowed right now. Try something else.");
+        setRejectionMessage(result.rejectionMessage ?? "That action isn't allowed right now. Try something else.");
         return;
       }
 

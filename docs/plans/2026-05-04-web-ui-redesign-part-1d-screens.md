@@ -79,7 +79,7 @@ Commit: `feat(1d): hash router + world store + screen base styles`
 ### B2: `src/shell/pages/WorldHome.tsx` (L2)
 - Applies world theme on mount (via worldStore), removes on unmount.
 - Header: world name + tone + the `‹ Parley` exit + the `<InstanceSwitcher>` popover (only when >1 instance exists).
-- Body: story list. Group story templates with their instances inline. Below `in_progress` group: `<details>`-collapsed `Completed` + `Archived` groups.
+- Body: story list. Group story templates with their instances inline. Below `in_progress` group: `<details>`-collapsed `Completed` + `Archived` groups (the latter renders status `"abandoned"` — data-layer name kept, UI label is "Archived").
 - Click story instance → route to L3 (resume).
 - Click story template → call `createStory(worldId, instanceId, templateId)` + route to L3 (new instance).
 - Loading/empty/error states per spec's "States per screen" subsection.

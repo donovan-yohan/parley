@@ -16,6 +16,7 @@ import { useState, useEffect } from "preact/hooks";
 import { getWorlds } from "../../sdk/api.js";
 import type { WorldSummary } from "../../sdk/api.js";
 import { loadWorldTheme } from "../theme/loadWorldTheme.js";
+import { clearAppliedTheme } from "../theme/apply.js";
 
 // ── Store state ───────────────────────────────────────────────────────────────
 
@@ -87,38 +88,27 @@ export function resetWorlds(): void {
 
 // ── Theme actions ─────────────────────────────────────────────────────────────
 
-/** The ID of the currently active theme <link> element. */
-const THEME_LINK_ID = "parley-world-theme";
-
 /**
  * Load and apply the theme for the given world. Updates appliedThemeWorldId.
+ * `applyTheme()` (inside `loadWorldTheme`) sets data-world-id on the document.
  */
 export async function applyThemeForWorld(worldId: string): Promise<void> {
   try {
     await loadWorldTheme(worldId);
     setState({ appliedThemeWorldId: worldId });
-
-    // Set data-world-id on the root so CSS vars scope to this world.
-    if (typeof document !== "undefined") {
-      document.documentElement.dataset.worldId = worldId;
-    }
   } catch (err) {
     console.error(`[Parley] Failed to apply theme for world "${worldId}":`, err);
   }
 }
 
 /**
- * Remove the active world theme and reset to neutral Parley chrome.
+ * Remove all theme-injected DOM state and reset to neutral Parley chrome.
+ * Mirrors what `applyTheme` injected — style[data-world-theme] blocks,
+ * data-world-id / data-layout-variant attributes, and the active font link.
  */
 export function clearTheme(): void {
-  // Remove any injected theme stylesheet.
   if (typeof document !== "undefined") {
-    const existing = document.getElementById(THEME_LINK_ID);
-    if (existing) {
-      existing.remove();
-    }
-    // Remove the world-id data attribute so no world-scoped CSS vars apply.
-    delete document.documentElement.dataset.worldId;
+    clearAppliedTheme();
   }
   setState({ appliedThemeWorldId: null });
 }
