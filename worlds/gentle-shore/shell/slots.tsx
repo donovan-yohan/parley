@@ -3,13 +3,15 @@ import { h, registerSlot } from "@parley/sdk";
 /* ============================================================
    gentle-shore / shell/slots.tsx
    Slot overrides for the "default" shell.
-   Registers two slots:
+   Registers two slots scoped to the gentle-shore world:
      1. dialogue-frame — paper-card panel with subtle bob animation
      2. scene-backdrop — gradient sky + soft inline-SVG cloud layer
    ============================================================ */
 
+const WORLD_ID = "gentle-shore";
+
 // ── Bobbing dialogue frame ─────────────────────────────────────
-registerSlot("dialogue-frame", ({ children }) => {
+registerSlot(WORLD_ID, "dialogue-frame", ({ children }) => {
   const style = {
     background:   "#fff8ec",
     border:       "1.5px solid #a8d5a8",
@@ -40,7 +42,7 @@ registerSlot("dialogue-frame", ({ children }) => {
 });
 
 // ── Gradient sky backdrop with cloud layer ─────────────────────
-registerSlot("scene-backdrop", ({ children }) => {
+registerSlot(WORLD_ID, "scene-backdrop", ({ children }) => {
   const backdropStyle = {
     position:   "absolute" as const,
     inset:      "0",

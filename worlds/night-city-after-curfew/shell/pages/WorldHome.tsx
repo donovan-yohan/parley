@@ -10,35 +10,8 @@ import { h } from "@parley/sdk";
 import type { VNode } from "preact";
 import { useState, useEffect } from "@parley/sdk";
 import { getStories, createStory } from "@parley/sdk";
-import type { StorySummary, InstanceSummary } from "@parley/sdk";
-
-// We use the navigate function via the global shell router.
-// The custom shell does not import from shell internals — it relies on the
-// SDK surface and the navigate utility exposed on the SDK globals.
-declare const __PARLEY_SDK__: {
-  navigate?: (path: string) => void;
-};
-
-function navigate(path: string) {
-  if (typeof __PARLEY_SDK__ !== "undefined" && typeof __PARLEY_SDK__.navigate === "function") {
-    __PARLEY_SDK__.navigate(path);
-  } else {
-    window.history.pushState({}, "", path);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  }
-}
-
-async function fetchInstances(worldId: string): Promise<InstanceSummary[]> {
-  try {
-    const params = new URLSearchParams({ world: worldId });
-    const response = await fetch(`/api/instances?${params.toString()}`);
-    if (!response.ok) return [];
-    const data = (await response.json()) as { instances: InstanceSummary[] };
-    return data.instances;
-  } catch {
-    return [];
-  }
-}
+import type { StorySummary } from "@parley/sdk";
+import { navigate, timeAgo } from "../utils.js";
 
 interface WorldHomeCoreProps {
   worldId: string;
@@ -71,7 +44,6 @@ export function renderWorldHome({ worldId, instanceId }: WorldHomeCoreProps): VN
     Promise.all([
       loadStoriesData(),
       loadWorldMeta(),
-      fetchInstances(worldId),
     ])
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : "SYSTEM ERROR: could not load stories.");
@@ -313,7 +285,7 @@ interface StoryInstanceRowProps {
 }
 
 function StoryInstanceRow({ story, onClick }: StoryInstanceRowProps): VNode {
-  const lastPlayed = (story as StorySummary & { lastPlayedAt?: string }).lastPlayedAt;
+  const lastPlayed = story.lastPlayedAt;
   const statusClass = story.status.replace("_", "-");
   const statusLabel =
     story.status === "in_progress" ? "ACTIVE" : story.status === "completed" ? "DONE" : "TERMINATED";
@@ -339,12 +311,3 @@ function StoryInstanceRow({ story, onClick }: StoryInstanceRowProps): VNode {
   );
 }
 
-function timeAgo(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(ms / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}

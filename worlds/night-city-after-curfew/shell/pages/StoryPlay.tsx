@@ -10,6 +10,7 @@ import { h } from "@parley/sdk";
 import type { VNode } from "preact";
 import { useState, useEffect, useRef } from "@parley/sdk";
 import { runTurn, getStory } from "@parley/sdk";
+import { navigate } from "../utils.js";
 
 // Locally-inlined authored turn shape (mirrors agentAuthor.AuthoredTurn)
 // to avoid a runtime dependency on shell internals from the world bundle.
@@ -19,19 +20,6 @@ interface AuthoredTurn {
   nextChoices?: string[];
   verdict?: string;
   rejectionMessage?: string;
-}
-
-declare const __PARLEY_SDK__: {
-  navigate?: (path: string) => void;
-};
-
-function navigate(path: string) {
-  if (typeof __PARLEY_SDK__ !== "undefined" && typeof __PARLEY_SDK__.navigate === "function") {
-    __PARLEY_SDK__.navigate(path);
-  } else {
-    window.history.pushState({}, "", path);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  }
 }
 
 type TranscriptEntry =

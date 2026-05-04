@@ -5,21 +5,17 @@
    the Parley theme cascade from theme.yaml.
    ============================================================ */
 
-/* ── Pastel sky gradient backdrop ── */
-[data-layout-variant="cozy"] .scene-backdrop,
-[data-layout-variant="cozy"] .l3-storyplay-backdrop {
-  background: linear-gradient(
-    180deg,
-    #ffe8c8 0%,      /* warm peach horizon glow */
-    #fff4e0 30%,     /* peach-cream midsky */
-    #d4ecd4 70%,     /* pale sage approaching horizon */
-    #a8d5a8 100%     /* soft sage horizon line */
-  );
-}
+/*
+ * Note: the scene-backdrop gradient + cloud layer and the dialogue-frame
+ * paper-card panel are owned by `worlds/gentle-shore/shell/slots.tsx`,
+ * which renders the inline SVGs and inline styles directly. Duplicating
+ * those rules here would just cause drift, so the CSS file only carries
+ * non-slot styling: paper-noise overlay on L3, choice bobs, scrollbar,
+ * speaker/transcript typography, and card overrides.
+ */
 
-/* ── Paper texture via SVG noise data-uri ── */
-[data-layout-variant="cozy"] .l3-storyplay::before,
-[data-layout-variant="cozy"] .scene-backdrop::before {
+/* ── Paper-noise overlay on L3 (non-slot decoration) ── */
+[data-layout-variant="cozy"] .l3-storyplay::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -28,19 +24,6 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 200px 200px;
-  z-index: 0;
-}
-
-/* ── Soft cloud shapes layered behind transcript ── */
-[data-layout-variant="cozy"] .scene-backdrop::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 300' preserveAspectRatio='xMidYMid slice'%3E%3Cellipse cx='120' cy='80' rx='90' ry='38' fill='white' opacity='0.38'/%3E%3Cellipse cx='160' cy='70' rx='60' ry='28' fill='white' opacity='0.28'/%3E%3Cellipse cx='500' cy='55' rx='110' ry='42' fill='white' opacity='0.32'/%3E%3Cellipse cx='550' cy='45' rx='70' ry='30' fill='white' opacity='0.22'/%3E%3Cellipse cx='700' cy='90' rx='80' ry='34' fill='white' opacity='0.28'/%3E%3Cellipse cx='740' cy='78' rx='50' ry='22' fill='white' opacity='0.18'/%3E%3C/svg%3E");
-  background-size: 100% 60%;
-  background-repeat: no-repeat;
-  background-position: top center;
   z-index: 0;
 }
 
@@ -74,15 +57,6 @@
   animation-play-state: paused;
   box-shadow: 0 6px 18px rgba(168, 213, 168, 0.45);
   transform: translateY(-2px);
-}
-
-/* ── Dialogue frame: paper-card style ── */
-[data-layout-variant="cozy"] .dialogue-frame {
-  background:    #fff8ec;
-  border:        1.5px solid #a8d5a8;
-  border-radius: 1.25rem;
-  box-shadow:    0 4px 12px rgba(168, 213, 168, 0.3);
-  padding:       1.25rem;
 }
 
 /* ── Speaker name: warm display font styling ── */
