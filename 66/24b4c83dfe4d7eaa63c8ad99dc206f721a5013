@@ -1,0 +1,23 @@
+docs/specs/2026-05-04-web-ui-redesign-design.md
+  450676fd0e253278 36,51,84-136,229-253,255-263,330,332-364,397,404-419,421,423,425,433-434,437-460,470,474-475,480-520,548
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "6624b4c83dfe4d7eaa63c8ad99dc206f721a5013",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 215,
+      "total_deletions": 19,
+      "accepted_lines": 217,
+      "overriden_lines": 0
+    }
+  }
+}
