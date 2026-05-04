@@ -8,8 +8,7 @@
 
 **Tech Stack:** Node 20, ESM, `node --test`, vanilla file-backed runtime, Zod for schema validation (added in PR #11), shell-out to `belayer` CLI for daemon/mail/profile operations (replace with native SDK later).
 
-**Source of truth design doc:** `~/.gstack/projects/donovan-yohan-parley/donovanyohan-main-design-20260504-005002.md` (eng-reviewed, D1-D8 incorporated).
-**Eng review artifact:** `~/.gstack/projects/donovan-yohan-parley/donovanyohan-main-eng-review-20260504-005002.md`.
+**Design provenance:** Authored 2026-05-04 from a design dialogue + eng review (D1-D8 incorporated). The original design + review artifacts were author-local; this plan + the per-PR descriptions are the canonical, repo-checked-in source.
 **Parent epic:** GitHub issue #15 (children #16-#20).
 **Hard prerequisite:** GitHub issue #13 / PR #11 (TypeScript + Zod contract layer).
 
@@ -61,7 +60,7 @@ These are load-bearing. Subagents must match them exactly.
 - Create: `src/contracts/.gitkeep`
 
 **Steps:**
-- [ ] Add devDeps: `typescript@^5.5`, `tsx@^4.19`, `zod@^3.23`, `@types/node@^20.14`.
+- [ ] Add `zod` to `dependencies` (runtime contracts import it). Add `typescript`, `tsx`, `@types/node` to `devDependencies`. Floor versions: TypeScript ≥5.5, tsx ≥4.19, zod ≥3.23, @types/node matching the engines node target. Pin to current published majors at install time (do not hand-pick exact patches in the plan; let the lockfile capture them).
 - [ ] Add scripts: `"typecheck": "tsc --noEmit"`, `"test:contracts": "node --import tsx --test test/contracts/*.test.ts"`.
 - [ ] Write `tsconfig.json`: `target: ES2022`, `module: ES2022`, `moduleResolution: bundler`, `strict: true`, `noEmit: true`, `allowImportingTsExtensions: true`, `include: ["src/contracts/**/*.ts", "test/contracts/**/*.ts"]`.
 - [ ] Run `npm install`.
