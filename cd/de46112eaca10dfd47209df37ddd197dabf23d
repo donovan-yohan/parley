@@ -1,0 +1,47 @@
+worlds/verdant-aria/stylesheet.css
+  450676fd0e253278 1-142
+worlds/verdant-aria/scenarios/song-of-the-broken-crown/scenario.json
+  450676fd0e253278 1-299
+worlds/verdant-aria/assets/backgrounds/song-of-the-broken-crown.prompt.md
+  450676fd0e253278 1-78
+worlds/verdant-aria/world.json
+  450676fd0e253278 1-12
+worlds/verdant-aria/assets/crest.prompt.md
+  450676fd0e253278 1-35
+worlds/verdant-aria/theme.yaml
+  450676fd0e253278 1-43
+worlds/verdant-aria/assets/portraits/innkeeper-borvyn.prompt.md
+  450676fd0e253278 1-77
+worlds/verdant-aria/art-style.md
+  450676fd0e253278 1-45
+worlds/verdant-aria/assets/portraits/raelin-ashe.prompt.md
+  450676fd0e253278 1-76
+worlds/verdant-aria/lore/index.md
+  450676fd0e253278 1-56
+worlds/verdant-aria/shell/slots.tsx
+  450676fd0e253278 1-177
+worlds/verdant-aria/characters/innkeeper-borvyn.md
+  450676fd0e253278 1-41
+worlds/verdant-aria/characters/raelin-ashe.md
+  450676fd0e253278 1-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "cdde46112eaca10dfd47209df37ddd197dabf23d",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 7265,
+      "total_deletions": 104,
+      "accepted_lines": 11669,
+      "overriden_lines": 0
+    }
+  }
+}
