@@ -1,0 +1,33 @@
+src/sdk/index.ts
+  450676fd0e253278 12-15
+src/sdk/customShell-registry.d.ts
+  450676fd0e253278 1-14
+src/shell/main.tsx
+  450676fd0e253278 11,18-19,35-38,40-47,54-63,71,74
+src/sdk/customShell.ts
+  450676fd0e253278 1-50
+src/sdk/customShell-registry.js
+  450676fd0e253278 1-61
+test/sdk-custom-shell.test.js
+  450676fd0e253278 1-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "8f74b9b6387cdf566bf03616997ecd5e746e7d1e",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 939,
+      "total_deletions": 307,
+      "accepted_lines": 4739,
+      "overriden_lines": 0
+    }
+  }
+}
