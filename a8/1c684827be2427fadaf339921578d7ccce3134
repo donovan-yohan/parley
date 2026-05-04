@@ -1,0 +1,49 @@
+worlds/gentle-shore/theme.yaml
+  450676fd0e253278 1-42
+worlds/gentle-shore/lore/index.md
+  450676fd0e253278 1-29
+worlds/gentle-shore/art-style.md
+  450676fd0e253278 1-41
+worlds/gentle-shore/world.json
+  450676fd0e253278 1-11
+worlds/gentle-shore/assets/portraits/daffodil-keep.prompt.md
+  450676fd0e253278 1-49
+worlds/gentle-shore/shell/slots.tsx
+  450676fd0e253278 1-87
+worlds/gentle-shore/stylesheet.css
+  450676fd0e253278 1-122
+worlds/gentle-shore/assets/portraits/marigold-aster.prompt.md
+  450676fd0e253278 1-49
+worlds/gentle-shore/characters/daffodil-keep.md
+  450676fd0e253278 1-34
+worlds/gentle-shore/characters/hazel-tide.md
+  450676fd0e253278 1-34
+worlds/gentle-shore/scenarios/seashell-festival/scenario.json
+  450676fd0e253278 1-461
+worlds/gentle-shore/assets/portraits/hazel-tide.prompt.md
+  450676fd0e253278 1-49
+worlds/gentle-shore/characters/marigold-aster.md
+  450676fd0e253278 1-34
+worlds/gentle-shore/assets/backgrounds/seashell-festival.prompt.md
+  450676fd0e253278 1-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "a81c684827be2427fadaf339921578d7ccce3134",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 3419,
+      "total_deletions": 16,
+      "accepted_lines": 10037,
+      "overriden_lines": 0
+    }
+  }
+}
