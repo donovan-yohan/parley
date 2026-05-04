@@ -33,7 +33,7 @@ We need a UI that supports this hierarchy and gives each world genuine creative 
 - Marketplace / registry of installable worlds. (Future work — corresponds to "C later" in scope; see Future Work.)
 - Multiplayer / shared sessions.
 
-This spec **does** treat the play screen as a real-agent UI from day one. The deterministic-fixture turn author (`createScenarioFixtureAuthor` in `src/runtime/turnAuthor.js`) becomes a test-only fallback; the production UI is built against the agent-driven turn author seam from `belayer-profile-coupling`. See "Demo Cleanup" below for what we are removing.
+This spec **does** treat the play screen as **real-agent-shaped** UI from day one. The deterministic-fixture turn author (`createScenarioFixtureAuthor` in `src/runtime/turnAuthor.js`) becomes a test-only fallback; the production shell talks only to the typed `AgentTurnAuthor` interface defined in the Agent-Author Seam section. Part 1b ships against a typed mock that satisfies that interface; the live implementation arrives with `belayer-profile-coupling`. See "Demo Cleanup" for what we are removing.
 
 ## Information Architecture
 
@@ -48,7 +48,7 @@ Three navigation levels over four data layers.
 | Story template | `worlds/<world-id>/scenarios/<story-id>/` | Read-only at runtime |
 | Story instance | `instances/<world-id>/<instance-id>/stories/<story-id>/` | Mutable; transcript + per-story canon |
 
-The `instances/` root is introduced by this spec and aligns with the `instance-wiki-authoring` plan. The current `worlds/<id>/state/` directory is migrated to `instances/<id>/default/` during the cutover (see Migration).
+The `instances/` root is introduced by this spec and aligns with the `instance-wiki-authoring` plan. The current `worlds/<id>/state/` directory is migrated to `instances/<world-id>/playthrough-1/` during the cutover (see Migration). All instances — migrated or freshly created — use the `playthrough-N` naming pattern; there is no `default` instance name in the new layout.
 
 ### Navigation
 
@@ -80,6 +80,59 @@ L3  Story instance / play         [WORLD SKIN]
 - World instance creation is implicit: clicking a world tile with no existing instance creates `instances/<world-id>/playthrough-1/` and lands the user in L2. Renameable from the L2 header.
 - Story instance creation is implicit: clicking a story template with no existing instance creates a fresh story instance and lands the user in L3.
 - The recency rail on L1 is a quick-resume affordance only; it does not duplicate L2 functionality.
+
+### L2 instance switcher
+
+When a world has more than one instance, the L2 shell header shows an instance switcher (popover from the world title). The switcher exposes:
+
+- A vertical list of all instances for this world. Each row: instance display name, story count, last-played relative timestamp.
+- Click a row → routes to that instance's L2 (full-page transition; replaces current view).
+- Inline rename (pencil affordance per row) — edits `instance.json` `displayName`.
+- Delete (trash affordance per row, requires confirm) — removes the instance directory; if the deleted instance was the active one, routes to the most-recently-played remaining instance, or to L1 if none remain.
+- "+ New playthrough" tile at the bottom of the switcher → creates `instances/<world-id>/playthrough-N/` (next available `N`) and routes to its L2.
+
+The switcher is hidden when only one instance exists; "+ New playthrough" then surfaces as a small affordance in the L2 header.
+
+### Story instance lifecycle
+
+Each `story.json` carries a `status` field with three values:
+
+- `in_progress` — default for newly created story instances; included in the L1 recency rail.
+- `completed` — set when the agent author signals scene resolution (or via a future "mark complete" UX). Excluded from the recency rail; visible in L2 under a collapsed "Completed" group.
+- `abandoned` — set when the user explicitly archives a story without completing it. Excluded from the recency rail; visible in L2 under a collapsed "Archived" group.
+
+The recency rail on L1 sorts only `in_progress` story instances by `last_played_at` (descending) and shows the top 5–10. L2 lists all stories regardless of status, grouped by status.
+
+### States per screen
+
+Each screen defines loading, empty, and error states explicitly. World-skinned screens (L2/L3) inherit their state styling from the world theme; the structural copy below stays consistent across worlds.
+
+**L1 (Landing):**
+- Loading: skeleton grid of 3 placeholder world tiles + 5 placeholder rail rows.
+- Empty (no worlds installed): centered message — "No worlds installed yet. Drop a world directory into `worlds/<world-id>/` and refresh." — plus a `Reload` button.
+- Error (worlds fetch fails): inline banner with retry — "Could not load your worlds. Retry."
+
+**L2 (World homebase):**
+- Loading: world skin applied to a skeleton story list.
+- Empty (no story templates): centered message — "This world ships no story templates yet."
+- Empty (no story instances): story templates are listed; below them, "No saves yet. Pick a template above to start."
+- Error (instance fetch fails): inline banner with retry; falls back to L1 if retry fails twice.
+
+**L3 (Story play):**
+- Loading: backdrop + skeleton transcript paragraphs while the first turn is fetched.
+- Mid-turn: input disabled, suggested-intent buttons greyed; small spinner near the input.
+- Error (turn author 500 / network): inline rejection pill — "The turn could not be authored. Retry." — with a Retry button. Transcript is not mutated until a successful turn lands.
+- Asset missing (scene backdrop not found): falls back to a flat `--world-asset-bg-color` (derived from theme palette); does not surface a user-visible error.
+
+### Manifest & theme validation
+
+- `world.json` and `theme.yaml` are validated against Zod schemas in `src/contracts/` (extending the existing `parley-contracts` package on this branch). Schema names: `parley-world/v1` and `parley-theme/v1`.
+- On validation failure at world load:
+  - Log a structured error to the dev console (and to `instances/<world-id>/load-errors.jsonl` for diagnosis).
+  - Fall back to the default Parley theme for that world.
+  - Surface a non-blocking dev-only banner on L2/L3 — "Theme failed validation; using default. See `load-errors.jsonl`."
+  - Production builds (`NODE_ENV=production`) suppress the banner but keep the log.
+- A world that fails to load entirely (missing `world.json` or invalid id) is hidden from L1 with a console warning. L1 never crashes due to a single bad world.
 
 ## Tech Stack
 
@@ -173,14 +226,41 @@ declare global {
 
 **Slot names** (initial set):
 
+| Slot | Part 1c consumer? | Description |
+|---|---|---|
+| `scene-backdrop` | yes (L3) | Full-bleed background behind L3. Defaults to `assets/backgrounds/<scene>.png` from the visual-asset pipeline. |
+| `dialogue-frame` | yes (L3) | Wrapper around the input + choice list. Default frame is the semi-translucent panel from the L3 design. |
+| `header-crest` | registered, inert | Small icon/logo in shell header. Reserved for Part 2 flagship worlds. |
+| `header-tagline` | registered, inert | Text right of header crest. Reserved for Part 2. |
+| `sidebar-rail` | registered, inert | Vertical rail, present in some layoutVariants (e.g. `cockpit` derivatives). Reserved for Part 2. |
+| `inventory-rail` | registered, inert | Optional accessory rail. Reserved for Part 2. |
+| `footer-tagline` | registered, inert | Small footer text. Reserved for Part 2. |
+
+"Registered, inert" means the slot infrastructure (`registerSlot`, `useSlot`, the constants in `src/shell/slots.ts`) ships in Part 1c, but no shell component consumes the slot until Part 2 worlds ask for it. Slots are forward-compatible by design.
+
+**`registerSlot` signature and worked example.** A registered slot component is a Preact functional component (NOT a JSX element, NOT a lazy import — the loader resolves lazy imports before calling `registerSlot`). It receives a `SlotContext` prop with `worldId`, `instanceId`, `storyId?`, plus slot-specific props.
+
+```ts
+// src/shell/slots.ts
+type SlotContext = { worldId: string; instanceId: string; storyId?: string };
+type SlotProps<S extends SlotName> = SlotContext & SlotPropsByName[S];
+type SlotComponent<S extends SlotName> = (props: SlotProps<S>) => preact.VNode | null;
+
+export function registerSlot<S extends SlotName>(
+  worldId: string,
+  slot: S,
+  component: SlotComponent<S>
+): void;
 ```
-header-crest      — small icon/logo in shell header
-header-tagline    — text right of header crest
-sidebar-rail      — vertical rail, optional, present in some layoutVariants
-scene-backdrop    — full-bleed background behind L3 (defaults to assets/backgrounds/<scene>.png)
-dialogue-frame    — wrapper around input + choice list
-inventory-rail    — optional accessory rail
-footer-tagline    — small footer text
+
+```tsx
+// worlds/last-lantern/shell/slots.tsx
+import { registerSlot } from '__PARLEY_SDK__';
+import { LanternDialogueFrame } from './LanternDialogueFrame';
+
+registerSlot('last-lantern', 'dialogue-frame', LanternDialogueFrame);
+
+// LanternDialogueFrame.tsx receives ({ worldId, instanceId, storyId, children }) => VNode
 ```
 
 Worlds may register components into any subset. Unregistered slots fall back to shell defaults.
@@ -247,9 +327,41 @@ colorOverrides:
 
 **Token cascade.** All shadcn-style tokens (`--color-card`, `--color-border`, `--color-primary`, `--color-foreground`, ...) derive from the three-color `palette` via `color-mix()`, with `colorOverrides` pinning specific tokens when derivation is not enough. This is the Hermes "3-color → ~20 tokens" pattern.
 
-**Component style buckets.** Each bucket (`card`, `dialogueFrame`, `header`, `sidebar`, `backdrop`, ...) accepts arbitrary camelCase CSS props that the loader emits as `--component-<bucket>-<kebab-prop>` variables. Shell components consume these vars. World authors never write selectors.
+**Component style buckets.** Each bucket (`card`, `dialogueFrame`, `header`, `sidebar`, `backdrop`, ...) accepts arbitrary camelCase CSS props that the loader emits as `--component-<bucket-kebab>-<prop-kebab>` variables. Shell components consume these vars. World authors never write selectors.
 
-**Stylesheet escape hatch.** A world may ship `stylesheet.css` at the world root. **No size cap.** Hermes's 32 KiB `customCSS` cap is the most-cited friction in their community ([issue #18289](https://github.com/NousResearch/hermes-agent/issues/18289)); we skip it.
+**Worked example — bucket emission.** Given the YAML:
+
+```yaml
+componentStyles:
+  dialogueFrame:
+    background: "rgba(0,0,0,0.55)"
+    borderColor: "rgba(201,163,92,0.25)"
+    backdropFilter: "blur(2px)"
+```
+
+The loader emits these CSS custom properties on the shell root:
+
+```css
+:root[data-world-id="last-lantern"] {
+  --component-dialogue-frame-background: rgba(0,0,0,0.55);
+  --component-dialogue-frame-border-color: rgba(201,163,92,0.25);
+  --component-dialogue-frame-backdrop-filter: blur(2px);
+}
+```
+
+The shell's `<DialogueFrame>` component reads these directly:
+
+```css
+.dialogue-frame {
+  background: var(--component-dialogue-frame-background, rgba(0,0,0,0.6));
+  border: 1px solid var(--component-dialogue-frame-border-color, rgba(255,255,255,0.1));
+  backdrop-filter: var(--component-dialogue-frame-backdrop-filter, none);
+}
+```
+
+Bucket key transform: `dialogueFrame` (camelCase) → `dialogue-frame` (kebab). Prop key transform: `borderColor` → `border-color`. No deeper nesting is supported in v1; nested objects throw at validation.
+
+**Stylesheet escape hatch.** A world may ship `stylesheet.css` at the world root. **No size cap for the local trusted-world case.** Hermes's 32 KiB `customCSS` cap is the most-cited friction in their community ([issue #18289](https://github.com/NousResearch/hermes-agent/issues/18289)); we skip it for built-in worlds. When the registry / marketplace future-work path lands, this decision must be revisited — community-authored CSS at hundreds of KiB is a real perf hazard and may need a stricter cap or a CSS-only-no-JS budget.
 
 **`layoutVariant`.** Surfaced as `data-layout-variant="..."` on the shell root. Slot components and CSS may key off this attribute. Defaults: `cozy`, `noir`, `hud`. Worlds may declare a custom variant (e.g. `noir-rain`); shell components only react to the three defaults, but world-supplied slot components can react to any variant.
 
@@ -282,20 +394,35 @@ Default shell: classic interactive-fiction layout with a full-bleed `scene-backd
 Tracked migrations from current state:
 
 1. **Move `scenarios/<id>/scenario.json` → `worlds/<world-id>/scenarios/<id>/scenario.json`.** Each scenario today has a 1:1 mapping to its world id. Mechanical move + path updates in `src/runtime/scenarioPacks.js`.
-2. **Move `worlds/<id>/state/` → `instances/<id>/default/`.** A "default" instance is created for each world that has existing state. The instance materialization rules from `instance-wiki-authoring` apply; this spec only requires the directory move.
+2. **Move `worlds/<id>/state/` → `instances/<world-id>/playthrough-1/`.** Each migrated world gets a single instance named `playthrough-1` (matching the auto-creation naming used everywhere else in the new layout). The instance materialization rules from `instance-wiki-authoring` apply; this spec only requires the directory move.
 3. **Add `world.json` and `theme.yaml`** to each existing world. Initial `theme.yaml` reflects each world's existing `art-style.md` palette.
 4. **Replace `src/client/`** with `src/shell/` (Preact + Vite). Old client is removed in the same change set, not left as a fallback.
 5. **Add API endpoints:** `GET /api/worlds`, `GET /api/instances?world=<id>`, `POST /api/instances` (create), `GET /api/stories?world=<id>&instance=<id>`, `POST /api/stories` (create story instance), `GET /api/story?world=<id>&instance=<id>&story=<id>`, `POST /api/turn` (extended with instance + story ids). Existing `POST /api/turn` is replaced; old `?scenario=` query param is removed.
 
 ## Implementation Phases
 
-Part 1 lands as **three stacked PRs** following the project's existing PR-chain convention (PRs #1–#15 chain). Each PR is independently reviewable in the 300–600 LoC range, and each leaves the test suite green.
+Part 1 lands as **four stacked PRs** following the project's existing PR-chain convention (PRs #1–#15 chain). Each PR is independently reviewable in the 300–600 LoC range, and each leaves the test suite green.
 
-**Part 1a — Repo migration.** Move `scenarios/<id>/` → `worlds/<world-id>/scenarios/<id>/`. Introduce `instances/<world-id>/<instance-id>/` directory layout and migrate existing `worlds/<id>/state/` content into `instances/<world-id>/default/`. Add `world.json` manifest stubs to each world. Update `src/runtime/scenarioPacks.js` and tests. No UI changes in this PR.
+**Part 1a — Repo migration.** Move `scenarios/<id>/` → `worlds/<world-id>/scenarios/<id>/`. Introduce `instances/<world-id>/<instance-id>/` directory layout and migrate existing `worlds/<id>/state/` content into `instances/<world-id>/playthrough-1/`. Add `world.json` manifest stubs to each world. Update `src/runtime/scenarioPacks.js` and tests. No UI changes in this PR.
 
-**Part 1b — Preact shell + SDK + agent-author seam stub.** Replace `src/client/` with `src/shell/` (Preact + Vite + TS). Stand up `__PARLEY_SDK__`, the slot system, the typed agent-author seam (mocked — see Agent-Author Seam below), and the new API endpoints. The shell renders the existing UX shape (single-page, scenario picker, transcript) so reviewers can verify the framework swap is behaviour-preserving. No new screens, no theme cascade in this PR.
+The minimum `world.json` stub shape Part 1a must produce (theme/stylesheet/shell can land in 1c):
 
-**Part 1c — Theme cascade + slot system + new screens + demo cleanup.** Implement the `theme.yaml` palette + `color-mix()` cascade, `componentStyles` bucket emission, `layoutVariant` data-attribute, asset slot CSS vars, and the L1/L2/L3 screens from the Screen Designs section. Remove the scenario dropdown, the visible truth-verdict panel, the old `src/client/`, and any smoke scripts coupled to the demo UI.
+```json
+{
+  "schema_version": "parley-world/v1",
+  "id": "last-lantern",
+  "name": "Last Lantern",
+  "premise": "...",
+  "tone": "...",
+  "scenarios": ["..."]
+}
+```
+
+**Part 1b — Preact shell + SDK + agent-author seam stub.** Replace `src/client/` with `src/shell/` (Preact + Vite + TS). Stand up `__PARLEY_SDK__`, the slot system infrastructure (no consumers yet), the typed agent-author seam (mocked — see Agent-Author Seam below), and the new API endpoints. The shell renders the existing UX shape (single-page, scenario picker, transcript) so reviewers can verify the framework swap is behaviour-preserving. No new screens, no theme cascade in this PR.
+
+**Part 1c — Theme cascade + slot system wiring.** Implement the `theme.yaml` palette + `color-mix()` cascade, `componentStyles` bucket emission, `layoutVariant` data-attribute, asset slot CSS vars, and the slot-system consumers (`<DialogueFrame>`, `<SceneBackdrop>`). Add Zod schemas for `world.json` and `theme.yaml` in `src/contracts/`. Land `theme.yaml` files for the existing three worlds. Old single-page UI from 1b still renders, now with worlds applying their themes.
+
+**Part 1d — New screens + demo cleanup.** Implement L1, L2, L3 from the Screen Designs section. Remove the scenario dropdown, the visible truth-verdict panel, the old `src/client/`, and any smoke scripts coupled to the demo UI. This is the PR that flips the user-facing experience from "Preact-shell-renders-old-UX" to "Preact-shell-renders-new-IA."
 
 **Part 2 — Three flagship demo worlds.** Build three themed worlds whose sole purpose is to demonstrate the depth of the override system. Each ships its own `theme.yaml`, `stylesheet.css`, slot components, and `layoutVariant`. At least one of the three uses `shell: "custom"` to demonstrate the rung-6 ceiling.
 
@@ -303,8 +430,34 @@ Part 1 lands as **three stacked PRs** following the project's existing PR-chain 
 
 Part 1 cannot wait on `belayer-profile-coupling` (PR #15+, currently a five-PR runtime stack with nothing merged). Instead, Part 1b lands a **typed mock turn-author** that mirrors the eventual production contract.
 
+The minimal contract Part 1b must define so the shell can ship without waiting on the runtime stack:
+
 ```ts
 // src/runtime/agentAuthor.ts (Part 1b)
+
+export interface TurnInput {
+  worldId: string;
+  instanceId: string;
+  storyId: string;
+  turnId: string;          // monotonic per story instance
+  playerAction: string;
+  scene: { id: string; name: string };
+  // Subject to widening when belayer-profile-coupling lands.
+  // Anything beyond these fields the live author needs (e.g. talent profile refs)
+  // is added then; shell code is unaffected because the SDK calls the seam, not the author directly.
+}
+
+export interface AuthoredTurn {
+  responseId: string;
+  narration: string;
+  speakers: Array<{ characterId: string; quote: string }>;
+  nextChoices: string[];
+  proposedFacts: ProposedFact[];   // existing parley-fact contract
+  // Optional fields the live author may emit; shell renders them if present.
+  storyConsequence?: StoryConsequence | null;
+  beatRedirect?: BeatRedirect | null;
+}
+
 export interface AgentTurnAuthor {
   id: string;
   mode: 'mock-agent' | 'live-agent';
@@ -314,13 +467,56 @@ export interface AgentTurnAuthor {
 export function createMockAgentTurnAuthor(): AgentTurnAuthor {
   // Returns a deterministic-but-shaped-like-real turn.
   // Same response shape as the eventual belayer-profile-coupling author.
-  // Used for tests and Part 1 acceptance.
+  // Used for the new shell's smoke + integration tests.
 }
 ```
+
+The shape is derived from current `runTurn` call sites in `src/runtime/parleyRuntime.js` plus the contract surfaces already in `src/contracts/` from PR #11. Anything `belayer-profile-coupling` adds (talent profile pointers, wake transport, etc.) widens this interface without breaking the shell.
 
 The shell only knows about `AgentTurnAuthor`. When `belayer-profile-coupling` lands its production author, we drop in a `createLiveAgentTurnAuthor()` that satisfies the same interface; no shell code changes.
 
 The legacy `createScenarioFixtureAuthor` (`src/runtime/turnAuthor.js`) stays untouched for the existing 142-test suite. It is not used by the new shell.
+
+## Build Pipeline
+
+Single Vite project at the repo root. Two output trees:
+
+- `dist/` — the shell (`src/shell/main.tsx` as entry).
+- `dist/worlds/<world-id>/` — one entry per world that opts into `shell: "custom"` (discovered at build time by scanning `worlds/*/world.json` for `"shell": "custom"`).
+
+```ts
+// vite.config.ts (sketch)
+import { defineConfig } from 'vite';
+import { discoverCustomShellWorlds } from './scripts/discover-worlds';
+
+const customShellWorlds = discoverCustomShellWorlds(); // [{ id, entryPath }]
+
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      input: {
+        shell: 'src/shell/index.html',
+        ...Object.fromEntries(
+          customShellWorlds.map(({ id, entryPath }) => [`worlds/${id}`, entryPath])
+        )
+      },
+      output: {
+        entryFileNames: (chunk) =>
+          chunk.name === 'shell' ? 'assets/shell-[hash].js' : `${chunk.name}/entry-[hash].js`,
+      },
+      // CRITICAL: do not double-bundle Preact in world bundles.
+      // World bundles read Preact via window.__PARLEY_SDK__ at runtime.
+      external: (id, importer) =>
+        importer?.includes('/worlds/') &&
+        (id === 'preact' || id.startsWith('preact/'))
+    }
+  }
+});
+```
+
+A `paths` mapping in each world's `tsconfig.json` resolves `import { h, hooks } from '__PARLEY_SDK__'` to the SDK type definitions for IDE/type-check support, while runtime resolution comes from `window.__PARLEY_SDK__`. World bundles MUST NOT bundle Preact themselves; the externals rule above enforces this and the loader rejects world bundles that try.
+
+The shell's `worlds-loader` resolves `dist/worlds/<world-id>/entry-[hash].js` via a manifest emitted at build time.
 
 | Codename | Inspiration | Theme angle | layoutVariant | shell |
 |---|---|---|---|---|
@@ -349,7 +545,7 @@ The deterministic-fixture turn author (`createScenarioFixtureAuthor`) is **not**
 
 1. Running `npm start` opens the new L1 landing on `http://localhost:4173`.
 2. The three existing worlds (Last Lantern, Neon Afterhours, Mossgrove) appear as world tiles with cover art, rendered with the default Parley theme.
-3. Clicking a world tile creates a default instance (if none exists) and routes to L2 with the world's `theme.yaml` applied — at minimum, palette and backdrop should differ visibly between worlds.
+3. Clicking a world tile creates a `playthrough-1` instance (if none exists) and routes to L2 with the world's `theme.yaml` applied — at minimum, palette and backdrop should differ visibly between worlds.
 4. Clicking a story template on L2 creates a story instance and routes to L3.
 5. L3 shows the full-bleed scene backdrop, narration with inline portraits, an input field, and at least two suggested intents. Submitting a player action runs a turn through the agent author seam and appends to the transcript.
 6. The recency rail on L1 routes directly into the most recent in-progress story instance.
