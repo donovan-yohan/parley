@@ -1,0 +1,33 @@
+src/runtime/instances/materializeInstance.js
+  6fd9bdc7c61f8cc6 70-71,145,197-215,225
+src/client/styles.css
+  6fd9bdc7c61f8cc6 157-202
+docs/devlogs/2026-05-04-belayer-profile-coupling-demo.md
+  6fd9bdc7c61f8cc6 1-165
+test/instances/materializeInstance.test.js
+  6fd9bdc7c61f8cc6 126-158
+src/client/index.html
+  6fd9bdc7c61f8cc6 22-24
+src/client/app.js
+  6fd9bdc7c61f8cc6 401-430
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "1b959ad0470e1b88b9c9654647a780426541f274",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 2092,
+      "total_deletions": 3,
+      "accepted_lines": 2091,
+      "overriden_lines": 0
+    }
+  }
+}
