@@ -1,5 +1,11 @@
 # Strict World Contract / Loose Authoring Split
 
+> **STATUS:** The "Instance-Bound Future Context" section at the bottom of this
+> spec is now the present: the instance layer shipped in PRs #21-#25
+> (2026-05-04). The loose author receives an instance-derived gameplay packet,
+> not raw template paths. See `docs/plans/2026-05-04-belayer-profile-coupling.md`
+> for the as-shipped scope.
+
 Parley should not make deterministic scenario fixtures the long-term storytelling brain. The runtime split is:
 
 ## Loose authoring seam

@@ -1,5 +1,35 @@
 # Parley Framework Architecture
 
+## 2026-05-04 Belayer Profile Coupling Stack
+
+PRs #21-#25 materialized the instance/crag layer and wired live image generation
+and SSE-driven UI. The layered model is now fully operational:
+
+```
+World templates (worlds/<world-id>/)
+  ↓  npm run instance:materialize
+World instances (instances/<world-id>/<instance-id>/)
+  ↓  belayer crag  +  per-talent Hermes profile forks
+NPC talent profiles (~/.hermes/profiles/blyr-<crag>-<character>/)
+  ↓  belayer climb / wake transport
+Zod contract layer (src/contracts/)  ←  validates all runtime shapes
+  ↓
+Story instances (instances/<world-id>/<instance-id>/<story-id>/)
+  events.jsonl  +  scene-pulse.json  +  truth-verdicts.jsonl
+  ↓  SSE /api/events
+Live browser UI  ←  portraits / backgrounds swap in as SSE events arrive
+```
+
+| PR | Layer |
+| --- | --- |
+| #21 | Instance materializer + Belayer crag scaffolding |
+| #22 | Per-talent Hermes profile forks + `.belayer-talent.yaml` writes |
+| #23 | Wake transport + per-wake tool catalog + actor-vs-GM authority narrowing |
+| #24 | Per-story `events.jsonl` two-write-path + `scene-pulse.json` read model + SSE server |
+| #25 | Art talents (`background-artist`, `portrait-artist`) + `assets/manifest.json` + `world-instance-evaluation.json` |
+
+---
+
 This document is a review map for what Parley is doing, how it uses Belayer, where player input enters the system, and where a story author or future LLM author contributes content.
 
 ## One-sentence model
@@ -350,28 +380,18 @@ Use this doc to review whether the architecture has the right boundaries:
 
 ## Template / Instance Source of Truth
 
-The current implementation is still scenario-centric. The next architecture step
-splits reusable seed material from gameplay truth:
+The instance/crag layer shipped in PRs #21-#25. The split is now live:
 
 ```text
-world template + story template
-  ↓ deterministic materialization
-world instance + story instance
+world template + story template (worlds/<world-id>/ + scenarios/<id>/)
+  ↓ npm run instance:materialize
+world instance (instances/<world-id>/<instance-id>/)
   ↓ gameplay agents, truth authority, visual assets, story logs
-instance-local canon and state
+instance-local canon and state (stories/<story-id>/state/)
 ```
 
-Gameplay agents should not read templates. They should read only the active
-world/story instance. This prevents original template canon from competing with
-the player's evolved instance canon.
+Gameplay agents read and write only the active instance. Template roots are
+authoring and distribution artifacts. The backward-compat path in `parleyRuntime`
+still serves unmaterialized scenarios via `worlds/<world-id>/state/`.
 
-See [`../specs/parley-template-instance-source-of-truth.md`](../specs/parley-template-instance-source-of-truth.md).
-
-Near-term open architecture additions:
-
-- Current `worlds/*` and `scenarios/*` are transitional template roots. Runtime
-  migration should materialize active world/story instances and bind gameplay to
-  those instance paths only.
-- NPC context must be filtered by knowledge scope, witnessed turns,
-  relationships, and reluctance-to-share guidance. Character agents should not
-  receive the full world wiki.
+See [`../specs/parley-template-instance-source-of-truth.md`](../specs/parley-template-instance-source-of-truth.md) (status: implemented).
