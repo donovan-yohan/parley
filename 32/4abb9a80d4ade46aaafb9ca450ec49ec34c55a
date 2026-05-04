@@ -1,0 +1,29 @@
+docs/devlogs/2026-05-04-belayer-profile-coupling-demo.md
+  6fd9bdc7c61f8cc6 77-89,92-94,105-107,111-115
+src/runtime/wake/imageWake.js
+  6fd9bdc7c61f8cc6 121-125,131,140-142,144-173
+src/runtime/events/sseBroadcaster.js
+  6fd9bdc7c61f8cc6 2-6
+test/wake/imageWake.test.js
+  6fd9bdc7c61f8cc6 293-341
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "324abb9a80d4ade46aaafb9ca450ec49ec34c55a",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 174,
+      "total_deletions": 28,
+      "accepted_lines": 1944,
+      "overriden_lines": 0
+    }
+  }
+}
