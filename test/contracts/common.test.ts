@@ -8,6 +8,7 @@ import {
   CharacterId,
   CragSlug,
   TalentName,
+  InstanceId,
   schemaVersion,
 } from "../../src/contracts/common.ts";
 
@@ -16,23 +17,27 @@ import {
 // ---------------------------------------------------------------------------
 describe("TurnId", () => {
   it("accepts a valid turn id", () => {
-    assert.ok(TurnId.safeParse("turn-a1b2c3d4").success);
+    assert.ok(TurnId.safeParse("turn-0001").success);
   });
 
-  it("accepts a turn id with more than 8 hex chars", () => {
-    assert.ok(TurnId.safeParse("turn-a1b2c3d4e5f6").success);
+  it("accepts a turn id with a larger zero-padded number", () => {
+    assert.ok(TurnId.safeParse("turn-0042").success);
+  });
+
+  it("accepts a turn id with more than 4 digits", () => {
+    assert.ok(TurnId.safeParse("turn-99999999").success);
   });
 
   it("rejects a turn id without the turn- prefix", () => {
-    assert.equal(TurnId.safeParse("a1b2c3d4").success, false);
+    assert.equal(TurnId.safeParse("0001").success, false);
   });
 
-  it("rejects a turn id with fewer than 8 hex chars", () => {
-    assert.equal(TurnId.safeParse("turn-a1b2c3d").success, false);
+  it("rejects a turn id with fewer than 4 digits", () => {
+    assert.equal(TurnId.safeParse("turn-abc").success, false);
   });
 
-  it("rejects a turn id with non-hex characters", () => {
-    assert.equal(TurnId.safeParse("turn-g1b2c3d4").success, false);
+  it("rejects a turn id with non-digit characters", () => {
+    assert.equal(TurnId.safeParse("turn-XYZ").success, false);
   });
 
   it("rejects a non-string", () => {
@@ -213,6 +218,48 @@ describe("TalentName", () => {
 
   it("rejects a non-string", () => {
     assert.equal(TalentName.safeParse([]).success, false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// InstanceId
+// ---------------------------------------------------------------------------
+describe("InstanceId", () => {
+  it("accepts a valid instance id starting with a letter", () => {
+    assert.ok(InstanceId.safeParse("my-instance").success);
+  });
+
+  it("accepts a valid instance id starting with a digit", () => {
+    assert.ok(InstanceId.safeParse("0instance").success);
+  });
+
+  it("accepts a single alphanumeric character", () => {
+    assert.ok(InstanceId.safeParse("a").success);
+  });
+
+  it("accepts max-length instance id (39 chars)", () => {
+    // 1 leading alphanumeric + 38 trailing [a-z0-9-]
+    assert.ok(InstanceId.safeParse("a" + "b".repeat(38)).success);
+  });
+
+  it("rejects an instance id exceeding 39 chars", () => {
+    assert.equal(InstanceId.safeParse("a" + "b".repeat(39)).success, false);
+  });
+
+  it("rejects an instance id starting with a hyphen", () => {
+    assert.equal(InstanceId.safeParse("-instance").success, false);
+  });
+
+  it("rejects an instance id with uppercase letters", () => {
+    assert.equal(InstanceId.safeParse("MyInstance").success, false);
+  });
+
+  it("accepts an instance id with underscores (matches Belayer profile-name segment grammar)", () => {
+    assert.equal(InstanceId.safeParse("my_instance").success, true);
+  });
+
+  it("rejects a non-string", () => {
+    assert.equal(InstanceId.safeParse(42).success, false);
   });
 });
 

@@ -1,5 +1,12 @@
 # Parley World Bible / Library Shape
 
+> **STATUS:** The "Template / Instance Split" section at the bottom of this
+> spec describes the transition from `worlds/<world-slug>/` as both template
+> and runtime state holder. That split shipped in PRs #21-#25 (2026-05-04).
+> The `worlds/<world-slug>/` directory is now a template root only; runtime
+> state lives under `instances/<world-id>/<instance-id>/`. See
+> `docs/plans/2026-05-04-belayer-profile-coupling.md` for the as-shipped scope.
+
 ## Purpose
 
 Defines the on-disk shape of a Parley world. Human-readable, agent-readable,

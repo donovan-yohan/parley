@@ -1,5 +1,11 @@
 # Parley Truth Authority Contract — `parley-truth-verdict/v1`
 
+> **STATUS:** Instance-only authority context and promotion candidate workflow
+> described here are implemented in PRs #21-#25 (2026-05-04). Path references
+> to `worlds/<w>/state/` in this spec are now instance-scoped under
+> `instances/<world>/<instance>/`. See
+> `docs/plans/2026-05-04-belayer-profile-coupling.md` for the as-shipped scope.
+
 ## Purpose
 
 Defines the second-LLM-style authority that decides what becomes canon. It sits

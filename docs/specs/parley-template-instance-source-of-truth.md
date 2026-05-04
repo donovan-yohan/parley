@@ -1,5 +1,8 @@
 # Parley Template / Instance Source-of-Truth Contract
 
+> **STATUS:** Implemented in PRs #21-#25 (2026-05-04). See
+> `docs/plans/2026-05-04-belayer-profile-coupling.md` for the as-shipped scope.
+
 ## Purpose
 
 Parley separates reusable authored seed material from mutable gameplay history.

@@ -5,7 +5,7 @@ import { BeatRedirectSchema } from "../../src/contracts/beatRedirect.ts";
 const valid = {
   schema_version: "parley-beat-redirect/v1",
   id: "br-001",
-  source_turn_id: "turn-a1b2c3d4",
+  source_turn_id: "turn-0001",
   from_scene_id: "market-square",
   to_attractor_id: "tavern-entrance",
   route_type: "soft-redirect",
@@ -63,8 +63,8 @@ describe("BeatRedirectSchema – bad source_turn_id format", () => {
     assert.equal(result.success, false);
   });
 
-  it("rejects a source_turn_id with fewer than 8 hex chars", () => {
-    const result = BeatRedirectSchema.safeParse({ ...valid, source_turn_id: "turn-abc123" });
+  it("rejects a source_turn_id with fewer than 4 digits", () => {
+    const result = BeatRedirectSchema.safeParse({ ...valid, source_turn_id: "turn-abc" });
     assert.equal(result.success, false);
   });
 });

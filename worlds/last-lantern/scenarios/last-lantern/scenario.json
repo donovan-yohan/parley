@@ -21,7 +21,7 @@
     "schema_version": "parley-scene/v1",
     "id": "last-lantern-tavern",
     "title": "Last Lantern Tavern",
-    "crag": "last-lantern",
+    "instance": "last-lantern-default",
     "climb": "first-rumor",
     "visual": {
       "status": "draft",

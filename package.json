@@ -11,15 +11,22 @@
     "test": "node --test",
     "typecheck": "tsc --noEmit",
     "test:contracts": "node --import tsx --test test/contracts/*.test.ts",
+    "instance:materialize": "node scripts/parley-instance-materialize.mjs",
+    "migrate:scenario": "node scripts/parley-migrate-scenario.mjs",
+    "promote": "node scripts/parley-promote-from-eval.mjs",
+    "smoke:belayer-doctor": "node scripts/smoke-belayer-doctor.mjs",
+    "smoke:belayer-roundtrip": "node scripts/smoke-belayer-roundtrip.mjs",
     "validate:pr10": "node --import tsx scripts/validate-pr10-artifacts.mjs"
   },
   "engines": {
     "node": ">=20"
   },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
   "devDependencies": {
     "@types/node": "^20.19.39",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "zod": "^3.25.76"
+    "typescript": "^5.9.3"
   }
 }

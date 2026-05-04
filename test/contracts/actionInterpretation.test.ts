@@ -9,7 +9,7 @@ import { ActionInterpretationSchema } from "../../src/contracts/actionInterpreta
 const validNormalContinuation = {
   schema_version: "parley-action-interpretation/v1",
   id: "action-123",
-  turn_id: "turn-a1b2c3d4",
+  turn_id: "turn-0001",
   player_action: "The player opens the door.",
   scene_id: "tavern-scene",
   intent: "explore",
@@ -24,7 +24,7 @@ const validNormalContinuation = {
 const validDetourScene = {
   schema_version: "parley-action-interpretation/v1",
   id: "action-456",
-  turn_id: "turn-b2c3d4e5",
+  turn_id: "turn-0002",
   player_action: "The player attacks the guard.",
   scene_id: "market-scene",
   intent: "combat",
@@ -50,7 +50,9 @@ describe("ActionInterpretationSchema — positive: normal_continuation", () => {
   it("accepts normal_continuation with optional unsupported_claims", () => {
     const result = ActionInterpretationSchema.safeParse({
       ...validNormalContinuation,
-      unsupported_claims: ["claim-x"],
+      unsupported_claims: [
+        { id: "uc-1", claim: "Player can fly", reason: "No magic items equipped", handled: true },
+      ],
     });
     assert.ok(result.success, JSON.stringify(result));
   });
@@ -85,7 +87,9 @@ describe("ActionInterpretationSchema — positive: detour_scene", () => {
   it("accepts detour_scene with all optional fields", () => {
     const result = ActionInterpretationSchema.safeParse({
       ...validDetourScene,
-      unsupported_claims: ["claim-y"],
+      unsupported_claims: [
+        { id: "uc-2", claim: "Player teleports", reason: "Teleport not in scene rules", handled: false },
+      ],
       guidance_id: "guide-002",
     });
     assert.ok(result.success, JSON.stringify(result));
@@ -183,7 +187,7 @@ describe("ActionInterpretationSchema — negative: empty targets", () => {
 // ---------------------------------------------------------------------------
 
 describe("ActionInterpretationSchema — negative: bad turn_id format", () => {
-  it("rejects a turn_id that does not match turn-<hex8+>", () => {
+  it("rejects a turn_id that does not match turn-<digits4+>", () => {
     const result = ActionInterpretationSchema.safeParse({
       ...validNormalContinuation,
       turn_id: "not-a-turn-id",
@@ -191,10 +195,34 @@ describe("ActionInterpretationSchema — negative: bad turn_id format", () => {
     assert.equal(result.success, false);
   });
 
-  it("rejects a turn_id with fewer than 8 hex chars", () => {
+  it("rejects a turn_id with fewer than 4 digits", () => {
     const result = ActionInterpretationSchema.safeParse({
       ...validNormalContinuation,
       turn_id: "turn-abc",
+    });
+    assert.equal(result.success, false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Negative: bad unsupported_claims shape
+// ---------------------------------------------------------------------------
+
+describe("ActionInterpretationSchema — negative: bad unsupported_claims shape", () => {
+  it("rejects unsupported_claims entry missing handled", () => {
+    const result = ActionInterpretationSchema.safeParse({
+      ...validNormalContinuation,
+      unsupported_claims: [{ id: "uc-1", claim: "Player can fly", reason: "No magic" }],
+    });
+    assert.equal(result.success, false);
+  });
+
+  it("rejects unsupported_claims entry with extra unknown field", () => {
+    const result = ActionInterpretationSchema.safeParse({
+      ...validNormalContinuation,
+      unsupported_claims: [
+        { id: "uc-1", claim: "Player can fly", reason: "No magic", handled: true, extra: "oops" },
+      ],
     });
     assert.equal(result.success, false);
   });

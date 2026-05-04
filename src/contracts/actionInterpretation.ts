@@ -3,6 +3,15 @@ import { TurnId, SceneId, schemaVersion } from "./common.ts";
 
 const SCHEMA_VERSION = "parley-action-interpretation/v1" as const;
 
+export const UnsupportedClaim = z
+  .object({
+    id: z.string().min(1),
+    claim: z.string().min(1),
+    reason: z.string().min(1),
+    handled: z.boolean(),
+  })
+  .strict();
+
 /**
  * Base fields shared by all action interpretation objects.
  * The recommended_mode-conditional logic is enforced via superRefine below.
@@ -22,7 +31,7 @@ const ActionInterpretationBase = z
     recommended_mode: z.enum(["normal_continuation", "detour_scene"]),
     targets: z.array(z.string()).min(1),
     candidate_attractors: z.array(z.string()).optional(),
-    unsupported_claims: z.array(z.string()).optional(),
+    unsupported_claims: z.array(UnsupportedClaim).optional(),
     guidance_id: z.string().optional(),
   })
   .strict();

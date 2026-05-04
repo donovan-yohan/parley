@@ -2,11 +2,11 @@ import { z } from "zod";
 
 /**
  * Unique identifier for a conversation turn.
- * Format: turn-<8+ lowercase hex digits>
+ * Format: turn-<4+ zero-padded decimal digits> (e.g. turn-0001)
  */
 export const TurnId = z
   .string()
-  .regex(/^turn-[0-9a-f]{8,}$/, "TurnId must match turn-<hex8+>");
+  .regex(/^turn-[0-9]{4,}$/, "TurnId must match turn-<digits4+>");
 
 /**
  * ISO 8601 datetime string with timezone offset (Z or ±HH:MM).
@@ -71,6 +71,18 @@ export const TalentName = z
   );
 
 /**
+ * Unique identifier for a Parley instance. Used directly as the Belayer crag slug,
+ * so the regex matches Belayer's profile-name segment grammar (`[a-z0-9_-]`).
+ * Leading alphanumeric (a-z0-9), then [a-z0-9_-], max 39 chars total.
+ */
+export const InstanceId = z
+  .string()
+  .regex(
+    /^[a-z0-9][a-z0-9_-]{0,38}$/,
+    "InstanceId: leading alphanumeric, [a-z0-9_-], max 39 chars",
+  );
+
+/**
  * Helper for enforcing a schema_version literal field in contract schemas.
  * Using a generic ensures z.infer resolves to the literal type (e.g. "v1"),
  * not just string, so callers get precise type narrowing.
@@ -94,3 +106,4 @@ export type SceneId = z.infer<typeof SceneId>;
 export type CharacterId = z.infer<typeof CharacterId>;
 export type CragSlug = z.infer<typeof CragSlug>;
 export type TalentName = z.infer<typeof TalentName>;
+export type InstanceId = z.infer<typeof InstanceId>;

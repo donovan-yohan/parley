@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildScenarioCharacter, persistCharacterMarkdown } from "./belayerCharacterAdapter.js";
+import { loadInstanceCharacters } from "./instances/loadInstanceCharacters.js";
 import {
   validateActionInterpretation,
   validateBeatRedirect,
@@ -13,11 +14,42 @@ import { defaultScenarioId, ensureInstanceDir, loadScenarioPack, scenarioMetadat
 import { judgeTurn } from "./truthAuthority.js";
 import { createScenarioFixtureAuthor, normalizeAuthoredTurn } from "./turnAuthor.js";
 import { attachVisualAssetsToCharacters, loadVisualAssetManifest, prepareVisualAssetsForScenario } from "./visualAssets.js";
+import { wakeNpc } from "./wake/wakeNpc.js";
 
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(runtimeDir, "..", "..");
 const defaultWorldDir = path.join(repoRoot, "worlds", "last-lantern");
 const defaultScenePath = path.join(repoRoot, "examples", "last-lantern", "scene.yaml");
+
+/**
+ * Minimal default wake NPC function. Only used when wakeResumableNpcs = true
+ * but no wakeNpcFn is injected. Delegates to the real wakeNpc handler.
+ * Production callers should inject validateWake / validateWakeResult from contracts.
+ */
+async function defaultWakeNpcFn(opts) {
+  return wakeNpc(opts);
+}
+
+/**
+ * Build a minimal valid ParleyWake envelope from current turn context.
+ * Used by the runtime wake fan-out when wakeResumableNpcs = true.
+ */
+function buildMinimalWakeEnvelope({ character, scene, turn, scenario }) {
+  return {
+    schema_version: "parley-wake/v1",
+    wake_id: `wake-${turn.id}-${character.id}`,
+    crag_slug: scene.instance ?? scene.crag ?? scenario.id,
+    actor_id: character.id,
+    scene_id: scene.id,
+    trigger: "player_turn_completed",
+    current_story_context: {
+      story_id: scenario.id,
+      scene_id: scene.id,
+      current_turn_id: turn.id,
+      present_event_refs: [],
+    },
+  };
+}
 
 export async function runPlayerTurn({
   scenarioId = defaultScenarioId,
@@ -26,7 +58,13 @@ export async function runPlayerTurn({
   scenePath = defaultScenePath,
   worldDir,
   turnAuthor = createScenarioFixtureAuthor(),
-  truthAuthority = judgeTurn
+  truthAuthority = judgeTurn,
+  // Wake routing — opt-in. Off by default to preserve backward compat.
+  wakeResumableNpcs = false,
+  wakeNpcFn = defaultWakeNpcFn,
+  // Schema validators injected by caller when wakeResumableNpcs = true.
+  // Avoids .ts/.js loader contention: callers import schemas via tsx and inject.
+  wakeValidationDeps = null,
 }) {
   const trimmedAction = String(playerAction ?? "").trim();
   if (!trimmedAction) {
@@ -36,15 +74,27 @@ export async function runPlayerTurn({
   const scenario = await loadRuntimeScenario({ scenarioId, scenePath });
   const scene = scenario.scene;
   const resolvedInstanceDir = instanceDir ?? scenario.instanceDir;
-  const resolvedWorldDir = worldDir ?? scenario.worldDir;
+  // When instanceDir is provided and worldDir is not explicitly set, derive worldDir
+  // from the instance so visual asset reads/writes and truth-authority calls hit the
+  // instance's copy of the world rather than the shared template.
+  const resolvedWorldDir = worldDir ?? (instanceDir ? path.join(instanceDir, "world") : scenario.worldDir);
   await ensureInstanceDir(resolvedInstanceDir);
 
   const worldStatePath = path.join(resolvedInstanceDir, "world-state.json");
   const previousWorldState = await readJsonIfExists(worldStatePath);
   const turnId = await nextTurnId(resolvedInstanceDir);
-  let characters = scenario.characters.map((characterDefinition) =>
-    buildScenarioCharacter({ scenario, characterDefinition, sourceRequest: turnId, scene })
-  );
+  let characters = [];
+  if (instanceDir) {
+    characters = await loadInstanceCharacters({ instanceDir, sceneId: scene.id });
+  }
+  if (characters.length === 0) {
+    // Legacy / non-materialized path: fall back to the scenario template
+    // characters when the instance has no materialized profiles yet.
+    // Subsequent PRs will materialize all scenarios at boot time.
+    characters = scenario.characters.map((characterDefinition) =>
+      buildScenarioCharacter({ scenario, characterDefinition, sourceRequest: turnId, scene })
+    );
+  }
   const visualAssets = await prepareVisualAssetsForScenario({
     scenario,
     scene,
@@ -123,6 +173,38 @@ export async function runPlayerTurn({
   const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState, authoredTurn });
   await writeFile(worldStatePath, `${JSON.stringify(worldState, null, 2)}\n`, "utf8");
 
+  // Wake fan-out: opt-in via wakeResumableNpcs = true.
+  // Sends wake envelopes to each resumable NPC after turn commit.
+  // Errors are caught per-character and aggregated — a single NPC wake failure
+  // must not abort the turn result.
+  const wakedResults = [];
+  if (wakeResumableNpcs && !instanceDir) {
+    console.warn(
+      "parleyRuntime: wakeResumableNpcs=true requires instanceDir; skipping wake fan-out (no NPCs woken)."
+    );
+  }
+  if (wakeResumableNpcs && instanceDir) {
+    const { validateWake = null, validateWakeResult = null } = wakeValidationDeps ?? {};
+    for (const character of characters.filter((c) => c.lifecycle === "resumable")) {
+      try {
+        const wakeEnvelope = buildMinimalWakeEnvelope({ character, scene, turn, scenario });
+        const result = await wakeNpcFn({
+          instanceDir,
+          characterId: character.id,
+          wakeEnvelope,
+          ...(validateWake ? { validateWake } : {}),
+          ...(validateWakeResult ? { validateWakeResult } : {}),
+        });
+        wakedResults.push({ characterId: character.id, result });
+      } catch (err) {
+        wakedResults.push({
+          characterId: character.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+  }
+
   return {
     schema_version: "parley-turn/v1",
     turnId,
@@ -136,7 +218,8 @@ export async function runPlayerTurn({
     worldState,
     visualAssets,
     authoring,
-    committed: true
+    committed: true,
+    ...(wakedResults.length > 0 ? { wakedResults } : {})
   };
 }
 
@@ -180,11 +263,13 @@ async function loadRuntimeScenario({ scenarioId, scenePath }) {
 
 async function loadSceneSeed(scenePath) {
   const raw = await readFile(scenePath, "utf8");
+  // Migrated seeds use `instance:`; legacy seeds used `crag:`. Accept both, prefer the new field.
+  const instance = matchYamlScalar(raw, "instance") ?? matchYamlScalar(raw, "crag") ?? "last-lantern-default";
   return {
     schema_version: matchYamlScalar(raw, "schema_version") ?? "parley-scene/v1",
     id: matchYamlScalar(raw, "id") ?? "last-lantern-tavern",
     title: matchYamlScalar(raw, "title") ?? "Last Lantern Tavern",
-    crag: matchYamlScalar(raw, "crag") ?? "last-lantern",
+    instance,
     climb: matchYamlScalar(raw, "climb") ?? "first-rumor"
   };
 }
@@ -337,7 +422,7 @@ function buildWorldState({ scenario, scene, turn, characters, truthVerdict, visu
     current_scene: {
       id: scene.id,
       title: scene.title,
-      crag: scene.crag,
+      instance: scene.instance ?? scene.crag ?? null,
       climb: scene.climb
     },
     characters: mergeById(previousCharacters, characters.map((character) => ({

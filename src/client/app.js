@@ -17,6 +17,7 @@ let currentState = null;
 let latestResult = null;
 let localTranscript = [];
 let turnRunning = false;
+let currentStoryId = null;
 
 init();
 
@@ -58,6 +59,9 @@ form.addEventListener("submit", async (event) => {
     latestResult = await response.json();
     currentState = mergeTurnIntoState({ state: currentState, result: latestResult });
     localTranscript.push({ speaker: "narrator", text: latestResult.narration });
+    if (latestResult.scenarioId ?? selectedScenarioId) {
+      startEventStream(latestResult.scenarioId ?? selectedScenarioId);
+    }
   } catch (error) {
     localTranscript.push({ speaker: "system", text: error.message ?? "Turn failed." });
   } finally {
@@ -375,6 +379,73 @@ function humanTag(tag) {
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+function startEventStream(storyId) {
+  // Reuse existing connection if storyId hasn't changed.
+  if (window._parleyEventSource && currentStoryId === storyId) {
+    return;
+  }
+  if (window._parleyEventSource) {
+    window._parleyEventSource.close();
+    window._parleyEventSource = null;
+  }
+  currentStoryId = storyId;
+  const es = new EventSource(`/events/${encodeURIComponent(storyId)}`);
+  es.onmessage = (e) => {
+    try {
+      const event = JSON.parse(e.data);
+      handleStoryEvent(event);
+    } catch {}
+  };
+  es.onerror = () => {
+    // Browser will auto-reconnect
+  };
+  window._parleyEventSource = es;
+}
+
+function handleStoryEvent(event) {
+  // Handle visual_asset_ready: update portrait or background img elements.
+  if (event.type === "visual_asset_ready") {
+    const path = event.inputs?.path;
+    const kind = event.inputs?.target?.kind;
+    const id = event.inputs?.target?.id;
+    if (!path) return; // backward compat: skip silently if path missing
+
+    if (kind === "background") {
+      const bg = document.getElementById("scene-background");
+      if (bg) {
+        bg.src = event.inputs.web_path ?? path;
+        bg.removeAttribute("hidden");
+        bg.classList.add("asset-fade-in");
+      }
+    } else if (kind === "portrait") {
+      let portrait = document.getElementById(`portrait-${id}`);
+      if (!portrait) {
+        const strip = document.getElementById("portraits-strip");
+        if (!strip) return; // skip silently if container absent
+        portrait = document.createElement("img");
+        portrait.id = `portrait-${id}`;
+        portrait.alt = id ?? "character portrait";
+        portrait.className = "portrait-thumbnail";
+        strip.appendChild(portrait);
+      }
+      portrait.src = event.inputs.web_path ?? path;
+      portrait.classList.add("asset-fade-in");
+    }
+    return;
+  }
+
+  // Minimal renderer: append to #event-stream if it exists; else console.log.
+  const container = document.getElementById("event-stream");
+  if (!container) {
+    console.log("[story event]", event);
+    return;
+  }
+  const el = document.createElement("div");
+  el.className = `event event-${event.type ?? "unknown"}`;
+  el.textContent = `${event.emitted_at} — ${event.type}: ${JSON.stringify(event.inputs ?? event.refs ?? {})}`;
+  container.appendChild(el);
 }
 
 function memoryGroup(label, facts) {
