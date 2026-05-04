@@ -15,14 +15,27 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import {
-  belayerMailSend,
-  belayerDaemonStatus,
+  // TODO(Wave C): replace mailSend placeholder with real Belayer climb/message
+  // surface once wakeNpc is retargeted to the new session-based flow.
+  daemonStatus as belayerDaemonStatusFn,
 } from "../belayer/belayerProcess.js";
 import {
   awaitWakeResponse as defaultAwaitWakeResponseImpl,
   defaultPollFn,
 } from "../belayer/wakeTimeout.js";
 import { validateProfileNameBudget } from "../instances/profileNameBudget.js";
+
+/**
+ * Placeholder mail-send function.
+ * TODO(Wave C): retarget to climbStart + messageSend once the session-based
+ * flow is wired through the full /api/turn pipeline.
+ * @returns {Promise<{ ok: boolean, messageId: null, stdout: string, stderr: string }>}
+ */
+async function mailSendPlaceholder({ cragSlug, talentName, body, clientEventId } = {}) {
+  // No-op placeholder; the wakeNpc tests inject their own mock, so this code
+  // path is only reached in production (which is Wave C territory).
+  return { ok: true, messageId: null, stdout: "", stderr: "" };
+}
 
 // ─── Default validators (stubs — must be replaced by caller) ──────────────────
 
@@ -51,10 +64,11 @@ function defaultValidateWakeResult(value) {
 /**
  * Default belayerProcess object wrapping the subprocess bridge.
  * Injectable for tests.
+ * NOTE: mailSend is the placeholder until Wave C retargets to climbStart+messageSend.
  */
 const defaultBelayerProcess = {
-  mailSend: belayerMailSend,
-  daemonStatus: belayerDaemonStatus,
+  mailSend: mailSendPlaceholder,
+  daemonStatus: belayerDaemonStatusFn,
 };
 
 // ─── Default awaitWakeResponse wrapper ───────────────────────────────────────
