@@ -1,0 +1,35 @@
+src/contracts/instance.ts
+  6fd9bdc7c61f8cc6 1-21
+test/contracts/belayerTalentMetadata.test.ts
+  6fd9bdc7c61f8cc6 1-129
+test/contracts/common.test.ts
+  6fd9bdc7c61f8cc6 11,224-265
+src/contracts/belayerTalentMetadata.ts
+  6fd9bdc7c61f8cc6 1-23
+src/contracts/common.ts
+  6fd9bdc7c61f8cc6 74-83,108
+src/contracts/index.ts
+  6fd9bdc7c61f8cc6 9-10
+test/contracts/instance.test.ts
+  6fd9bdc7c61f8cc6 1-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "ff3a484a5698664edbc628a4dc7046d485348a68",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 380,
+      "total_deletions": 21,
+      "accepted_lines": 1227,
+      "overriden_lines": 0
+    }
+  }
+}
