@@ -11,7 +11,7 @@
  *   - A Belayer crag initialized via `belayer crag init <instanceId>`
  */
 
-import { mkdir, copyFile, readdir, writeFile, stat } from "node:fs/promises";
+import { mkdir, copyFile, readdir, writeFile, stat, rm } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { validateProfileNameBudget } from "./profileNameBudget.js";
@@ -135,56 +135,69 @@ export async function materializeInstance({
     );
   }
 
-  // 7. Create instance directories
-  const instanceCharsDir = path.join(instanceDir, "world", "characters");
-  await mkdir(instanceCharsDir, { recursive: true });
-
-  // Copy character .md files into instance
-  for (const mdFile of mdFiles) {
-    const src = path.join(charsTemplateDir, mdFile);
-    const dest = path.join(instanceCharsDir, mdFile);
-    await copyFile(src, dest);
-  }
-
-  // Write manifest.json
+  // 7-9. Wrap filesystem writes + spawn + profile materialization in a try/catch
+  // so a failure leaves no partial state on disk. Without this, a failed
+  // `belayer crag init` would leave instanceDir partially populated and the
+  // no-clobber check at step 4 would block any retry without --force.
   const manifestPath = path.join(instanceDir, "manifest.json");
-  const manifest = {
-    schema_version: "parley-instance-manifest/v1",
-    world_id: worldId,
-    instance_id: instanceId,
-    crag_slug: instanceId,
-    created_at: new Date().toISOString(),
-  };
-  await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
-
-  // Write CRAG.yaml
-  const cragYamlPath = path.join(instanceDir, "CRAG.yaml");
-  await writeFile(cragYamlPath, `crag: ${instanceId}\n`, "utf8");
-
-  // 8. Initialize the Belayer crag
-  const spawnResult = await spawnSubprocess(belayerCli, ["crag", "init", instanceId]);
-  if (spawnResult.exitCode !== 0) {
-    throw new Error(
-      `belayer crag init failed (exit ${spawnResult.exitCode}): ${spawnResult.stderr}`,
-    );
-  }
-
-  // 9. Materialize each character's talent profile
   const profiles = [];
-  for (const characterId of characterIds) {
-    const profileResult = await materializeTalentProfile({
-      cragSlug: instanceId,
-      talentName: characterId,
-      memoryScope: "crag",
-      hermesProfilesRoot,
-      force,
-    });
-    profiles.push({
-      characterId,
-      profileName: profileResult.profileName,
-      profileDir: profileResult.profileDir,
-      alreadyExists: profileResult.alreadyExists,
-    });
+
+  try {
+    // 7. Create instance directories
+    const instanceCharsDir = path.join(instanceDir, "world", "characters");
+    await mkdir(instanceCharsDir, { recursive: true });
+
+    // Copy character .md files into instance
+    for (const mdFile of mdFiles) {
+      const src = path.join(charsTemplateDir, mdFile);
+      const dest = path.join(instanceCharsDir, mdFile);
+      await copyFile(src, dest);
+    }
+
+    // Write manifest.json
+    const manifest = {
+      schema_version: "parley-instance-manifest/v1",
+      world_id: worldId,
+      instance_id: instanceId,
+      crag_slug: instanceId,
+      created_at: new Date().toISOString(),
+    };
+    await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
+
+    // Write CRAG.yaml
+    const cragYamlPath = path.join(instanceDir, "CRAG.yaml");
+    await writeFile(cragYamlPath, `crag: ${instanceId}\n`, "utf8");
+
+    // 8. Initialize the Belayer crag
+    const spawnResult = await spawnSubprocess(belayerCli, ["crag", "init", instanceId]);
+    if (spawnResult.exitCode !== 0) {
+      throw new Error(
+        `belayer crag init failed (exit ${spawnResult.exitCode}): ${spawnResult.stderr}`,
+      );
+    }
+
+    // 9. Materialize each character's talent profile
+    for (const characterId of characterIds) {
+      const profileResult = await materializeTalentProfile({
+        cragSlug: instanceId,
+        talentName: characterId,
+        memoryScope: "crag",
+        hermesProfilesRoot,
+        force,
+      });
+      profiles.push({
+        characterId,
+        profileName: profileResult.profileName,
+        profileDir: profileResult.profileDir,
+        alreadyExists: profileResult.alreadyExists,
+      });
+    }
+  } catch (err) {
+    // Clean up partial instance dir so retry doesn't get blocked by no-clobber.
+    // Talent profile dirs that may have been created in step 9 are intentionally
+    // NOT cleaned up here — they're idempotent on re-run via materializeTalentProfile.
+    await rm(instanceDir, { recursive: true, force: true }).catch(() => {});
+    throw err;
   }
 
   // 10. Return result

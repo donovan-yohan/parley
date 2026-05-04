@@ -189,11 +189,13 @@ async function loadRuntimeScenario({ scenarioId, scenePath }) {
 
 async function loadSceneSeed(scenePath) {
   const raw = await readFile(scenePath, "utf8");
+  // Migrated seeds use `instance:`; legacy seeds used `crag:`. Accept both, prefer the new field.
+  const instance = matchYamlScalar(raw, "instance") ?? matchYamlScalar(raw, "crag") ?? "last-lantern-default";
   return {
     schema_version: matchYamlScalar(raw, "schema_version") ?? "parley-scene/v1",
     id: matchYamlScalar(raw, "id") ?? "last-lantern-tavern",
     title: matchYamlScalar(raw, "title") ?? "Last Lantern Tavern",
-    crag: matchYamlScalar(raw, "crag") ?? "last-lantern",
+    instance,
     climb: matchYamlScalar(raw, "climb") ?? "first-rumor"
   };
 }
@@ -346,7 +348,7 @@ function buildWorldState({ scenario, scene, turn, characters, truthVerdict, visu
     current_scene: {
       id: scene.id,
       title: scene.title,
-      crag: scene.crag,
+      instance: scene.instance ?? scene.crag ?? null,
       climb: scene.climb
     },
     characters: mergeById(previousCharacters, characters.map((character) => ({

@@ -78,7 +78,7 @@ test("scene seed scalars ignore inline comments and unwrap quoted values", async
       "schema_version: \"parley-scene/v1\" # file format",
       "id: \"last-lantern-tavern\" # stable scene id",
       "title: \"Last # Lantern Tavern\" # title comment",
-      "crag: last-lantern # runtime crag",
+      "instance: last-lantern-default # world instance id",
       "climb: 'first-rumor' # opening climb"
     ].join("\n"),
     "utf8"
@@ -95,9 +95,38 @@ test("scene seed scalars ignore inline comments and unwrap quoted values", async
     schema_version: "parley-scene/v1",
     id: "last-lantern-tavern",
     title: "Last # Lantern Tavern",
-    crag: "last-lantern",
+    instance: "last-lantern-default",
     climb: "first-rumor"
   });
+});
+
+test("scene seed: legacy crag field is read as instance for backward compat", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-scene-legacy-"));
+  const stateDir = path.join(rootDir, "state");
+  const worldDir = path.join(rootDir, "world");
+  const scenePath = path.join(rootDir, "scene.yaml");
+
+  await writeFile(
+    scenePath,
+    [
+      "schema_version: \"parley-scene/v1\"",
+      "id: \"last-lantern-tavern\"",
+      "title: \"Last Lantern Tavern\"",
+      "crag: last-lantern",
+      "climb: first-rumor"
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = await runPlayerTurn({
+    playerAction: "I ask who remembers the old north road.",
+    stateDir,
+    scenePath,
+    worldDir
+  });
+
+  assert.equal(result.scene.instance, "last-lantern", "legacy crag field should populate instance");
+  assert.equal(result.worldState.current_scene.instance, "last-lantern", "world-state current_scene should carry instance");
 });
 
 test("fallback turns do not commit unsupported scenario leads", async () => {

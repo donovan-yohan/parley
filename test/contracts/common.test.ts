@@ -254,8 +254,8 @@ describe("InstanceId", () => {
     assert.equal(InstanceId.safeParse("MyInstance").success, false);
   });
 
-  it("rejects an instance id with underscores", () => {
-    assert.equal(InstanceId.safeParse("my_instance").success, false);
+  it("accepts an instance id with underscores (matches Belayer profile-name segment grammar)", () => {
+    assert.equal(InstanceId.safeParse("my_instance").success, true);
   });
 
   it("rejects a non-string", () => {

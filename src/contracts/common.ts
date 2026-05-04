@@ -71,14 +71,15 @@ export const TalentName = z
   );
 
 /**
- * Unique identifier for a Parley instance.
- * Leading alphanumeric (a-z0-9), then [a-z0-9-], max 39 chars total.
+ * Unique identifier for a Parley instance. Used directly as the Belayer crag slug,
+ * so the regex matches Belayer's profile-name segment grammar (`[a-z0-9_-]`).
+ * Leading alphanumeric (a-z0-9), then [a-z0-9_-], max 39 chars total.
  */
 export const InstanceId = z
   .string()
   .regex(
-    /^[a-z0-9][a-z0-9-]{0,38}$/,
-    "InstanceId: leading alphanumeric, [a-z0-9-], max 39 chars",
+    /^[a-z0-9][a-z0-9_-]{0,38}$/,
+    "InstanceId: leading alphanumeric, [a-z0-9_-], max 39 chars",
   );
 
 /**

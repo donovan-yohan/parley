@@ -239,7 +239,7 @@ test("missing world template: throws 'world template not found'", async () => {
 // Belayer crag init failure
 // ---------------------------------------------------------------------------
 
-test("belayer crag init failure: non-zero exit throws with stderr", async () => {
+test("belayer crag init failure: non-zero exit throws with stderr AND cleans partial instance dir", async () => {
   const repoRoot = await makeTmpDir();
   const hermesProfilesRoot = await makeTmpDir();
   await scaffoldWorld(repoRoot, WORLD_ID, CHARACTERS);
@@ -247,6 +247,8 @@ test("belayer crag init failure: non-zero exit throws with stderr", async () => 
   const mockSpawn = makeMockSpawn({
     [`belayer crag init ${INSTANCE_ID}`]: { exitCode: 1, stdout: "", stderr: "crag exists" },
   });
+
+  const expectedInstanceDir = path.join(repoRoot, "instances", WORLD_ID, INSTANCE_ID);
 
   await assert.rejects(
     () =>
@@ -265,6 +267,14 @@ test("belayer crag init failure: non-zero exit throws with stderr", async () => 
       );
       return true;
     },
+  );
+
+  // Verify partial instance dir was cleaned up so retry can proceed without --force
+  const instanceExists = await stat(expectedInstanceDir).then(() => true).catch(() => false);
+  assert.equal(
+    instanceExists,
+    false,
+    "instance directory should NOT exist after spawn failure (cleanup expected for retry)",
   );
 });
 
