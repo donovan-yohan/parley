@@ -135,12 +135,24 @@ describe("buildCSSText — derived palette tokens emitted", () => {
 describe("buildCSSText — typography vars", () => {
   const css = buildCSSText(FIXTURE_THEME, "test-world");
 
-  test("--font-sans emitted", () => {
-    assert.ok(css.includes('--font-sans: "Inter";'), `Not found in:\n${css}`);
+  test("--font-sans emitted (unquoted, supports stacks)", () => {
+    assert.ok(css.includes("--font-sans: Inter;"), `Not found in:\n${css}`);
   });
 
   test("--font-mono emitted", () => {
-    assert.ok(css.includes('--font-mono: "JetBrains Mono";'), `Not found in:\n${css}`);
+    assert.ok(css.includes("--font-mono: JetBrains Mono;"), `Not found in:\n${css}`);
+  });
+
+  test("comma-separated font stack passes through unquoted", () => {
+    const stackTheme = {
+      ...FIXTURE_THEME,
+      typography: { ...FIXTURE_THEME.typography, fontSans: "Inter, sans-serif" },
+    };
+    const stackCss = buildCSSText(stackTheme, "test");
+    assert.ok(
+      stackCss.includes("--font-sans: Inter, sans-serif;"),
+      `Expected unquoted comma stack, got:\n${stackCss}`
+    );
   });
 
   test("--font-base-size emitted", () => {
@@ -160,18 +172,33 @@ describe("buildCSSText — asset vars", () => {
   };
   const css = buildCSSText(themeWithAssets, "test-world");
 
-  test("--world-asset-bg emitted for bg", () => {
+  test("--world-asset-bg emitted for bg (resolved /world-assets/ URL, no url() wrapper)", () => {
     assert.ok(
-      css.includes('--world-asset-bg: url("assets/backgrounds/tavern.png");'),
+      css.includes("--world-asset-bg: /world-assets/assets/backgrounds/tavern.png?scenario=test-world;"),
       `Not found in:\n${css}`
     );
   });
 
   test("--world-asset-hero emitted for hero", () => {
     assert.ok(
-      css.includes('--world-asset-hero: url("assets/hero.png");'),
+      css.includes("--world-asset-hero: /world-assets/assets/hero.png?scenario=test-world;"),
       `Not found in:\n${css}`
     );
+  });
+
+  test("absolute URLs (data:, http:, /) pass through unchanged", () => {
+    const absTheme = {
+      ...FIXTURE_THEME,
+      assets: {
+        bg:   "data:image/png;base64,abc",
+        hero: "https://cdn.example/hero.png",
+        crest: "/static/crest.png",
+      },
+    };
+    const absCss = buildCSSText(absTheme, "test-world");
+    assert.ok(absCss.includes("--world-asset-bg: data:image/png;base64,abc;"), absCss);
+    assert.ok(absCss.includes("--world-asset-hero: https://cdn.example/hero.png;"), absCss);
+    assert.ok(absCss.includes("--world-asset-crest: /static/crest.png;"), absCss);
   });
 });
 

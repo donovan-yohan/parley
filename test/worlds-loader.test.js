@@ -1,4 +1,4 @@
-import { test, describe, before, after, beforeEach } from "node:test";
+import { test, describe, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { loadWorldManifest, loadWorldBundle, WorldLoadError } from "../src/worlds-loader/index.ts";
 

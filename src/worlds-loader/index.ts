@@ -122,13 +122,16 @@ async function verifyIntegrity(
   url: string,
   integrity: string
 ): Promise<void> {
-  const [algorithm, expectedB64] = integrity.split("-", 2);
-  if (algorithm !== "sha384") {
+  // Format must be "sha384-<base64>". Validate up front so a malformed
+  // manifest produces a clear error rather than a misleading "mismatch".
+  const match = /^sha384-([A-Za-z0-9+/=]+)$/.exec(integrity);
+  if (!match) {
     throw new WorldLoadError(
       worldId,
-      `Unsupported integrity algorithm "${algorithm}"; expected sha384`
+      `Malformed integrity hash "${integrity}"; expected sha384-<base64>`
     );
   }
+  const expectedB64 = match[1];
 
   let buffer: ArrayBuffer;
   try {

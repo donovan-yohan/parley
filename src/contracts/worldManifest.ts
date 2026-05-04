@@ -20,8 +20,14 @@ const WorldManifestEntrySchema = z.object({
    * Optional SHA-384 subresource-integrity hash for the entry bundle.
    * Format: "sha384-<base64>".
    */
-  integrity: z.string().optional(),
-});
+  integrity: z
+    .string()
+    .regex(/^sha384-[A-Za-z0-9+/=]+$/, "integrity must be sha384-<base64>")
+    .optional(),
+}).refine(
+  (entry) => !entry.integrity || entry.entryUrl !== null,
+  { message: "integrity hash requires a non-null entryUrl", path: ["integrity"] }
+);
 
 /**
  * Zod schema for the world-manifest.json emitted by scripts/discover-worlds.ts.

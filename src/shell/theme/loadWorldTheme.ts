@@ -5,14 +5,18 @@
  * endpoint in server.js handles this path). Parses with the `yaml` library.
  * Validates via the ParleyThemeSchema Zod schema. Applies via applyTheme().
  *
- * Caches parsed themes in-memory by worldId; subsequent calls for the same
- * worldId skip the fetch + parse + apply and return the cached theme.
+ * Caches successfully validated themes in-memory by worldId; subsequent calls
+ * for the same worldId reuse the cached theme but always re-apply it (so a
+ * cached call from a different world re-injects the right CSS scope).
+ *
+ * Concurrent calls for the same worldId share a single in-flight Promise so
+ * the fetch + parse + validate happens once.
  *
  * On validation failure:
  *   - Logs a structured error to the console.
- *   - Falls back to a default (neutral) theme.
- *   - In development (import.meta.env.DEV or NODE_ENV != production),
- *     emits a non-blocking console banner.
+ *   - Returns DEFAULT_THEME (without caching it, so a transient error doesn't
+ *     stick — the next call will retry the network).
+ *   - In Vite dev mode (import.meta.env.DEV), emits a non-blocking console banner.
  */
 
 import { parse as parseYaml } from "yaml";
@@ -23,6 +27,7 @@ import { applyTheme } from "./apply.ts";
 // ─── In-memory cache ─────────────────────────────────────────────────────────
 
 const themeCache = new Map<string, ParleyTheme>();
+const inFlight = new Map<string, Promise<ParleyTheme>>();
 
 // ─── Default fallback theme ───────────────────────────────────────────────────
 
@@ -63,16 +68,27 @@ function isDev(): boolean {
  * @param worldId  The world slug (e.g. "last-lantern").
  * @returns The applied ParleyTheme (from cache or freshly fetched).
  */
-export async function loadWorldTheme(worldId: string): Promise<ParleyTheme> {
-  // Return cached theme if already loaded.
+export function loadWorldTheme(worldId: string): Promise<ParleyTheme> {
   const cached = themeCache.get(worldId);
   if (cached) {
     applyTheme(cached, worldId);
-    return cached;
+    return Promise.resolve(cached);
   }
 
+  const pending = inFlight.get(worldId);
+  if (pending) return pending;
+
+  const promise = fetchAndApply(worldId).finally(() => {
+    inFlight.delete(worldId);
+  });
+  inFlight.set(worldId, promise);
+  return promise;
+}
+
+async function fetchAndApply(worldId: string): Promise<ParleyTheme> {
   const url = `/world-assets/theme.yaml?scenario=${encodeURIComponent(worldId)}`;
   let theme: ParleyTheme;
+  let cacheable = true;
 
   try {
     const response = await fetch(url);
@@ -83,6 +99,7 @@ export async function loadWorldTheme(worldId: string): Promise<ParleyTheme> {
     const raw = parseYaml(text);
     theme = ParleyThemeSchema.parse(raw);
   } catch (err) {
+    cacheable = false;
     const structured = {
       type: "THEME_LOAD_FAILURE",
       worldId,
@@ -101,7 +118,10 @@ export async function loadWorldTheme(worldId: string): Promise<ParleyTheme> {
     theme = DEFAULT_THEME;
   }
 
-  themeCache.set(worldId, theme);
+  // Only cache successful loads — transient errors should retry on next call.
+  if (cacheable) {
+    themeCache.set(worldId, theme);
+  }
   applyTheme(theme, worldId);
   return theme;
 }
@@ -112,4 +132,5 @@ export async function loadWorldTheme(worldId: string): Promise<ParleyTheme> {
  */
 export function __resetThemeCacheForTests(): void {
   themeCache.clear();
+  inFlight.clear();
 }

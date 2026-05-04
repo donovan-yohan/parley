@@ -2,15 +2,23 @@
  * apply.ts — emits world-scoped CSS custom properties to the document.
  *
  * applyTheme(theme, worldId):
- *   1. Removes any prior <style data-world-theme="<worldId>"> block.
+ *   1. Removes ALL prior <style data-world-theme> blocks (avoid DOM bloat
+ *      across world switches).
  *   2. Derives ~20 shadcn tokens from palette via color-mix() CSS literals.
  *   3. Applies colorOverrides on top of derived tokens.
  *   4. Emits componentStyles as --component-<bucket-kebab>-<prop-kebab> vars.
- *   5. Emits asset URLs as --world-asset-<key> vars.
+ *   5. Emits asset URLs as --world-asset-<key> vars. Relative paths are
+ *      resolved against the server's /world-assets/ route, scoped by ?scenario.
+ *      Values are emitted as bare URL strings (no url() wrapper) so
+ *      consumers can use them in either <img src> or background-image: url(var(...)).
  *   6. Emits typography vars (--font-sans, --font-mono, --font-display, etc.).
+ *      Font-family values are emitted unquoted so theme authors can supply
+ *      comma-separated stacks like "Inter, sans-serif".
  *   7. Emits layout vars (--radius, --spacing-mul).
  *   8. Sets <html data-world-id="<worldId>" data-layout-variant="<variant>">.
  *   9. Injects the style block into document.head.
+ *  10. Reuses a single <link id="parley-active-font"> for the active world's
+ *      font stylesheet (no per-world accumulation).
  *
  * buildCSSText(theme, worldId) is exported as a pure helper for tests —
  * it returns the raw CSS string without touching the DOM.
@@ -34,6 +42,25 @@ function densityToSpacingMul(density?: string): string {
     case "comfortable":
     default:           return "1";
   }
+}
+
+/**
+ * Resolve an asset value from theme.yaml to a URL the browser can fetch.
+ *
+ * Absolute URLs (http(s):, data:, /-rooted) pass through unchanged.
+ * Relative paths are routed through the server's /world-assets/ endpoint
+ * scoped to the world's directory via ?scenario=<worldId>.
+ */
+function resolveAssetUrl(value: string, worldId: string): string {
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("data:") ||
+    value.startsWith("/")
+  ) {
+    return value;
+  }
+  return `/world-assets/${value}?scenario=${encodeURIComponent(worldId)}`;
 }
 
 // ─── Pure CSS builder ─────────────────────────────────────────────────────────
@@ -60,12 +87,12 @@ export function buildCSSText(theme: ParleyTheme, worldId: string): string {
     }
   }
 
-  // 3. Typography vars
+  // 3. Typography vars (no auto-quoting — themes can supply font stacks).
   const t = theme.typography;
-  lines.push(`  --font-sans: "${t.fontSans}";`);
-  lines.push(`  --font-mono: "${t.fontMono}";`);
+  lines.push(`  --font-sans: ${t.fontSans};`);
+  lines.push(`  --font-mono: ${t.fontMono};`);
   if (t.fontDisplay) {
-    lines.push(`  --font-display: "${t.fontDisplay}";`);
+    lines.push(`  --font-display: ${t.fontDisplay};`);
   }
   lines.push(`  --font-base-size: ${t.baseSize}px;`);
   if (t.lineHeight !== undefined) {
@@ -82,11 +109,11 @@ export function buildCSSText(theme: ParleyTheme, worldId: string): string {
   }
   lines.push(`  --spacing-mul: ${densityToSpacingMul(layout?.density)};`);
 
-  // 5. Asset vars
+  // 5. Asset vars — emit bare URL strings; consumers wrap in url() if needed.
   const assets = theme.assets ?? {};
   for (const [key, value] of Object.entries(assets)) {
     if (value) {
-      lines.push(`  --world-asset-${toKebab(key)}: url("${value}");`);
+      lines.push(`  --world-asset-${toKebab(key)}: ${resolveAssetUrl(value, worldId)};`);
     }
   }
 
@@ -106,15 +133,17 @@ export function buildCSSText(theme: ParleyTheme, worldId: string): string {
 
 // ─── DOM applicator ───────────────────────────────────────────────────────────
 
+const ACTIVE_FONT_LINK_ID = "parley-active-font";
+
 /**
  * Apply a parsed ParleyTheme to the live document for the given worldId.
  *
- * Idempotent: calling again with the same worldId replaces the prior style block.
+ * Idempotent: every call removes prior world-theme style blocks and reuses
+ * a single font link. Switching worlds does not accumulate DOM nodes.
  */
 export function applyTheme(theme: ParleyTheme, worldId: string): void {
-  // Remove any prior style tag for this world.
-  const prior = document.querySelector(`style[data-world-theme="${worldId}"]`);
-  prior?.remove();
+  // Remove any prior world-theme style blocks (from this or previous worlds).
+  document.querySelectorAll("style[data-world-theme]").forEach((el) => el.remove());
 
   // Build and inject the new style block.
   const cssText = buildCSSText(theme, worldId);
@@ -131,16 +160,32 @@ export function applyTheme(theme: ParleyTheme, worldId: string): void {
     document.documentElement.removeAttribute("data-layout-variant");
   }
 
-  // Load font if a fontUrl is provided.
+  // Reuse a single <link> for the active font stylesheet.
   const fontUrl = theme.typography.fontUrl;
+  let fontLink = document.getElementById(ACTIVE_FONT_LINK_ID) as HTMLLinkElement | null;
   if (fontUrl) {
-    const linkId = `parley-font-${worldId}`;
-    if (!document.getElementById(linkId)) {
-      const link = document.createElement("link");
-      link.id = linkId;
-      link.rel = "stylesheet";
-      link.href = fontUrl;
-      document.head.appendChild(link);
+    if (!fontLink) {
+      fontLink = document.createElement("link");
+      fontLink.id = ACTIVE_FONT_LINK_ID;
+      fontLink.rel = "stylesheet";
+      document.head.appendChild(fontLink);
     }
+    if (fontLink.href !== fontUrl) {
+      fontLink.href = fontUrl;
+    }
+  } else if (fontLink) {
+    fontLink.remove();
   }
+}
+
+/**
+ * Remove all theme-injected DOM state for the active world. Used when
+ * returning to L1 (world-neutral chrome).
+ */
+export function clearAppliedTheme(): void {
+  document.querySelectorAll("style[data-world-theme]").forEach((el) => el.remove());
+  document.documentElement.removeAttribute("data-world-id");
+  document.documentElement.removeAttribute("data-layout-variant");
+  const fontLink = document.getElementById(ACTIVE_FONT_LINK_ID);
+  fontLink?.remove();
 }
