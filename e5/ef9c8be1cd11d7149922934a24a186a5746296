@@ -1,0 +1,48 @@
+worlds/gentle-shore/stylesheet.css
+  7d7420fb00981e5c 8-15,17-18
+worlds/gentle-shore/shell/slots.tsx
+  7d7420fb00981e5c 6,11-12,14,45
+worlds/night-city-after-curfew/shell/utils.ts
+  7d7420fb00981e5c 1-35
+worlds/night-city-after-curfew/shell/pages/WorldHome.tsx
+  7d7420fb00981e5c 13-14,288
+worlds/night-city-after-curfew/shell/pages/StoryPlay.tsx
+  7d7420fb00981e5c 13
+worlds/night-city-after-curfew/scenarios/silver-shard-extraction/scenario.json
+  7d7420fb00981e5c 249
+src/shell/main.tsx
+  7d7420fb00981e5c 3,6-8,13,16-23,30-31,33,35,39,42,44-65,67-71,77-86,93,108-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "e5ef9c8be1cd11d7149922934a24a186a5746296",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 1701,
+      "total_deletions": 0,
+      "accepted_lines": 10381,
+      "overriden_lines": 0
+    },
+    "7d7420fb00981e5c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6b14623f-7419-4221-ad6a-aafdc795412c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 570,
+      "total_deletions": 131,
+      "accepted_lines": 570,
+      "overriden_lines": 0
+    }
+  }
+}
