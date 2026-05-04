@@ -1,0 +1,299 @@
+{
+  "schema_version": "parley-scenario/v1",
+  "id": "song-of-the-broken-crown",
+  "title": "Song of the Broken Crown",
+  "subtitle": "A bard plays a song no one has heard in years. The room goes quiet in a particular way.",
+  "themeId": "last-lantern",
+  "defaultPlayerAction": "I ask the bard where they learned that song.",
+  "openingNarration": "The Gilded Eaves is full tonight — the kind of full that means people have heard something is happening here and want to be present without being conspicuous. The wandering bard called Raelin Ashe has just played the last note of a song whose name no one in the room will say aloud. Borvyn stands behind the bar with his hands very still.",
+  "suggestedPlayerIntents": [
+    "I ask the bard where they learned that song.",
+    "Ask Borvyn why the room went quiet.",
+    "Watch the hooded figure in the corner booth."
+  ],
+  "world": {
+    "id": "verdant-aria",
+    "name": "Verdant Aria",
+    "premise": "A wandering bard's song unsettles a tavern in a kingdom that lost its crown a generation ago.",
+    "tone": "ornate fantasy with menu-game pacing"
+  },
+  "scene": {
+    "schema_version": "parley-scene/v1",
+    "id": "gilded-eaves-common-room",
+    "title": "The Gilded Eaves, Common Room",
+    "crag": "verdant-aria",
+    "climb": "song-of-the-broken-crown",
+    "visual": {
+      "status": "draft",
+      "environment_type": "prosperous inn common room interior at dusk",
+      "time_of_day": "early evening, candlelit",
+      "composition": "wide establishing shot from the back of the room toward the hearth, slightly elevated viewpoint",
+      "landmarks": [
+        "faded heraldic banner above the fireplace",
+        "arched window with violet dusk beyond",
+        "iron sconces with candles on every pillar",
+        "pewter mugs on heavy oak tables"
+      ],
+      "safe_overlay_zones": [
+        "bottom third",
+        "center lower third"
+      ],
+      "negative": [
+        "no visible player character",
+        "no readable text or signage",
+        "no UI elements"
+      ]
+    },
+    "background": {
+      "status": "missing",
+      "prompt_path": "worlds/verdant-aria/assets/backgrounds/song-of-the-broken-crown.prompt.md",
+      "asset_path": "worlds/verdant-aria/assets/backgrounds/song-of-the-broken-crown.png",
+      "aspect_ratio": "landscape"
+    }
+  },
+  "characters": [
+    {
+      "id": "raelin-ashe",
+      "name": "Raelin Ashe",
+      "role": "bard",
+      "reusable": true,
+      "lifecycle": "resumable",
+      "world": "verdant-aria",
+      "faction": "none",
+      "tone": "curious-melancholy",
+      "importance": "recurring",
+      "knowledgeBoundary": "Knows the songs, rumors, and half-truths embedded in bardic tradition. Does not know the true fate of the crown or who the hooded patron is.",
+      "tags": [
+        "location:verdant-aria-tavern",
+        "role:bard",
+        "importance:recurring",
+        "faction:none",
+        "tone:curious-melancholy"
+      ],
+      "portrait": {
+        "status": "missing",
+        "prompt_path": "worlds/verdant-aria/assets/portraits/raelin-ashe.prompt.md",
+        "asset_path": "worlds/verdant-aria/assets/portraits/raelin-ashe.png",
+        "aspect_ratio": "portrait"
+      },
+      "visual": {
+        "status": "draft",
+        "age_range": "mid-twenties to mid-thirties",
+        "build": "lean, with the posture of someone used to carrying an instrument",
+        "physical_description": "expressive eyes, slightly windburned complexion, dark hair worn practical, a small scar on one hand from a string break",
+        "wardrobe": [
+          "travel doublet in dark burgundy",
+          "one sleeve rolled to the elbow",
+          "battered lute strap at the shoulder",
+          "worn leather satchel buckle"
+        ],
+        "signature_props": [
+          "lute",
+          "small notebook at belt"
+        ],
+        "palette_hints": [
+          "deep navy background",
+          "warm candlelight from below",
+          "ivory highlights on face",
+          "gold accent on belt"
+        ],
+        "negative": [
+          "no heavy armor",
+          "no noble court finery",
+          "no modern styling"
+        ]
+      }
+    },
+    {
+      "id": "innkeeper-borvyn",
+      "name": "Innkeeper Borvyn",
+      "role": "innkeeper",
+      "reusable": true,
+      "lifecycle": "resumable",
+      "world": "verdant-aria",
+      "faction": "gilded-eaves-staff",
+      "tone": "cautious-hospitable",
+      "importance": "recurring",
+      "knowledgeBoundary": "Knows local and regional history he lived through. Does not know what happened inside the palace on the final night.",
+      "tags": [
+        "location:verdant-aria-tavern",
+        "role:innkeeper",
+        "importance:recurring",
+        "faction:gilded-eaves-staff",
+        "tone:cautious-hospitable"
+      ],
+      "portrait": {
+        "status": "missing",
+        "prompt_path": "worlds/verdant-aria/assets/portraits/innkeeper-borvyn.prompt.md",
+        "asset_path": "worlds/verdant-aria/assets/portraits/innkeeper-borvyn.png",
+        "aspect_ratio": "portrait"
+      },
+      "visual": {
+        "status": "draft",
+        "age_range": "late fifties",
+        "build": "stocky and broad-shouldered",
+        "physical_description": "close-cropped grey hair, neat beard going white at the chin, deep-set brown eyes, large calloused hands",
+        "wardrobe": [
+          "dark wool vest over linen shirt",
+          "ring of iron keys at belt",
+          "plain gold ring on right hand"
+        ],
+        "signature_props": [
+          "ring of keys",
+          "heavy pewter cup"
+        ],
+        "palette_hints": [
+          "warm candlelight from the right",
+          "deep navy shadow behind",
+          "ivory highlights on face and shirt",
+          "gold from the key ring"
+        ],
+        "negative": [
+          "no armor",
+          "no noble finery",
+          "no modern zippers"
+        ]
+      }
+    }
+  ],
+  "responses": [
+    {
+      "id": "where-did-you-learn-that-song",
+      "matchAny": [
+        "where did you learn",
+        "that song",
+        "learned that",
+        "bard"
+      ],
+      "narration": "Raelin Ashe sets a hand flat on the lute strings, damping the last of the resonance. \"From a man on the eastern road,\" they say, \"who claimed to have learned it from his grandmother, who had it from a soldier who came back from somewhere she refused to name.\" Raelin glances at Borvyn behind the bar, then back at you. \"Songs travel strangely. I did not know it still made rooms go quiet like this.\" Behind you, a chair scrapes. The hooded figure in the corner booth has shifted slightly, not toward the door, not toward Raelin — toward the space between you both.",
+      "nextChoices": [
+        "Ask what the song is called.",
+        "Ask Borvyn why he went still.",
+        "Turn to look at the hooded figure."
+      ]
+    },
+    {
+      "id": "why-went-quiet",
+      "matchAny": [
+        "borvyn",
+        "quiet",
+        "room went",
+        "went still",
+        "innkeeper"
+      ],
+      "narration": "Borvyn sets down the pewter cup he has been holding and does not pick up another. \"Songs like that one have a way of finding the wrong ears,\" he says. His voice is level, which is a kind of performance in itself. \"In my grandfather's time that particular melody was sung at the end of coronations. When there stopped being coronations, it stopped being sung. That is all.\" The ring of keys at his belt catches the candlelight when he turns to check the back room. Something in that turn says he is checking whether the rear door is unlatched.",
+      "nextChoices": [
+        "Ask Borvyn what he means by the wrong ears.",
+        "Ask Raelin whether the song has words.",
+        "Watch the hooded figure without making it obvious."
+      ]
+    },
+    {
+      "id": "the-hooded-figure",
+      "matchAny": [
+        "hooded",
+        "corner",
+        "figure",
+        "patron",
+        "turn to look"
+      ],
+      "narration": "The figure in the corner booth is wearing a hood that is practical for travel, not for concealment — or so they would have you believe. They are drinking something clear from a small cup and not looking at Raelin Ashe, which is exactly what you would do if you had paid good money to be in the same room as a bard who knew that particular song and did not want anyone to notice. When your gaze holds for a moment, the figure lifts the cup toward you — a toast, or possibly a warning. Raelin Ashe notices you noticing and strums a single chord, quiet as a question mark.",
+      "nextChoices": [
+        "Approach the hooded figure.",
+        "Ask Raelin whether they know who that person is.",
+        "Ask Borvyn if the figure is a regular guest."
+      ]
+    },
+    {
+      "id": "the-song-has-words",
+      "matchAny": [
+        "words",
+        "lyrics",
+        "what does the song say",
+        "what is it called",
+        "name of the song"
+      ],
+      "narration": "Raelin Ashe picks out three notes and then stops. \"It has several names, depending on who is singing it. The polite version is 'The Aria of the Long Season.' The honest version—\" they pause, watching Borvyn's back. \"The honest version names a place. I will not sing that version here. But if you want to know the tradition, it is a valediction: a song sung to mark the end of something that was supposed to be permanent.\" Raelin wraps both hands around the lute neck, not playing. \"I learned it because the man on the eastern road said I would need it. He did not say for what.\"",
+      "nextChoices": [
+        "Ask what place the honest version names.",
+        "Ask who the man on the eastern road was.",
+        "Ask whether Raelin plans to sing it again."
+      ]
+    },
+    {
+      "id": "approaching-the-patron",
+      "matchAny": [
+        "approach",
+        "walk toward",
+        "sit with",
+        "introduce",
+        "speak to the figure"
+      ],
+      "narration": "The hooded figure does not move until you are three steps away, then pulls back the hood with the efficiency of someone who has decided that pretending not to be recognized is more conspicuous than being recognized. The face beneath is unremarkable in a way that is itself remarkable — the kind of face that belongs to people who have spent years being difficult to remember. They say nothing. They move a hand and indicate the bench across from them. Borvyn watches all of this from behind the bar and begins, very quietly, to polish a cup that was already clean.",
+      "nextChoices": [
+        "Sit down across from the figure.",
+        "Ask who they are before committing to a seat.",
+        "Step back and rejoin Raelin instead."
+      ]
+    },
+    {
+      "id": "fallback",
+      "narration": "Raelin Ashe plays a few idle notes, filling the silence that has settled over the Gilded Eaves since the last chorus. Borvyn moves slowly behind the bar. The room has a quality of waiting — everyone choosing their next action carefully, including you.",
+      "nextChoices": [
+        "I ask the bard where they learned that song.",
+        "Ask Borvyn why the room went quiet.",
+        "Watch the hooded figure in the corner booth."
+      ]
+    }
+  ],
+  "proposedFacts": [
+    {
+      "id": "raelin-ashe-reusable",
+      "category": "canon",
+      "text": "Raelin Ashe is a wandering bard who knows the song 'The Aria of the Long Season' and can be encountered again in later scenes.",
+      "character_id": "raelin-ashe",
+      "responseIds": ["*"]
+    },
+    {
+      "id": "innkeeper-borvyn-reusable",
+      "category": "canon",
+      "text": "Innkeeper Borvyn knows the old coronation tradition tied to the song and becomes guarded when it is played.",
+      "character_id": "innkeeper-borvyn",
+      "responseIds": ["*"]
+    },
+    {
+      "id": "song-coronation-tradition",
+      "category": "rumor",
+      "text": "The song Raelin played was once sung at the end of coronations in the kingdom. It has not been performed publicly since the crown disappeared.",
+      "source": "innkeeper-borvyn",
+      "responseIds": ["why-went-quiet"]
+    },
+    {
+      "id": "song-names-a-place",
+      "category": "lead",
+      "text": "The honest version of the song names a specific place. Raelin refuses to sing it in the Gilded Eaves but knows it.",
+      "source": "raelin-ashe",
+      "responseIds": ["the-song-has-words"]
+    },
+    {
+      "id": "hooded-patron-unknown",
+      "category": "lead",
+      "text": "A hooded patron in the Gilded Eaves common room reacted to the song and signaled the player. Their identity and purpose are unknown.",
+      "responseIds": ["the-hooded-figure", "approaching-the-patron"]
+    },
+    {
+      "id": "eastern-road-teacher",
+      "category": "rumor",
+      "text": "Raelin learned the song from a man on the eastern road who said they would need it. The man's identity and intentions are unknown.",
+      "source": "raelin-ashe",
+      "responseIds": ["where-did-you-learn-that-song", "the-song-has-words"]
+    },
+    {
+      "id": "borvyn-rear-door-check",
+      "category": "belief",
+      "text": "Borvyn checked whether the rear door of the Gilded Eaves was unlatched after the song was played. He may be expecting trouble or planning an exit.",
+      "character_id": "innkeeper-borvyn",
+      "responseIds": ["why-went-quiet"]
+    }
+  ]
+}

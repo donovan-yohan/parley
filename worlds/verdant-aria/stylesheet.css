@@ -1,0 +1,142 @@
+/*
+ * Verdant Aria — ornate stylesheet
+ * Extra styling layered on top of the theme cascade.
+ * Uses only var(--color-*) tokens set by the theme, plus world-local palette vars.
+ *
+ * World palette vars (mirroring theme.yaml for CSS access):
+ *   --va-navy:    #0a0e3d
+ *   --va-purple:  #5b3387
+ *   --va-ivory:   #f5e8c8
+ *   --va-gold:    #d4af37
+ *   --va-gold-a:  rgba(212,175,55,0.22)
+ */
+
+:root {
+  --va-navy:   #0a0e3d;
+  --va-purple: #5b3387;
+  --va-ivory:  #f5e8c8;
+  --va-gold:   #d4af37;
+  --va-gold-glow: rgba(212, 175, 55, 0.22);
+  --va-gold-ring: rgba(212, 175, 55, 0.5);
+}
+
+/* ── Speaker name — gold filigree underline ─────────────────────────────────── */
+.speaker-name,
+[data-role="speaker"],
+.l3-storyplay .speaker {
+  font-family: "Cinzel", serif;
+  font-weight: 600;
+  color: var(--va-gold);
+  text-decoration: none;
+  padding-bottom: 0.1em;
+  background-image:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--va-gold) 20%,
+      rgba(212, 175, 55, 0.6) 50%,
+      var(--va-gold) 80%,
+      transparent 100%
+    );
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
+  background-position: 0 100%;
+  letter-spacing: 0.05em;
+}
+
+/* ── Storyplay backdrop — slow gradient pulse ───────────────────────────────── */
+@keyframes va-backdrop-pulse {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.l3-storyplay,
+[data-layout="storyplay"] {
+  background: linear-gradient(
+    135deg,
+    var(--va-navy)   0%,
+    var(--va-purple) 40%,
+    #1a0a4d          70%,
+    var(--va-navy)   100%
+  );
+  background-size: 300% 300%;
+  animation: va-backdrop-pulse 18s ease infinite;
+}
+
+/* ── Serif drop-cap — first paragraph of each turn ─────────────────────────── */
+.turn-narration > p:first-of-type::first-letter,
+.narration-text > p:first-of-type::first-letter,
+[data-role="narration"] > p:first-child::first-letter {
+  font-family: "Cinzel", serif;
+  font-size: 3.2em;
+  font-weight: 700;
+  color: var(--va-gold);
+  float: left;
+  line-height: 0.8;
+  margin-right: 0.06em;
+  margin-top: 0.08em;
+  text-shadow: 0 0 12px var(--va-gold-glow);
+}
+
+/* ── Dialogue frame — ornate gold-bordered panel ───────────────────────────── */
+[data-slot="dialogue-frame"],
+.dialogue-frame,
+.l3-storyplay .dialogue-panel {
+  border: 2px solid var(--va-gold);
+  border-radius: 0.4rem;
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, 0.4) inset,
+    0 4px 32px rgba(10, 14, 61, 0.6),
+    0 0 16px rgba(212, 175, 55, 0.12);
+  background: rgba(245, 232, 200, 0.95);
+  color: var(--va-navy);
+}
+
+/* ── Choice list — banner-style choices ─────────────────────────────────────── */
+[data-slot="choice-list"] li,
+.choice-list li,
+.l3-storyplay .choice-item {
+  position: relative;
+  padding: 0.5em 1.25em;
+  background: rgba(91, 51, 135, 0.12);
+  border: 1px solid var(--va-gold);
+  border-radius: 0.4rem;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-slot="choice-list"] li:hover,
+.choice-list li:hover,
+.l3-storyplay .choice-item:hover {
+  background: rgba(212, 175, 55, 0.15);
+  box-shadow: 0 0 8px var(--va-gold-glow);
+}
+
+/* ── Card — gold inset border ───────────────────────────────────────────────── */
+.card,
+[data-component="card"] {
+  border: 1px solid var(--va-gold);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.4) inset;
+}
+
+/* ── Header crest slot ──────────────────────────────────────────────────────── */
+[data-slot="header-crest"] {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+[data-slot="header-crest"] svg {
+  filter: drop-shadow(0 0 4px var(--va-gold-glow));
+}
+
+/* ── Scrolling text reveal for opening narration ────────────────────────────── */
+@keyframes va-text-reveal {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.opening-narration,
+[data-role="opening-narration"] {
+  animation: va-text-reveal 0.8s ease forwards;
+}

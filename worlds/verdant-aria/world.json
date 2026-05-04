@@ -1,0 +1,12 @@
+{
+  "schema_version": "parley-world/v1",
+  "id": "verdant-aria",
+  "name": "Verdant Aria",
+  "premise": "A wandering bard's song unsettles a tavern in a kingdom that lost its crown a generation ago.",
+  "tone": "ornate fantasy with menu-game pacing",
+  "shell": "default",
+  "layoutVariant": "noir",
+  "theme": "theme.yaml",
+  "stylesheet": "stylesheet.css",
+  "scenarios": ["song-of-the-broken-crown"]
+}
