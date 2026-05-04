@@ -1,0 +1,95 @@
+src/client/index.html
+  cea1c122171ce4b6 22-24,27
+scripts/parley-instance-materialize.mjs
+  cea1c122171ce4b6 1-227
+package.json
+  cea1c122171ce4b6 14-18,24-26,30
+examples/last-lantern/scene.yaml
+  cea1c122171ce4b6 4
+docs/specs/parley-character-contract.md
+  cea1c122171ce4b6 3-7
+src/client/styles.css
+  cea1c122171ce4b6 157-202
+docs/specs/parley-truth-authority-contract.md
+  cea1c122171ce4b6 3-8
+docs/devlogs/2026-05-04-belayer-profile-coupling-demo.md
+  cea1c122171ce4b6 1-187
+src/contracts/common.ts
+  cea1c122171ce4b6 5,9,73-84,109
+src/client/app.js
+  cea1c122171ce4b6 20,62-64,384-448
+scripts/parley-migrate-scenario.mjs
+  cea1c122171ce4b6 1-267
+scripts/smoke-belayer-doctor.mjs
+  cea1c122171ce4b6 1-239
+src/runtime/indexer/indexer.js
+  cea1c122171ce4b6 1-60
+docs/specs/parley-portrait-seam.md
+  cea1c122171ce4b6 3-9
+docs/specs/parley-world-bible-shape.md
+  cea1c122171ce4b6 3-9
+docs/plans/2026-05-04-belayer-profile-coupling.md
+  cea1c122171ce4b6 11,19-25,62,455-579
+scripts/smoke-belayer-roundtrip.mjs
+  cea1c122171ce4b6 1-272
+src/contracts/instance.ts
+  cea1c122171ce4b6 1-21
+docs/specs/strict-world-loose-authoring-split.md
+  cea1c122171ce4b6 3-8
+scripts/parley-promote-from-eval.mjs
+  cea1c122171ce4b6 1-183
+worlds/neon-afterhours/scenarios/neon-afterhours/scenario.json
+  cea1c122171ce4b6 24,148
+src/contracts/index.ts
+  cea1c122171ce4b6 9-19
+src/runtime/tools/catalog.json
+  cea1c122171ce4b6 1-116
+docs/plans/2026-05-04-belayer-profile-coupling-pr15-findings.md
+  cea1c122171ce4b6 1-45
+docs/specs/parley-character-knowledge-privacy.md
+  cea1c122171ce4b6 3-8
+src/runtime/parleyRuntime.js
+  cea1c122171ce4b6 6,17,24-53,61-67,77-80,86-97,176-207,221-222,266-267,272,425
+worlds/last-lantern/scenarios/last-lantern/scenario.json
+  cea1c122171ce4b6 24
+docs/specs/parley-canon-promotion-policy.md
+  cea1c122171ce4b6 3-8
+test/parley-runtime.test.js
+  cea1c122171ce4b6 2,81,98,103-131,624-723
+docs/specs/parley-template-instance-source-of-truth.md
+  cea1c122171ce4b6 3-5
+worlds/orchard-welcome/scenarios/orchard-welcome/scenario.json
+  cea1c122171ce4b6 24
+test/contracts/common.test.ts
+  cea1c122171ce4b6 11,20,23-28,32,35-36,39-40,224-262
+test/indexer/indexer.test.js
+  cea1c122171ce4b6 1-282
+docs/architecture/parley-framework-architecture.md
+  cea1c122171ce4b6 3-32,383,386-388,390,393-395,397
+test/contracts/instance.test.ts
+  cea1c122171ce4b6 1-128
+docs/plans/2026-05-04-belayer-profile-coupling-c0-findings.md
+  cea1c122171ce4b6 1-29
+src/server.js
+  cea1c122171ce4b6 8,24-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "4e7b80561528cd242f6c77e032c83b6b63226772",
+  "prompts": {
+    "cea1c122171ce4b6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cdd31790-7da8-4ed1-b3a8-7c585972db5a",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 13019,
+      "total_deletions": 126,
+      "accepted_lines": 12954,
+      "overriden_lines": 4
+    }
+  }
+}
