@@ -1,0 +1,40 @@
+schema_version: parley-theme/v1
+
+palette:
+  background: "#020617"
+  midground:  "#1e3a8a"
+  foreground: "#a5f3fc"
+
+typography:
+  fontSans:    "JetBrains Mono"
+  fontMono:    "JetBrains Mono"
+  fontDisplay: "Share Tech Mono"
+  fontUrl:     "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Share+Tech+Mono&display=swap"
+  baseSize:    14
+  lineHeight:  1.55
+  letterSpacing: "0.02em"
+
+layout:
+  radius:  "0"
+  density: compact
+
+layoutVariant: hud
+
+assets:
+  bg:   "assets/backgrounds/afterhours-audit-floor.prompt.md"
+  hero: "assets/backgrounds/afterhours-audit-floor.prompt.md"
+
+componentStyles:
+  card:
+    clipPath:       "polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%)"
+    border:         "1px solid rgba(165, 243, 252, 0.2)"
+    backgroundColor: "rgba(2, 6, 23, 0.85)"
+    backdropFilter: "blur(4px)"
+  dialogueFrame:
+    background:     "rgba(2, 6, 23, 0.75)"
+    borderColor:    "rgba(165, 243, 252, 0.3)"
+    backdropFilter: "blur(4px)"
+
+colorOverrides:
+  primary: "#22d3ee"
+  ring:    "rgba(34, 211, 238, 0.5)"

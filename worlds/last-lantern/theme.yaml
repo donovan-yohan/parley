@@ -1,0 +1,41 @@
+schema_version: parley-theme/v1
+
+palette:
+  background: "#1a1208"
+  midground:  "#3b2f1c"
+  foreground: "#f5efe2"
+  warmGlow:   "rgba(201, 163, 92, 0.18)"
+  noiseOpacity: 0.06
+
+typography:
+  fontSans:    "Inter"
+  fontMono:    "JetBrains Mono"
+  fontDisplay: "Spectral"
+  fontUrl:     "https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500&display=swap"
+  baseSize:    15
+  lineHeight:  1.65
+  letterSpacing: "0"
+
+layout:
+  radius:  "0.25rem"
+  density: comfortable
+
+layoutVariant: noir
+
+assets:
+  bg:   "assets/backgrounds/last-lantern-tavern.prompt.md"
+  hero: "assets/backgrounds/last-lantern-tavern.prompt.md"
+  crest: "assets/cover.png"
+
+componentStyles:
+  dialogueFrame:
+    background:      "rgba(0, 0, 0, 0.55)"
+    borderColor:     "rgba(201, 163, 92, 0.25)"
+    backdropFilter:  "blur(2px)"
+  card:
+    border:          "1px solid rgba(201, 163, 92, 0.18)"
+    backdropFilter:  "blur(2px)"
+
+colorOverrides:
+  primary: "#c9a35c"
+  ring:    "rgba(201, 163, 92, 0.5)"
