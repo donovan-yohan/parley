@@ -118,24 +118,59 @@ export async function dispatchImageWake({
     return { ok: false, status: "failed", reason: "no image path in result" };
   }
 
+  // Capture the RAW pre-normalization path so we can detect `..` traversal
+  // attempts. Both new URL().pathname and path.normalize() collapse `..`
+  // segments away, so the security check has to look at the original string.
+  const rawAssetPath = assetPath;
+
   // Normalize file:// URIs to plain filesystem paths before copying.
   if (/^file:\/\//.test(assetPath)) {
     assetPath = new URL(assetPath).pathname;
   }
 
-  // Copy asset into worldDir/assets/<kind>s/<id>.png
+  // Compute destination — always under worldDir/assets/<kind>s/<id>.png
   const destDir = path.join(
     worldDir,
     "assets",
     outputTarget.kind === "portrait" ? "portraits" : "backgrounds",
   );
-  await mkdir(destDir, { recursive: true });
   const destPath = path.join(destDir, `${outputTarget.id}.png`);
 
-  // If assetPath is an HTTP(S) URL, leave as-is and store URL in manifest; if local file, copy.
   if (/^https?:\/\//.test(assetPath)) {
-    // Defer download to a follow-up; record URL in manifest.
+    // HTTPS asset: leave URL in manifest, no local copy. mkdir below is skipped
+    // for this branch — no local file lands.
+    // NOTE: HTTP download to a local cache is a deferred follow-up.
   } else {
+    // Local file source. Defense in depth: reject any path containing `..`
+    // segments in the RAW pre-normalization string (both new URL().pathname
+    // and path.normalize collapse `..` away, so checking the normalized form
+    // misses traversal attempts). Also reject non-absolute paths. Hermes
+    // image paths are trusted in principle, but a malformed wake_result
+    // must not be able to copy /etc/passwd into a web-accessible assets dir.
+    const rawSegments = rawAssetPath.split(/[\\/]/);
+    const hasTraversal = rawSegments.includes("..");
+    if (hasTraversal || !path.isAbsolute(assetPath)) {
+      if (appendStoryEventFn) {
+        await appendStoryEventFn({
+          instanceDir,
+          storyId,
+          event: {
+            schema_version: "parley-story-event/v1",
+            event_id: `visual-asset-failed-${wakeId}`,
+            story_id: storyId,
+            type: "visual_asset_failed",
+            inputs: {
+              reason: "unsafe image path rejected",
+              target: outputTarget,
+              attempted_path: assetPath,
+            },
+            emitted_at: new Date().toISOString(),
+          },
+        });
+      }
+      return { ok: false, status: "failed", reason: "unsafe image path rejected" };
+    }
+    await mkdir(destDir, { recursive: true });
     await copyFile(assetPath, destPath);
     assetPath = destPath;
   }

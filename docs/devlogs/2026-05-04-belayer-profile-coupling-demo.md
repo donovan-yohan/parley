@@ -74,10 +74,24 @@ appears in the transcript.  Behind the scenes:
 
 ## 6. Trigger Image Generation
 
-You can dispatch a portrait wake from the browser dev console or from a Node
-script.  Example dev-console call:
+`dispatchImageWake` is a server-side function. Trigger it from a Node REPL or
+from a one-off script — NOT from the browser console (the function isn't
+exposed via the HTTP API yet; that's a follow-up).
+
+### Option A: Node REPL
+
+From the repo root:
+
+```bash
+node --import tsx
+```
+
+Then in the REPL:
 
 ```js
+const { dispatchImageWake } = await import("./src/runtime/wake/imageWake.js");
+const { ParleyImageWakeSchema, ParleyImageWakeResultSchema } = await import("./src/contracts/index.ts");
+
 await dispatchImageWake({
   instanceDir: "instances/last-lantern/last-lantern-demo",
   worldDir: "instances/last-lantern/last-lantern-demo/world",
@@ -88,9 +102,17 @@ await dispatchImageWake({
   storyId: "last-lantern",
   cragSlug: "last-lantern-demo",
   sceneId: "last-lantern-tavern",
-  currentTurnId: "turn-0001"
+  currentTurnId: "turn-0001",
+  validateImageWake: ParleyImageWakeSchema.parse,
+  validateImageWakeResult: ParleyImageWakeResultSchema.parse,
 });
 ```
+
+### Option B: One-off script
+
+Create `scripts/trigger-image-wake.mjs` with the same arguments and run via
+`node --import tsx scripts/trigger-image-wake.mjs`. This wrapper is not yet
+shipped — adding it as a CLI is a follow-up. For now use Option A.
 
 To generate a scene background instead, change `talentName` to
 `"background-artist"` and `outputTarget.kind` to `"background"`.

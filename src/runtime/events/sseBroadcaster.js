@@ -1,4 +1,9 @@
 // Singleton broadcaster module. Subscribers per storyId.
+//
+// Scope note: this is local-dev infrastructure. Parley's server binds to
+// 127.0.0.1; subscriber count is unbounded by design at this scope. If
+// Parley is later exposed beyond localhost, add a per-storyId subscriber
+// cap (e.g., 64) and reject new subscriptions over the cap with HTTP 503.
 
 const subscribersByStory = new Map(); // storyId -> Set<{ id, write }>
 

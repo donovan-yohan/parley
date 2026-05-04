@@ -290,3 +290,52 @@ describe("dispatchImageWake — portrait target", () => {
     assert.equal(content, "portrait-data");
   });
 });
+
+describe("dispatchImageWake — security: rejects unsafe local paths", () => {
+  it("rejects path with .. segments and emits visual_asset_failed", async () => {
+    const worldDir = await makeWorldDir();
+    const events = [];
+
+    const mockWakeNpc = async () => ({
+      image_markdown: "![evil](file:///tmp/../../etc/passwd)",
+    });
+
+    const result = await dispatchImageWake(
+      makeBaseArgs({
+        worldDir,
+        wakeNpcFn: mockWakeNpc,
+        appendStoryEventFn: async ({ event }) => events.push(event),
+      }),
+    );
+
+    assert.equal(result.ok, false);
+    assert.equal(result.status, "failed");
+    assert.match(result.reason, /unsafe image path rejected/);
+    assert.equal(events.length, 1);
+    assert.equal(events[0].type, "visual_asset_failed");
+    assert.match(events[0].inputs.reason, /unsafe image path rejected/);
+  });
+
+  it("rejects relative path (not absolute) and emits visual_asset_failed", async () => {
+    const worldDir = await makeWorldDir();
+    const events = [];
+
+    const mockWakeNpc = async () => ({
+      image_path: "relative/sneaky.png",
+    });
+
+    const result = await dispatchImageWake(
+      makeBaseArgs({
+        worldDir,
+        wakeNpcFn: mockWakeNpc,
+        appendStoryEventFn: async ({ event }) => events.push(event),
+      }),
+    );
+
+    assert.equal(result.ok, false);
+    assert.equal(result.status, "failed");
+    assert.match(result.reason, /unsafe image path rejected/);
+    assert.equal(events.length, 1);
+    assert.equal(events[0].type, "visual_asset_failed");
+  });
+});
