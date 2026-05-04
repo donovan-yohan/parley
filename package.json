@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test:contracts": "node --import tsx --test test/contracts/*.test.ts",
     "instance:materialize": "node scripts/parley-instance-materialize.mjs",
+    "migrate:scenario": "node scripts/parley-migrate-scenario.mjs",
     "validate:pr10": "node --import tsx scripts/validate-pr10-artifacts.mjs"
   },
   "engines": {

@@ -21,7 +21,7 @@
     "schema_version": "parley-scene/v1",
     "id": "orchard-row-morning",
     "title": "Mossgrove Orchard Row",
-    "crag": "orchard-welcome",
+    "instance": "orchard-welcome-default",
     "climb": "lantern-pear-gift",
     "visual": {
       "status": "draft",

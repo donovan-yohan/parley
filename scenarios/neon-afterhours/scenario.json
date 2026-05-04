@@ -21,7 +21,7 @@
     "schema_version": "parley-scene/v1",
     "id": "afterhours-audit-floor",
     "title": "After-Hours Audit Floor",
-    "crag": "neon-afterhours",
+    "instance": "neon-afterhours-default",
     "climb": "audit-lockout",
     "visual": {
       "status": "draft",
@@ -145,7 +145,7 @@
           "sterile white highlights"
         ],
         "negative": [
-          "no chrome robot clich\u00e9",
+          "no chrome robot cliché",
           "no monstrous android",
           "no readable text"
         ]
