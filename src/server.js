@@ -1,6 +1,5 @@
 import { createServer } from "node:http";
-import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,12 +8,9 @@ import { defaultScenarioId, listScenarioPacks, loadScenarioPack, repoRoot } from
 import { subscribe } from "./runtime/events/sseBroadcaster.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const legacyClientDir = path.join(root, "src", "client");
+// 1d removed src/client/ entirely — the Vite-built shell is now the only UI.
 const distDir = path.join(root, "dist");
-// Prefer the Vite-built shell (`npm run build` → dist/) when present so
-// `npm start` exposes the new Preact UI through the production server.
-// Fall back to the pre-1b src/client UI when no build output exists.
-const clientDir = existsSync(distDir) ? distDir : legacyClientDir;
+const clientDir = distDir;
 const port = Number(process.env.PORT ?? 4173);
 const host = process.env.HOST ?? "127.0.0.1";
 const maxJsonBodyBytes = 1_000_000;
@@ -68,14 +64,30 @@ export async function handleParleyRequest(request, response, runtimeOptions = {}
 
     {
       const instanceMatch = requestUrl.pathname.match(/^\/api\/instances\/([^/]+)\/([^/]+)$/);
-      if (request.method === "GET" && instanceMatch) {
+      if (instanceMatch) {
         const worldId = decodeURIComponent(instanceMatch[1]);
         const instanceId = decodeURIComponent(instanceMatch[2]);
-        const result = await handleGetInstance(worldId, instanceId);
-        if (!result) {
-          return sendJson(response, { error: "instance not found" }, 404);
+
+        if (request.method === "GET") {
+          const result = await handleGetInstance(worldId, instanceId);
+          if (!result) {
+            return sendJson(response, { error: "instance not found" }, 404);
+          }
+          return sendJson(response, result);
         }
-        return sendJson(response, result);
+
+        if (request.method === "PATCH") {
+          const body = await readJsonBody(request);
+          if (!body.displayName) {
+            return sendJson(response, { error: "displayName required" }, 400);
+          }
+          return sendJson(response, await handleRenameInstance(worldId, instanceId, body.displayName));
+        }
+
+        if (request.method === "DELETE") {
+          await handleDeleteInstance(worldId, instanceId);
+          return sendJson(response, { ok: true });
+        }
       }
     }
 
@@ -352,6 +364,34 @@ async function handleCreateInstance(worldId, displayName) {
     createdAt: instanceMeta.createdAt,
     lastPlayedAt: null
   };
+}
+
+async function handleRenameInstance(worldId, instanceId, displayName) {
+  const instanceDir = path.join(repoRoot, "instances", worldId, instanceId);
+  const instanceJsonPath = path.join(instanceDir, "instance.json");
+  let meta = { displayName: instanceId, createdAt: null, lastPlayedAt: null };
+  try {
+    const raw = await readFile(instanceJsonPath, "utf8");
+    meta = { ...meta, ...JSON.parse(raw) };
+  } catch {
+    // Missing instance.json — use defaults
+  }
+  meta.displayName = displayName;
+  await writeFile(instanceJsonPath, `${JSON.stringify(meta, null, 2)}\n`, "utf8");
+  return { worldId, instanceId, displayName, createdAt: meta.createdAt, lastPlayedAt: meta.lastPlayedAt };
+}
+
+async function handleDeleteInstance(worldId, instanceId) {
+  const instanceDir = path.join(repoRoot, "instances", worldId, instanceId);
+  // Safety: ensure the resolved path is within the instances directory
+  const instancesRoot = path.join(repoRoot, "instances");
+  const resolved = path.resolve(instanceDir);
+  if (!resolved.startsWith(path.resolve(instancesRoot) + path.sep)) {
+    const error = new Error("Path traversal detected");
+    error.statusCode = 400;
+    throw error;
+  }
+  await rm(resolved, { recursive: true, force: true });
 }
 
 async function handleGetStories(worldId, instanceId) {

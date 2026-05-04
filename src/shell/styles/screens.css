@@ -395,6 +395,291 @@
   font-size: 0.9rem;
 }
 
+/* ─── InlinePortrait ────────────────────────────────────────────────────────── */
+
+.inline-portrait {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.inline-portrait-avatar {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+}
+
+.inline-portrait-img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+.inline-portrait-initial {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--color-primary, var(--accent, #d7a85f));
+  color: var(--color-primary-foreground, var(--button-text, #1a1209));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.inline-portrait-dialogue {
+  flex: 1;
+}
+
+.inline-portrait-name {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-primary, var(--accent, #d7a85f));
+  margin-bottom: 0.25rem;
+}
+
+.inline-portrait-speech {
+  margin: 0;
+  font-size: 0.925rem;
+  line-height: 1.65;
+  color: var(--color-foreground, var(--text, #f3eadb));
+}
+
+/* ─── RejectionPill ─────────────────────────────────────────────────────────── */
+
+.rejection-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(207, 127, 104, 0.15);
+  border: 1px solid var(--color-destructive, var(--danger, #cf7f68));
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  color: var(--color-destructive, var(--danger, #cf7f68));
+  width: fit-content;
+}
+
+.rejection-pill-icon {
+  flex-shrink: 0;
+}
+
+/* ─── RecencyRail ───────────────────────────────────────────────────────────── */
+
+.recency-rail {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.recency-rail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.6rem 0.875rem;
+  background: var(--color-card, var(--panel, #211912));
+  border: 1px solid var(--color-border, var(--border, #5b452e));
+  border-radius: var(--radius, 0.25rem);
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-foreground, var(--text, #f3eadb));
+  transition: background 0.12s;
+  font-size: 0.875rem;
+}
+
+.recency-rail-item:hover {
+  background: var(--color-muted, var(--panel-soft, #2a2118));
+}
+
+.recency-rail-world {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-primary, var(--accent, #d7a85f));
+  flex-shrink: 0;
+}
+
+.recency-rail-story {
+  flex: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recency-rail-meta {
+  font-size: 0.7rem;
+  color: var(--color-muted-foreground, var(--muted, #bba98f));
+  flex-shrink: 0;
+}
+
+.recency-rail-empty {
+  color: var(--color-muted-foreground, var(--muted, #bba98f));
+  font-size: 0.875rem;
+  padding: 0.5rem 0;
+}
+
+/* ─── InstanceSwitcher ──────────────────────────────────────────────────────── */
+
+.instance-switcher {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.instance-switcher-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius, 0.25rem);
+  color: var(--color-foreground, var(--text, #f3eadb));
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.instance-switcher-label {
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.instance-switcher-chevron {
+  font-size: 0.55em;
+}
+
+.instance-switcher-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 200;
+  min-width: 220px;
+  background: var(--color-card, var(--panel, #211912));
+  border: 1px solid var(--color-border, var(--border, #5b452e));
+  border-radius: var(--radius, 0.5rem);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.instance-switcher-row {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border, var(--border, #5b452e));
+  gap: 0.5rem;
+}
+
+.instance-switcher-row:last-child {
+  border-bottom: none;
+}
+
+.instance-switcher-row.current {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.instance-switcher-name {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--color-foreground, var(--text, #f3eadb));
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.instance-switcher-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.instance-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.15rem 0.25rem;
+  opacity: 0.7;
+}
+
+.instance-action-btn:hover {
+  opacity: 1;
+}
+
+.instance-rename-form {
+  display: flex;
+  gap: 0.3rem;
+  width: 100%;
+  align-items: center;
+}
+
+.instance-rename-input {
+  flex: 1;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.4rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border, var(--border, #5b452e));
+  border-radius: var(--radius, 0.25rem);
+  color: var(--color-foreground, var(--text, #f3eadb));
+  min-width: 0;
+}
+
+.instance-rename-save,
+.instance-rename-cancel {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius, 0.25rem);
+  border: 1px solid var(--color-border, var(--border, #5b452e));
+  cursor: pointer;
+  white-space: nowrap;
+  background: transparent;
+  color: var(--color-foreground, var(--text, #f3eadb));
+}
+
+.instance-switcher-new {
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--color-border, var(--border, #5b452e));
+}
+
+.instance-new-btn {
+  font-size: 0.8rem;
+  color: var(--color-primary, var(--accent, #d7a85f));
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.instance-new-btn:hover {
+  text-decoration: underline;
+}
+
+.instance-switcher-new-solo {
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground, var(--muted, #bba98f));
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0;
+}
+
 /* ─── L3 — Story Play ───────────────────────────────────────────────────────── */
 
 .l3-storyplay {
