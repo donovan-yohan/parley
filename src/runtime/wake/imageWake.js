@@ -13,6 +13,15 @@ import { wakeNpc } from "./wakeNpc.js";
 
 const MARKDOWN_IMAGE_RE = /!\[[^\]]*\]\(([^)]+)\)/;
 
+// Per-worldDir manifest lock: serializes concurrent read-modify-write of manifest.json.
+const manifestLocks = new Map();
+async function withManifestLock(worldDir, fn) {
+  const prev = manifestLocks.get(worldDir) ?? Promise.resolve();
+  const next = prev.then(fn, fn);
+  manifestLocks.set(worldDir, next.catch(() => {}));
+  return next;
+}
+
 /**
  * Dispatch an image-generation wake to an artist talent.
  *
@@ -77,7 +86,7 @@ export async function dispatchImageWake({
     ...(validateImageWakeResult ? { validateWakeResult: validateImageWakeResult } : {}),
   });
 
-  // wake handler may return { status: "wake_deferred", ... }
+  // Transport-level deferred
   if (result?.status === "wake_deferred") {
     if (appendStoryEventFn) {
       await appendStoryEventFn({
@@ -94,6 +103,43 @@ export async function dispatchImageWake({
       });
     }
     return { ok: false, status: "deferred", reason: result.reason ?? "unknown" };
+  }
+
+  // Artist-level deferred / aborted (parley-image-wake-result/v1 status field)
+  if (result?.status === "deferred") {
+    if (appendStoryEventFn) {
+      await appendStoryEventFn({
+        instanceDir,
+        storyId,
+        event: {
+          schema_version: "parley-story-event/v1",
+          event_id: `visual-asset-deferred-${wakeId}`,
+          story_id: storyId,
+          type: "visual_asset_deferred",
+          inputs: { reason: result.reason ?? "unknown", target: outputTarget },
+          emitted_at: new Date().toISOString(),
+        },
+      });
+    }
+    return { ok: false, status: "deferred", reason: result.reason ?? "unknown" };
+  }
+
+  if (result?.status === "aborted") {
+    if (appendStoryEventFn) {
+      await appendStoryEventFn({
+        instanceDir,
+        storyId,
+        event: {
+          schema_version: "parley-story-event/v1",
+          event_id: `visual-asset-aborted-${wakeId}`,
+          story_id: storyId,
+          type: "visual_asset_aborted",
+          inputs: { reason: result.reason ?? "unknown", target: outputTarget },
+          emitted_at: new Date().toISOString(),
+        },
+      });
+    }
+    return { ok: false, status: "aborted", reason: result.reason ?? "unknown" };
   }
 
   // Extract image path/url from Markdown
@@ -129,17 +175,21 @@ export async function dispatchImageWake({
   }
 
   // Compute destination — always under worldDir/assets/<kind>s/<id>.png
-  const destDir = path.join(
-    worldDir,
-    "assets",
-    outputTarget.kind === "portrait" ? "portraits" : "backgrounds",
-  );
+  const kindFolder = outputTarget.kind === "portrait" ? "portraits" : "backgrounds";
+  const destDir = path.join(worldDir, "assets", kindFolder);
   const destPath = path.join(destDir, `${outputTarget.id}.png`);
+
+  // Web-relative path served by the Parley server under /world-assets/
+  // (relative to worldDir, so browsers can load it via GET /world-assets/...)
+  const webPath = `/world-assets/assets/${kindFolder}/${outputTarget.id}.png`;
+
+  let finalAssetPath;
 
   if (/^https?:\/\//.test(assetPath)) {
     // HTTPS asset: leave URL in manifest, no local copy. mkdir below is skipped
     // for this branch — no local file lands.
     // NOTE: HTTP download to a local cache is a deferred follow-up.
+    finalAssetPath = assetPath;
   } else {
     // Local file source. Defense in depth: reject any path containing `..`
     // segments in the RAW pre-normalization string (both new URL().pathname
@@ -170,26 +220,115 @@ export async function dispatchImageWake({
       }
       return { ok: false, status: "failed", reason: "unsafe image path rejected" };
     }
-    await mkdir(destDir, { recursive: true });
-    await copyFile(assetPath, destPath);
-    assetPath = destPath;
+
+    // Wrap copy + manifest update in try/catch; emit visual_asset_failed on I/O error.
+    try {
+      await mkdir(destDir, { recursive: true });
+      await copyFile(assetPath, destPath);
+    } catch (err) {
+      if (appendStoryEventFn) {
+        await appendStoryEventFn({
+          instanceDir,
+          storyId,
+          event: {
+            schema_version: "parley-story-event/v1",
+            event_id: `visual-asset-failed-${wakeId}`,
+            story_id: storyId,
+            type: "visual_asset_failed",
+            inputs: { reason: err.message ?? "file copy failed", target: outputTarget },
+            emitted_at: new Date().toISOString(),
+          },
+        });
+      }
+      return { ok: false, status: "failed", reason: err.message ?? "file copy failed" };
+    }
+
+    finalAssetPath = destPath;
   }
 
-  // Update assets manifest
-  const manifestPath = path.join(worldDir, "assets", "manifest.json");
-  const manifestRaw = await readFile(manifestPath, "utf8").catch(() => "{}");
-  const manifest = JSON.parse(manifestRaw);
-  const key = outputTarget.kind === "portrait" ? "portraits" : "backgrounds";
-  manifest[key] = manifest[key] ?? {};
-  manifest[key][outputTarget.id] = {
-    status: "ready",
-    path: assetPath,
-    generated_at: new Date().toISOString(),
-    wake_id: wakeId,
-  };
-  await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
+  // Update assets manifest — serialized per worldDir to avoid read-modify-write race.
+  try {
+    await withManifestLock(worldDir, async () => {
+      const manifestPath = path.join(worldDir, "assets", "manifest.json");
+      let manifest;
+      try {
+        const manifestRaw = await readFile(manifestPath, "utf8");
+        manifest = JSON.parse(manifestRaw);
+      } catch {
+        manifest = null;
+      }
 
-  // Emit visual_asset_ready event
+      // Respect parley-asset-manifest/v1 shape (arrays, not maps).
+      if (manifest?.schema_version === "parley-asset-manifest/v1") {
+        const key = outputTarget.kind === "portrait" ? "portraits" : "backgrounds";
+        if (!Array.isArray(manifest[key])) manifest[key] = [];
+        const entry = {
+          id: outputTarget.id,
+          path: finalAssetPath,
+          web_path: webPath,
+          status: "ready",
+          generated_at: new Date().toISOString(),
+          wake_id: wakeId,
+        };
+        const existingIdx = manifest[key].findIndex((e) => e.id === outputTarget.id);
+        if (existingIdx >= 0) {
+          manifest[key][existingIdx] = entry;
+        } else {
+          manifest[key].push(entry);
+        }
+      } else {
+        // No existing manifest or unknown schema: create fresh parley-asset-manifest/v1.
+        // If there was an existing manifest with unrelated keys, preserve them.
+        const existing = manifest ?? {};
+        const key = outputTarget.kind === "portrait" ? "portraits" : "backgrounds";
+        const entry = {
+          id: outputTarget.id,
+          path: finalAssetPath,
+          web_path: webPath,
+          status: "ready",
+          generated_at: new Date().toISOString(),
+          wake_id: wakeId,
+        };
+        // Preserve unrelated top-level keys; upgrade to v1 shape.
+        manifest = {
+          ...existing,
+          schema_version: "parley-asset-manifest/v1",
+          portraits: existing.portraits ?? [],
+          backgrounds: existing.backgrounds ?? [],
+        };
+        // Migrate old map-format keys if present (backward compat for existing test fixtures).
+        if (!Array.isArray(manifest.portraits)) manifest.portraits = [];
+        if (!Array.isArray(manifest.backgrounds)) manifest.backgrounds = [];
+        const arr = manifest[key];
+        const existingIdx = arr.findIndex((e) => e.id === outputTarget.id);
+        if (existingIdx >= 0) {
+          arr[existingIdx] = entry;
+        } else {
+          arr.push(entry);
+        }
+      }
+
+      await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
+    });
+  } catch (err) {
+    if (appendStoryEventFn) {
+      await appendStoryEventFn({
+        instanceDir,
+        storyId,
+        event: {
+          schema_version: "parley-story-event/v1",
+          event_id: `visual-asset-failed-${wakeId}`,
+          story_id: storyId,
+          type: "visual_asset_failed",
+          inputs: { reason: err.message ?? "manifest write failed", target: outputTarget },
+          emitted_at: new Date().toISOString(),
+        },
+      });
+    }
+    return { ok: false, status: "failed", reason: err.message ?? "manifest write failed" };
+  }
+
+  // Emit visual_asset_ready event with both filesystem path and web-relative path.
   if (appendStoryEventFn) {
     await appendStoryEventFn({
       instanceDir,
@@ -199,11 +338,11 @@ export async function dispatchImageWake({
         event_id: `visual-asset-ready-${wakeId}`,
         story_id: storyId,
         type: "visual_asset_ready",
-        inputs: { target: outputTarget, path: assetPath },
+        inputs: { target: outputTarget, path: finalAssetPath, web_path: webPath },
         emitted_at: new Date().toISOString(),
       },
     });
   }
 
-  return { ok: true, status: "completed", assetPath };
+  return { ok: true, status: "completed", assetPath: finalAssetPath };
 }

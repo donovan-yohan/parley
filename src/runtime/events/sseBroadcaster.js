@@ -21,9 +21,12 @@ export function publish({ storyId, event }) {
   const subs = subscribersByStory.get(storyId);
   if (!subs) return;
   const payload = `data: ${JSON.stringify(event)}\n\n`;
+  const dead = [];
   for (const sub of subs) {
-    try { sub.write(payload); } catch { /* drop dead subscribers silently */ }
+    try { sub.write(payload); } catch { dead.push(sub); }
   }
+  for (const sub of dead) subs.delete(sub);
+  if (subs.size === 0) subscribersByStory.delete(storyId);
 }
 
 export function _resetForTests() {

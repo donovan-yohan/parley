@@ -17,6 +17,7 @@ let currentState = null;
 let latestResult = null;
 let localTranscript = [];
 let turnRunning = false;
+let currentStoryId = null;
 
 init();
 
@@ -381,9 +382,15 @@ function humanTag(tag) {
 }
 
 function startEventStream(storyId) {
+  // Reuse existing connection if storyId hasn't changed.
+  if (window._parleyEventSource && currentStoryId === storyId) {
+    return;
+  }
   if (window._parleyEventSource) {
     window._parleyEventSource.close();
+    window._parleyEventSource = null;
   }
+  currentStoryId = storyId;
   const es = new EventSource(`/events/${encodeURIComponent(storyId)}`);
   es.onmessage = (e) => {
     try {
@@ -408,7 +415,8 @@ function handleStoryEvent(event) {
     if (kind === "background") {
       const bg = document.getElementById("scene-background");
       if (bg) {
-        bg.src = path;
+        bg.src = event.inputs.web_path ?? path;
+        bg.removeAttribute("hidden");
         bg.classList.add("asset-fade-in");
       }
     } else if (kind === "portrait") {
@@ -422,7 +430,7 @@ function handleStoryEvent(event) {
         portrait.className = "portrait-thumbnail";
         strip.appendChild(portrait);
       }
-      portrait.src = path;
+      portrait.src = event.inputs.web_path ?? path;
       portrait.classList.add("asset-fade-in");
     }
     return;

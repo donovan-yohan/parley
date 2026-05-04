@@ -5,7 +5,7 @@ export async function promoteFromEval({
   evalArtifactPath,
   worldDir,                      // e.g. worlds/<world-id>/
   acceptCandidate,               // (candidate) => Promise<boolean> — DM accepts/rejects
-  belayerPromote,                // injectable: (evalPath) => Promise<{ ok: boolean, stderr?: string }>
+  belayerPromote,                // injectable: ({ evalPath, accepted }) => Promise<{ ok: boolean, stderr?: string }>
 }) {
   const raw = await readFile(evalArtifactPath, "utf8");
   const eval_ = JSON.parse(raw);

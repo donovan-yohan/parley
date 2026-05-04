@@ -135,3 +135,31 @@ test("publish to storyId with no subscribers is a no-op", () => {
   assert.doesNotThrow(() => publish({ storyId: "nonexistent-story", event }));
   _resetForTests();
 });
+
+test("dead subscriber (write throws) is removed from Set after first publish", () => {
+  _resetForTests();
+  let callCount = 0;
+  subscribe({
+    storyId: "story-dead",
+    write: () => {
+      callCount++;
+      throw new Error("connection closed");
+    },
+  });
+
+  assert.equal(_subscriberCount("story-dead"), 1);
+
+  const event1 = { type: "turn_start", emitted_at: "2026-05-04T00:00:00.000Z" };
+  assert.doesNotThrow(() => publish({ storyId: "story-dead", event: event1 }));
+
+  // After first publish the dead subscriber must have been removed.
+  assert.equal(_subscriberCount("story-dead"), 0, "dead subscriber should be removed after first publish");
+
+  const event2 = { type: "turn_end", emitted_at: "2026-05-04T00:00:01.000Z" };
+  assert.doesNotThrow(() => publish({ storyId: "story-dead", event: event2 }));
+
+  // write was only called once (on the first publish, not the second)
+  assert.equal(callCount, 1, "dead subscriber write should not be called again after removal");
+
+  _resetForTests();
+});

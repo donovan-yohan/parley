@@ -105,19 +105,24 @@ describe("dispatchImageWake — happy path: local file asset", () => {
     const copiedContent = await readFile(expectedDest, "utf8");
     assert.equal(copiedContent, "fake-png-data");
 
-    // Manifest updated
+    // Manifest updated — parley-asset-manifest/v1 shape (arrays)
     const manifestPath = path.join(worldDir, "assets", "manifest.json");
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-    assert.ok(manifest.backgrounds, "backgrounds key should exist");
-    assert.equal(manifest.backgrounds["mountain-valley"].status, "ready");
-    assert.equal(manifest.backgrounds["mountain-valley"].path, expectedDest);
-    assert.ok(manifest.backgrounds["mountain-valley"].wake_id, "wake_id should be recorded");
+    assert.equal(manifest.schema_version, "parley-asset-manifest/v1");
+    assert.ok(Array.isArray(manifest.backgrounds), "backgrounds should be an array");
+    const bgEntry = manifest.backgrounds.find((e) => e.id === "mountain-valley");
+    assert.ok(bgEntry, "entry for mountain-valley should exist");
+    assert.equal(bgEntry.status, "ready");
+    assert.equal(bgEntry.path, expectedDest);
+    assert.ok(bgEntry.wake_id, "wake_id should be recorded");
+    assert.ok(bgEntry.web_path, "web_path should be set");
 
-    // visual_asset_ready event emitted
+    // visual_asset_ready event emitted with both path and web_path
     assert.equal(eventsEmitted.length, 1);
     assert.equal(eventsEmitted[0].type, "visual_asset_ready");
     assert.deepEqual(eventsEmitted[0].inputs.target, { kind: "background", id: "mountain-valley" });
     assert.equal(eventsEmitted[0].inputs.path, expectedDest);
+    assert.ok(eventsEmitted[0].inputs.web_path, "web_path should be in event inputs");
   });
 });
 
@@ -213,11 +218,15 @@ describe("dispatchImageWake — URL asset path", () => {
     assert.equal(result.status, "completed");
     assert.equal(result.assetPath, imageUrl);
 
-    // Manifest records the URL
+    // Manifest records the URL — parley-asset-manifest/v1 shape
     const manifestPath = path.join(worldDir, "assets", "manifest.json");
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-    assert.equal(manifest.backgrounds["generated-bg"].path, imageUrl);
-    assert.equal(manifest.backgrounds["generated-bg"].status, "ready");
+    assert.equal(manifest.schema_version, "parley-asset-manifest/v1");
+    assert.ok(Array.isArray(manifest.backgrounds), "backgrounds should be an array");
+    const bgEntry = manifest.backgrounds.find((e) => e.id === "generated-bg");
+    assert.ok(bgEntry, "entry for generated-bg should exist");
+    assert.equal(bgEntry.path, imageUrl);
+    assert.equal(bgEntry.status, "ready");
 
     // No file was created in backgrounds dir (URL, not local)
     const bgDir = path.join(worldDir, "assets", "backgrounds");
@@ -255,11 +264,14 @@ describe("dispatchImageWake — manifest absent: starts fresh", () => {
     assert.equal(result.ok, true);
     assert.equal(result.status, "completed");
 
-    // Manifest was created from scratch
+    // Manifest was created from scratch — parley-asset-manifest/v1 shape
     const manifestPath = path.join(worldDir, "assets", "manifest.json");
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-    assert.ok(manifest.portraits, "portraits key should exist");
-    assert.equal(manifest.portraits["hero-character"].status, "ready");
+    assert.equal(manifest.schema_version, "parley-asset-manifest/v1");
+    assert.ok(Array.isArray(manifest.portraits), "portraits should be an array");
+    const portraitEntry = manifest.portraits.find((e) => e.id === "hero-character");
+    assert.ok(portraitEntry, "entry for hero-character should exist");
+    assert.equal(portraitEntry.status, "ready");
   });
 });
 
@@ -337,5 +349,121 @@ describe("dispatchImageWake — security: rejects unsafe local paths", () => {
     assert.match(result.reason, /unsafe image path rejected/);
     assert.equal(events.length, 1);
     assert.equal(events[0].type, "visual_asset_failed");
+  });
+});
+
+describe("dispatchImageWake — artist-level deferred result", () => {
+  it("returns ok=false status=deferred and emits visual_asset_deferred", async () => {
+    const worldDir = await makeWorldDir();
+    const events = [];
+
+    const mockWakeNpc = async () => ({
+      status: "deferred",
+      reason: "quota exceeded",
+    });
+
+    const result = await dispatchImageWake(
+      makeBaseArgs({
+        worldDir,
+        wakeNpcFn: mockWakeNpc,
+        appendStoryEventFn: async ({ event }) => events.push(event),
+      }),
+    );
+
+    assert.equal(result.ok, false);
+    assert.equal(result.status, "deferred");
+    assert.equal(result.reason, "quota exceeded");
+    assert.equal(events.length, 1);
+    assert.equal(events[0].type, "visual_asset_deferred");
+    assert.equal(events[0].inputs.reason, "quota exceeded");
+  });
+});
+
+describe("dispatchImageWake — artist-level aborted result", () => {
+  it("returns ok=false status=aborted and emits visual_asset_aborted", async () => {
+    const worldDir = await makeWorldDir();
+    const events = [];
+
+    const mockWakeNpc = async () => ({
+      status: "aborted",
+      reason: "content policy",
+    });
+
+    const result = await dispatchImageWake(
+      makeBaseArgs({
+        worldDir,
+        wakeNpcFn: mockWakeNpc,
+        appendStoryEventFn: async ({ event }) => events.push(event),
+      }),
+    );
+
+    assert.equal(result.ok, false);
+    assert.equal(result.status, "aborted");
+    assert.equal(result.reason, "content policy");
+    assert.equal(events.length, 1);
+    assert.equal(events[0].type, "visual_asset_aborted");
+    assert.equal(events[0].inputs.reason, "content policy");
+  });
+});
+
+describe("dispatchImageWake — I/O error: emits visual_asset_failed", () => {
+  it("emits visual_asset_failed and returns ok=false when copyFile source does not exist", async () => {
+    const worldDir = await makeWorldDir();
+    const events = [];
+
+    // Point to a file that doesn't exist — copyFile will throw ENOENT.
+    const nonexistentSrc = path.join(tmpdir(), `parley-nonexistent-${Date.now()}.png`);
+    const mockWakeNpc = async () => ({
+      image_path: nonexistentSrc,
+    });
+
+    const result = await dispatchImageWake(
+      makeBaseArgs({
+        worldDir,
+        wakeNpcFn: mockWakeNpc,
+        appendStoryEventFn: async ({ event }) => events.push(event),
+      }),
+    );
+
+    assert.equal(result.ok, false);
+    assert.equal(result.status, "failed");
+    assert.ok(result.reason, "reason should be set");
+    assert.equal(events.length, 1);
+    assert.equal(events[0].type, "visual_asset_failed");
+  });
+});
+
+describe("dispatchImageWake — web_path in event and manifest", () => {
+  it("includes web_path in visual_asset_ready event and manifest entry", async () => {
+    const srcFile = path.join(tmpdir(), `parley-webpath-src-${Date.now()}.png`);
+    await writeFile(srcFile, "fake-png-data", "utf8");
+
+    const worldDir = await makeWorldDir();
+    const events = [];
+
+    const mockWakeNpc = async () => ({
+      image_markdown: `![Scene](file://${srcFile})`,
+    });
+
+    await dispatchImageWake(
+      makeBaseArgs({
+        worldDir,
+        outputTarget: { kind: "portrait", id: "tavern-keeper" },
+        wakeNpcFn: mockWakeNpc,
+        appendStoryEventFn: async ({ event }) => events.push(event),
+      }),
+    );
+
+    // Event contains web_path
+    assert.equal(events.length, 1);
+    assert.equal(events[0].type, "visual_asset_ready");
+    assert.equal(events[0].inputs.web_path, "/world-assets/assets/portraits/tavern-keeper.png");
+
+    // Manifest entry contains web_path
+    const manifestPath = path.join(worldDir, "assets", "manifest.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    const entry = manifest.portraits.find((e) => e.id === "tavern-keeper");
+    assert.ok(entry, "entry should exist");
+    assert.equal(entry.web_path, "/world-assets/assets/portraits/tavern-keeper.png");
   });
 });

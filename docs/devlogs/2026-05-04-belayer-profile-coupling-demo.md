@@ -125,8 +125,8 @@ To generate a scene background instead, change `talentName` to
    `blyr-last-lantern-demo-portrait-artist` Hermes profile.
 2. The `image_generate` tool fires against your configured provider.
 3. The resulting image URL/path is written to
-   `worlds/last-lantern/assets/portraits/mara-underbough.png`
-   (or an instance-scoped variant once path routing lands).
+   `instances/last-lantern/last-lantern-demo/world/assets/portraits/mara-underbough.png`
+   (under the instance's world dir, matching the `worldDir` passed to `dispatchImageWake`).
 4. A `visual_asset_ready` SSE event is broadcast to all connected clients.
 5. The browser `handleStoryEvent` handler detects `event.type ===
    "visual_asset_ready"`, reads `event.inputs.target` (`kind: "portrait"`,
