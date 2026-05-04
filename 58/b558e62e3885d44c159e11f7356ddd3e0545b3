@@ -1,0 +1,25 @@
+test/instances/materializeInstance.test.js
+  6fd9bdc7c61f8cc6 1-344
+src/runtime/instances/materializeInstance.js
+  6fd9bdc7c61f8cc6 1-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "58b558e62e3885d44c159e11f7356ddd3e0545b3",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 536,
+      "total_deletions": 0,
+      "accepted_lines": 1405,
+      "overriden_lines": 0
+    }
+  }
+}
