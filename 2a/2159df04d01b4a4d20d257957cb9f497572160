@@ -1,0 +1,43 @@
+docs/specs/parley-character-knowledge-privacy.md
+  6fd9bdc7c61f8cc6 3-8
+docs/specs/parley-template-instance-source-of-truth.md
+  6fd9bdc7c61f8cc6 3-5
+AGENTS.md
+  6fd9bdc7c61f8cc6 25-31,43,45-47,58-59,84-86
+docs/specs/parley-canon-promotion-policy.md
+  6fd9bdc7c61f8cc6 3-8
+docs/specs/parley-world-bible-shape.md
+  6fd9bdc7c61f8cc6 3-9
+docs/specs/parley-character-contract.md
+  6fd9bdc7c61f8cc6 3-7
+README.md
+  6fd9bdc7c61f8cc6 4,6-33,45-48,60,62-64,71-78,87,89-92,94-95,97,99-102,105,107,113-130,236-260,269-280,306-341,346-347,369-392,398,404-410,417,423-425
+docs/specs/parley-truth-authority-contract.md
+  6fd9bdc7c61f8cc6 3-8
+docs/specs/parley-portrait-seam.md
+  6fd9bdc7c61f8cc6 3-9
+docs/architecture/parley-framework-architecture.md
+  6fd9bdc7c61f8cc6 3-32,383,386-388,390,393-395,397
+docs/specs/strict-world-loose-authoring-split.md
+  6fd9bdc7c61f8cc6 3-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "2a2159df04d01b4a4d20d257957cb9f497572160",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 289,
+      "total_deletions": 61,
+      "accepted_lines": 8573,
+      "overriden_lines": 23
+    }
+  }
+}
