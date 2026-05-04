@@ -1,0 +1,52 @@
+package.json
+  6fd9bdc7c61f8cc6 11-17,19,23-28
+src/runtime/events/storyEventLog.js
+  6fd9bdc7c61f8cc6 1-11,15-25
+scripts/parley-promote-from-eval.mjs
+  6fd9bdc7c61f8cc6 1-183
+test/indexer/indexer.test.js
+  6fd9bdc7c61f8cc6 1-282
+src/runtime/indexer/indexer.js
+  6fd9bdc7c61f8cc6 1-60
+test/indexer/promoteFromEval.test.js
+  6fd9bdc7c61f8cc6 1-198
+src/client/app.js
+  466842055215d17d 261-264,381-410
+src/contracts/index.ts
+  6fd9bdc7c61f8cc6 1-17
+src/runtime/indexer/promoteFromEval.js
+  6fd9bdc7c61f8cc6 1-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "5572d4e8c5ddea8e3ccc1fd17c256b74acbff68b",
+  "prompts": {
+    "466842055215d17d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "886aad34-5bae-497d-99f1-17517b2b21b7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 34,
+      "overriden_lines": 0
+    },
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 90,
+      "total_deletions": 1,
+      "accepted_lines": 824,
+      "overriden_lines": 0
+    }
+  }
+}
