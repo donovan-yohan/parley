@@ -1,5 +1,11 @@
 # Parley Story Log / Canon Promotion Policy
 
+> **STATUS:** The DM acceptance workflow described here shipped in PR #25. The
+> acceptance script is now exposed as `npm run promote -- --eval <path> --world
+> <id>`. Artifact paths (`story/state/`, `world/canon/`, etc.) are instance-
+> scoped under `instances/<world>/<instance>/`. See
+> `docs/plans/2026-05-04-belayer-profile-coupling.md` for the as-shipped scope.
+
 ## Purpose
 
 Parley needs a hard line between "what happened in the story log" and "what is now

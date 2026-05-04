@@ -1,5 +1,11 @@
 # Parley Character Knowledge and Non-Omniscience Contract
 
+> **STATUS:** The wake transport and per-wake tool narrowing (actor-vs-GM
+> authority) described in the "First Slice Recommendation" shipped in PR #23
+> (2026-05-04). Context builder contracts and `may_read` / `must_not_read`
+> selectors are part of the as-shipped instance layer. See
+> `docs/plans/2026-05-04-belayer-profile-coupling.md` for the as-shipped scope.
+
 ## Purpose
 
 Characters need enough context to feel consistent, but not enough context to become

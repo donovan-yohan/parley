@@ -1,5 +1,10 @@
 # Parley Character Contract — `parley-character/v1`
 
+> **STATUS:** Extended by PR #22 (instance materialization writes
+> `.belayer-talent.yaml` for each named NPC) and PR #25 (art talents
+> `background-artist` / `portrait-artist` are also materialized per crag). See
+> `docs/plans/2026-05-04-belayer-profile-coupling.md` for the as-shipped scope.
+
 ## Purpose
 
 Defines how Parley represents a character on top of Belayer generated talent.

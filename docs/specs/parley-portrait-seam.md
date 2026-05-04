@@ -1,5 +1,12 @@
 # Parley Portrait Seam — Hermes Image-Gen Integration
 
+> **STATUS:** The image-gen seam described here is implemented in PR #25 via
+> the `portrait-artist` and `background-artist` Belayer talents, which call
+> Hermes `image_generate` directly. The "MVP Stub Behavior" section at the
+> bottom is superseded — image generation is live when a Hermes image provider
+> is configured. See `docs/plans/2026-05-04-belayer-profile-coupling.md` for
+> the as-shipped scope.
+
 ## Purpose
 
 Defines how a Parley character gets a portrait. MVP does not call image-gen.
