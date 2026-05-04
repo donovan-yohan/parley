@@ -17,14 +17,13 @@
 
 ## PR Roadmap
 
-| PR | Scope | Depends on | Parallelism | GitHub issue |
-|---|---|---|---|---|
-| **PR #11** | Zod contract layer scaffold | none | YES (independent schema files) | #13 |
-| **PR-A+B** | Instance materialization + `.belayer-talent.yaml` writes | PR #11 | YES (per-character migrations) | #15, #16 |
-| **PR-C0** | Belayer process integration spike | PR-A+B | NO (sequential probe) | #17 |
-| **PR-C** | Wake envelope + transport | PR-C0 | YES (independent envelope schemas) | #17 |
-| **PR-D** | Tool bundle catalog + per-wake narrowing | PR-C | YES (independent tool definitions) | #18 |
-| **PR-E+F** | Story-instance events + pulse + indexer boundary | PR-A+B (events location); PR-C (npc.dormant events) | YES (events + pulse + indexer are independent) | #19, #20 |
+| PR | Branch | Base | Scope | Depends on | Parallelism | GitHub issue |
+|---|---|---|---|---|---|---|
+| **#11 (PR #21)** | `feat/zod-contracts-pr11` | `main` | Zod contract layer scaffold | none | YES (independent schema files) | #13 |
+| **#12 (PR-A+B)** | `feat/instances-materialization` | `feat/zod-contracts-pr11` | Instance materialization + `.belayer-talent.yaml` writes | #11 | YES (per-character migrations) | #15, #16 |
+| **#13 (PR-C0+C merged)** | `feat/belayer-wake-transport` | `feat/instances-materialization` | Belayer process integration spike + wake envelope + transport | #12 | YES (envelope schemas + helpers) | #17 |
+| **#14 (PR-D + PR-E partial)** | `feat/tool-bundles-events` | `feat/belayer-wake-transport` | Tool catalog + per-wake narrowing + per-story events.jsonl + pulse | #13 | YES (tool defs + event modules) | #18, #19 |
+| **#15 (PR-F + Live UI)** | `feat/live-ui-wiring` | `feat/tool-bundles-events` | Live UI wiring: SSE event stream, indexer query surfaces, real portrait/background gen via `background-artist` + `portrait-artist` Belayer talents using Hermes Nous tool gateway image skills | #14 | YES (UI + image talents are independent within PR) | #19 (partial), #20 |
 
 ---
 
@@ -454,7 +453,131 @@ Single commit at end (not per-world): `feat(worlds): declare default_instance fo
 
 ---
 
-# PR-E+F — Story-instance events + pulse + indexer boundary
+# PR #14 — Tool bundles + per-story events + pulse (PR-D + PR-E partial)
+
+**Scope split note:** PR #14 covers the runtime substrate (tool catalog + per-wake narrowing + events.jsonl + pulse). PR #15 covers the indexer + live UI + image-generation talents. Splitting this way means PR #14 lands the data plane and PR #15 lands the user-visible payoff.
+
+(PR #14 task detail = PR-D tasks below + EF.1, EF.2, EF.4, EF.5, EF.6, EF.7 from the original PR-E+F section. PR #15 task detail = EF.3, EF.8, EF.9 + new live-UI-and-image-gen tasks below.)
+
+# PR #15 — Live UI wiring + image-generation talents (PR-F + payoff)
+
+**Scope:** This is the payoff PR. Wires the Parley web UI to the actual Belayer + Hermes runtime so reactions appear live and NPC portraits + scene backgrounds get generated for real.
+
+**Key design call (per user 2026-05-04):** image generation is NOT a custom Parley API call. It's modeled as additional Belayer talents (`background-artist`, `portrait-artist`) materialized into each crag, with `authority.tools` permitting whatever Hermes Nous-tool-gateway image-generation skills are installed. Wakes target these talents the same way story NPCs are waked; their output is a registered Belayer artifact (PNG file path + manifest entry); Parley reads the artifact and the UI displays it.
+
+This keeps the Belayer/Parley boundary intact: Belayer owns the talent runtime + image-tool gateway, Parley owns story canon + visual asset metadata.
+
+## PR #15 contract pins
+
+- **Image talent profiles:** `background-artist` and `portrait-artist` materialized into every crag at instance creation (PR-A+B already plumbs this; PR #15 adds these as additional named talents in the materializer).
+- **Talent metadata `.belayer-talent.yaml`:** `talent_name: background-artist` / `portrait-artist`; `memory_scope: crag` (so they accumulate world-style preferences); `authority.tools` lists the Hermes image-gen skills available through the Nous tool gateway.
+- **Wake envelope for image gen:** `parley-image-wake/v1` (subtype of `parley-wake/v1` from PR #13). Carries scene/character ref, prompt seed (from existing `worlds/<w>/assets/manifest.json` + character `portrait_prompt`), output path, style anchors.
+- **Image artifact:** Belayer registers the generated PNG as an artifact; Parley appends a `visual_asset_ready` event to the story's `events.jsonl`; UI receives via SSE and re-renders.
+- **SSE transport:** `GET /events/:storyId` server-sent-event stream. UI auto-reconnects on disconnect. Each `events.jsonl` append fans out to subscribers.
+- **No streaming text mid-turn (yet):** turn-level granularity. Streaming individual NPC tokens is a follow-up.
+
+## PR #15 Tasks
+
+### [SEQUENTIAL] Task UI.0 — Hermes image-tool gateway probe
+
+**Files:**
+- Create: `scripts/probe-hermes-image-tools.mjs`
+- Create: `docs/plans/2026-05-04-belayer-profile-coupling-pr15-findings.md`
+
+**Steps:**
+- [ ] Inspect `~/.hermes/plugins/` and the Nous tool gateway plugin to enumerate which image-gen skills are actually installed. Document exact tool names.
+- [ ] Probe one image-gen tool end-to-end via a minimal Hermes session (or via a `belayer climb start` with a single ephemeral talent loaded with that tool).
+- [ ] Capture: tool name, input schema, output shape (file path? base64? URL?), latency, failure modes.
+- [ ] Write findings doc; update PR #15 plan tasks below to use the actual tool names.
+- [ ] Commit: `docs(plans): record PR #15 Hermes image-tool gateway probe findings`
+
+### [SEQUENTIAL] Task UI.1 — Add `background-artist` + `portrait-artist` talents to materializer
+
+**Files:**
+- Modify: `src/runtime/instances/materializeInstance.js` — when materializing a crag, also create profile dirs + `.belayer-talent.yaml` for `background-artist` and `portrait-artist`. Both `memory_scope: crag`. `authority.tools` populated from probe findings.
+- Modify: `worlds/<world-id>/WORLD.md` — declare which image style anchors to pass to art talents (per-world style overrides).
+- Create: `test/instances/imageTalents.test.ts`
+
+**Steps:**
+- [ ] Add image talent definitions (id, role, lifecycle, authority.tools).
+- [ ] Test: instance materialization produces both image-talent profiles correctly.
+- [ ] Commit: `feat(instances): materialize background-artist and portrait-artist talents`
+
+### [PARALLEL] Tasks UI.2 / UI.3 — Image wake envelope schemas
+
+| Task | Schema | File |
+|---|---|---|
+| **UI.2** | `parley-image-wake/v1` | `src/contracts/parleyImageWake.ts` |
+| **UI.3** | `parley-image-wake-result/v1` | `src/contracts/parleyImageWakeResult.ts` |
+
+**Common steps:** schema, test (positive + 2 negative), commit.
+
+### [SEQUENTIAL] Task UI.4 — Image-gen wake handler
+
+**Files:**
+- Create: `src/runtime/wake/imageWake.js`
+- Create: `test/wake/imageWake.test.js`
+
+**Steps:**
+- [ ] Export `dispatchImageWake({ instanceDir, talentName, prompt, outputPath, styleAnchors, storyId })`. Reuses the wake-transport machinery from PR #13.
+- [ ] On wake-result: validate, copy output PNG into `instances/<world>/<instance>/world/assets/<scene-or-character>.png`, append entry to `worlds/<w>/assets/manifest.json` (already an existing pipeline; integrate, don't re-invent).
+- [ ] Append `visual_asset_ready` event to story's `events.jsonl`.
+- [ ] Tests (mocked Belayer + filesystem): happy round-trip; daemon-down → `visual_asset_deferred` event.
+- [ ] Commit: `feat(wake): image-generation wake handler with manifest integration`
+
+### [SEQUENTIAL] Task UI.5 — SSE event stream endpoint
+
+**Files:**
+- Modify: `src/server.js` — add `GET /events/:storyId` SSE endpoint.
+- Create: `src/runtime/events/sseBroadcaster.js`
+- Create: `test/server/sseBroadcaster.test.js`
+
+**Steps:**
+- [ ] On every `events.jsonl` append (hook into existing `appendStoryEvent` from PR #14), fan out the new event to all SSE subscribers for that storyId.
+- [ ] Heartbeat every 15s (`event: ping`).
+- [ ] Disconnect cleanup.
+- [ ] Tests: subscribe, append event, assert subscriber receives within 200ms; disconnect mid-stream cleans up subscriber list.
+- [ ] Commit: `feat(server): SSE event stream per story instance`
+
+### [PARALLEL] Tasks UI.6 / UI.7 — UI wiring
+
+| Task | Concern | File |
+|---|---|---|
+| **UI.6** | Live event stream consumption | `src/client/app.js` (add EventSource + render-on-event) |
+| **UI.7** | Visual asset rendering (background + portrait) | `src/client/app.js` + `src/client/styles.css` |
+
+**Common steps per task:** edit UI, add manual smoke (browser-driven via existing scripts/), commit.
+
+### [SEQUENTIAL] Task UI.8 — Indexer + promotion wrapper (folded from PR-E+F)
+
+**Files:**
+- Create: `src/runtime/indexer/indexer.js`
+- Create: `src/runtime/indexer/promoteFromEval.js`
+- Create: `scripts/parley-promote-from-eval.mjs`
+- Create: tests for each.
+
+(Detail unchanged from original EF.8 + EF.9 in the prior version of this plan.)
+
+### Task UI.9 — Manual end-to-end demo
+
+**Steps:**
+- [ ] Start `belayer daemon`.
+- [ ] `npm run instance:materialize -- --world last-lantern --as last-lantern-demo`
+- [ ] `npm start`, browse to UI, play a turn.
+- [ ] Observe: NPC reaction appears live (SSE), portraits + background generate (image talents), pulse panel reflects awake/dormant NPCs.
+- [ ] Capture screenshots; commit demo notes to `docs/devlogs/2026-05-XX-belayer-profile-coupling-demo.md`.
+- [ ] Commit: `docs(devlog): live demo of full Belayer profile coupling stack`
+
+### Task UI.10 — Open PR #15
+
+- [ ] Branch `feat/live-ui-wiring` (already established).
+- [ ] PR title: `feat(ui): live event stream + image-generation talents (closes #19, #20)`.
+
+---
+
+# PR-E+F — Story-instance events + pulse + indexer boundary (LEGACY — superseded by PR #14 + PR #15 split above)
+
+The original PR-E+F section is preserved below for reference but the work has been split: events + pulse + GM evaluation writer move into PR #14; indexer + promotion wrapper + live UI + image talents move into PR #15.
 
 **Scope:** Per-story-instance `events.jsonl` (D8). Pulse read model. NPC-dormancy events with `talent-evaluation/v1` artifact references. GM `world-instance-evaluation/v1` writer. LLM-wiki indexer (read-only over committed artifacts + profile MEMORY). Promotion wrapper (`parley promote-from-eval`).
 
