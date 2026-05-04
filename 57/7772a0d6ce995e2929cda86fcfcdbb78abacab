@@ -1,0 +1,147 @@
+worlds/verdant-aria/art-style.md
+  450676fd0e253278 1-45
+worlds/night-city-after-curfew/theme.yaml
+  450676fd0e253278 1-40
+worlds/gentle-shore/theme.yaml
+  450676fd0e253278 1-42
+worlds/night-city-after-curfew/art-style.md
+  450676fd0e253278 1-70
+worlds/gentle-shore/assets/portraits/daffodil-keep.prompt.md
+  450676fd0e253278 1-49
+worlds/gentle-shore/stylesheet.css
+  7d7420fb00981e5c 8-15,20-22
+  450676fd0e253278 1-7,16-19,23-122
+worlds/night-city-after-curfew/scenarios/silver-shard-extraction/scenario.json
+  7d7420fb00981e5c 249
+  450676fd0e253278 1-248,250-424
+docs/plans/2026-05-04-web-ui-redesign-part-2-flagship-worlds.md
+  450676fd0e253278 1-110
+vite.config.ts
+  450676fd0e253278 1-112
+worlds/verdant-aria/assets/backgrounds/song-of-the-broken-crown.prompt.md
+  450676fd0e253278 1-78
+worlds/verdant-aria/characters/innkeeper-borvyn.md
+  450676fd0e253278 1-41
+worlds/night-city-after-curfew/shell/pages/StoryPlay.tsx
+  450676fd0e253278 1-291
+worlds/night-city-after-curfew/characters/veyrah-static.md
+  450676fd0e253278 1-46
+worlds/verdant-aria/world.json
+  450676fd0e253278 1-12
+worlds/verdant-aria/assets/portraits/innkeeper-borvyn.prompt.md
+  450676fd0e253278 1-77
+worlds/gentle-shore/lore/index.md
+  450676fd0e253278 1-29
+worlds/gentle-shore/assets/portraits/hazel-tide.prompt.md
+  450676fd0e253278 1-49
+src/shell/main.tsx
+  450676fd0e253278 1-4,7-12,16-21,25-30,34,38,43-53,64-70,72-76,79-82
+  7d7420fb00981e5c 5-6,13-14,22-24,32-33,35-37,39-42,54-55,58-62,71
+worlds/night-city-after-curfew/stylesheet.css
+  450676fd0e253278 1-641
+src/sdk/customShell-registry.d.ts
+  450676fd0e253278 1-14
+test/sdk-api.test.js
+  450676fd0e253278 1-365
+worlds/gentle-shore/assets/backgrounds/seashell-festival.prompt.md
+  450676fd0e253278 1-66
+worlds/gentle-shore/characters/marigold-aster.md
+  450676fd0e253278 1-34
+src/sdk/index.ts
+  450676fd0e253278 1-19,21-25,27-31,33-38
+worlds/gentle-shore/assets/portraits/marigold-aster.prompt.md
+  450676fd0e253278 1-49
+worlds/night-city-after-curfew/assets/portraits/sentinel-7.prompt.md
+  450676fd0e253278 1-32
+worlds/night-city-after-curfew/assets/backgrounds/silver-shard-extraction.prompt.md
+  450676fd0e253278 1-34
+scripts/discover-worlds.ts
+  450676fd0e253278 1-127
+worlds/verdant-aria/stylesheet.css
+  450676fd0e253278 1-142
+worlds/gentle-shore/world.json
+  450676fd0e253278 1-11
+worlds/night-city-after-curfew/lore/index.md
+  450676fd0e253278 1-75
+src/sdk/customShell.ts
+  450676fd0e253278 1-50
+worlds/verdant-aria/characters/raelin-ashe.md
+  450676fd0e253278 1-40
+worlds/gentle-shore/characters/daffodil-keep.md
+  450676fd0e253278 1-34
+worlds/night-city-after-curfew/shell/entry.tsx
+  450676fd0e253278 1-24
+worlds/gentle-shore/scenarios/seashell-festival/scenario.json
+  450676fd0e253278 1-461
+worlds/verdant-aria/shell/slots.tsx
+  450676fd0e253278 1-177
+worlds/night-city-after-curfew/world.json
+  450676fd0e253278 1-12
+worlds/gentle-shore/shell/slots.tsx
+  7d7420fb00981e5c 6,12,43
+  450676fd0e253278 1-5,7-11,13-42,44-87
+test/server-new-endpoints.test.js
+  450676fd0e253278 1-421
+worlds/night-city-after-curfew/characters/sentinel-7.md
+  450676fd0e253278 1-55
+worlds/night-city-after-curfew/shell/utils.ts
+  7d7420fb00981e5c 1-35
+worlds/verdant-aria/assets/crest.prompt.md
+  450676fd0e253278 1-35
+test/sdk-custom-shell.test.js
+  450676fd0e253278 1-75
+worlds/night-city-after-curfew/assets/portraits/veyrah-static.prompt.md
+  450676fd0e253278 1-32
+src/sdk/customShell-registry.js
+  450676fd0e253278 1-61
+worlds/verdant-aria/scenarios/song-of-the-broken-crown/scenario.json
+  450676fd0e253278 1-299
+worlds/verdant-aria/assets/portraits/raelin-ashe.prompt.md
+  450676fd0e253278 1-76
+worlds/verdant-aria/theme.yaml
+  450676fd0e253278 1-43
+worlds/verdant-aria/lore/index.md
+  450676fd0e253278 1-56
+test/part-2-acceptance.test.js
+  450676fd0e253278 1-90
+worlds/gentle-shore/art-style.md
+  450676fd0e253278 1-41
+worlds/night-city-after-curfew/shell/pages/WorldHome.tsx
+  450676fd0e253278 1-12,14-23,29-73,75-315,317-350
+  7d7420fb00981e5c 13,24,26,28,316
+worlds/gentle-shore/characters/hazel-tide.md
+  450676fd0e253278 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "577772a0d6ce995e2929cda86fcfcdbb78abacab",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 1701,
+      "total_deletions": 0,
+      "accepted_lines": 5843,
+      "overriden_lines": 0
+    },
+    "7d7420fb00981e5c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6b14623f-7419-4221-ad6a-aafdc795412c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 570,
+      "total_deletions": 131,
+      "accepted_lines": 79,
+      "overriden_lines": 0
+    }
+  }
+}
