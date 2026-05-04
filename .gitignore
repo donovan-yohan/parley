@@ -1,2 +1,8 @@
 node_modules/
 .worktrees/
+
+# belayer — per-climb state (.belayer/ contains climbs/, legacy runs/, and worktrees/; hermes_bridge is in runtime dir)
+/.belayer/climbs/
+/.belayer/runs/
+/.belayer/worktrees/
+.belayer/archive/
