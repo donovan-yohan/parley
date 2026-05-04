@@ -3,13 +3,24 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "jsxImportSource": "preact",
     "strict": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@parley/sdk": ["./src/sdk/index.ts"],
+      "@parley/sdk/*": ["./src/sdk/*"]
+    }
   },
   "include": [
     "src/contracts/**/*.ts",
+    "src/sdk/**/*.ts",
+    "src/sdk/**/*.tsx",
+    "src/shell/**/*.ts",
+    "src/shell/**/*.tsx",
+    "src/runtime/agentAuthor.ts",
     "test/contracts/**/*.ts"
   ]
 }

@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "smoke:runtime": "node scripts/smoke-parley-runtime.mjs",
     "smoke:e2e": "node scripts/smoke-parley-e2e.mjs",
     "smoke:scenarios": "node scripts/smoke-parley-scenarios.mjs",
@@ -22,11 +25,14 @@
     "node": ">=20"
   },
   "dependencies": {
+    "preact": "^10.19.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@preact/preset-vite": "^2.10.0",
     "@types/node": "^20.19.39",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^5.4.0"
   }
 }
