@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +9,12 @@ import { defaultScenarioId, listScenarioPacks, loadScenarioPack, repoRoot } from
 import { subscribe } from "./runtime/events/sseBroadcaster.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const clientDir = path.join(root, "src", "client");
+const legacyClientDir = path.join(root, "src", "client");
+const distDir = path.join(root, "dist");
+// Prefer the Vite-built shell (`npm run build` → dist/) when present so
+// `npm start` exposes the new Preact UI through the production server.
+// Fall back to the pre-1b src/client UI when no build output exists.
+const clientDir = existsSync(distDir) ? distDir : legacyClientDir;
 const port = Number(process.env.PORT ?? 4173);
 const host = process.env.HOST ?? "127.0.0.1";
 const maxJsonBodyBytes = 1_000_000;
@@ -172,6 +178,22 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 
 // ── New endpoint handlers (Part 1b) ───────────────────────────────────────────
 
+// Strict id pattern shared by every world/instance/story segment that lands in
+// a filesystem path. Rejecting `..`, slashes, leading dashes etc. keeps the
+// /api/worlds, /api/instances and /api/stories endpoints contained under the
+// repo's instances/ and worlds/ trees regardless of caller-supplied input.
+const safeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
+
+function validateId(value, label) {
+  const id = String(value ?? "").trim();
+  if (!safeIdPattern.test(id)) {
+    const error = new Error(`${label} must match ${safeIdPattern}`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return id;
+}
+
 async function handleGetWorlds() {
   const worldsDir = path.join(repoRoot, "worlds");
   const entries = await readdir(worldsDir, { withFileTypes: true });
@@ -181,31 +203,43 @@ async function handleGetWorlds() {
       continue;
     }
     const worldJsonPath = path.join(worldsDir, entry.name, "world.json");
+    let raw;
     try {
-      const raw = await readFile(worldJsonPath, "utf8");
-      const world = JSON.parse(raw);
-      worlds.push({
-        id: world.id,
-        name: world.name,
-        premise: world.premise ?? "",
-        tone: world.tone ?? "",
-        cover: world.cover ?? undefined,
-        scenarios: Array.isArray(world.scenarios) ? world.scenarios : []
-      });
-    } catch {
-      // Skip worlds with missing or malformed world.json
+      raw = await readFile(worldJsonPath, "utf8");
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        // Worlds without a world.json are still in-progress stubs (e.g. before
+        // 1c lands the schema); skip them quietly.
+        continue;
+      }
+      throw error;
     }
+    // Surface JSON parse errors and other fs failures so corrupted content
+    // does not silently masquerade as a missing world.
+    const world = JSON.parse(raw);
+    worlds.push({
+      id: world.id,
+      name: world.name,
+      premise: world.premise ?? "",
+      tone: world.tone ?? "",
+      cover: world.cover ?? undefined,
+      scenarios: Array.isArray(world.scenarios) ? world.scenarios : []
+    });
   }
   return { worlds };
 }
 
 async function handleGetInstances(worldId) {
-  const instancesDir = path.join(repoRoot, "instances", worldId);
+  const safeWorldId = validateId(worldId, "worldId");
+  const instancesDir = path.join(repoRoot, "instances", safeWorldId);
   let entries;
   try {
     entries = await readdir(instancesDir, { withFileTypes: true });
-  } catch {
-    return { instances: [] };
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return { instances: [] };
+    }
+    throw error;
   }
   const instances = [];
   for (const entry of entries) {
@@ -217,11 +251,14 @@ async function handleGetInstances(worldId) {
     try {
       const raw = await readFile(instanceJsonPath, "utf8");
       meta = { ...meta, ...JSON.parse(raw) };
-    } catch {
-      // Use defaults if instance.json missing
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
+      // No instance.json yet — directory exists pre-first-play.
     }
     instances.push({
-      worldId,
+      worldId: safeWorldId,
       instanceId: entry.name,
       displayName: meta.displayName ?? entry.name,
       createdAt: meta.createdAt ?? new Date(0).toISOString(),
@@ -232,56 +269,84 @@ async function handleGetInstances(worldId) {
 }
 
 async function handleGetInstance(worldId, instanceId) {
-  const instanceDir = path.join(repoRoot, "instances", worldId, instanceId);
+  const safeWorldId = validateId(worldId, "worldId");
+  const safeInstanceId = validateId(instanceId, "instanceId");
+  const instanceDir = path.join(repoRoot, "instances", safeWorldId, safeInstanceId);
   const instanceJsonPath = path.join(instanceDir, "instance.json");
-  let meta = { displayName: instanceId, createdAt: null, lastPlayedAt: null };
+  let meta = { displayName: safeInstanceId, createdAt: null, lastPlayedAt: null };
   try {
-    const stats = await readdir(instanceDir);
-    if (!Array.isArray(stats)) {
+    await readdir(instanceDir);
+  } catch (error) {
+    if (error?.code === "ENOENT") {
       return null;
     }
-  } catch {
-    return null;
+    throw error;
   }
   try {
     const raw = await readFile(instanceJsonPath, "utf8");
     meta = { ...meta, ...JSON.parse(raw) };
-  } catch {
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      throw error;
+    }
     // instance.json missing — directory exists but unmaterialized; use defaults
   }
   return {
-    worldId,
-    instanceId,
-    displayName: meta.displayName ?? instanceId,
+    worldId: safeWorldId,
+    instanceId: safeInstanceId,
+    displayName: meta.displayName ?? safeInstanceId,
     createdAt: meta.createdAt ?? new Date(0).toISOString(),
     lastPlayedAt: meta.lastPlayedAt ?? null
   };
 }
 
 async function handleCreateInstance(worldId, displayName) {
-  const instancesDir = path.join(repoRoot, "instances", worldId);
+  const safeWorldId = validateId(worldId, "worldId");
+  const instancesDir = path.join(repoRoot, "instances", safeWorldId);
+  await mkdir(instancesDir, { recursive: true });
+  // Race-safe allocation: scan for the next free `playthrough-N`, then attempt
+  // a non-recursive `mkdir`. If two concurrent requests collide, EEXIST forces
+  // the loser to retry with the next number rather than silently sharing a
+  // directory and overwriting instance.json.
   let entries = [];
   try {
     entries = await readdir(instancesDir, { withFileTypes: true });
-  } catch {
-    // Directory doesn't exist yet — will be created below
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      throw error;
+    }
   }
   const existingNumbers = entries
     .filter((entry) => entry.isDirectory() && /^playthrough-\d+$/.test(entry.name))
     .map((entry) => Number(entry.name.replace("playthrough-", "")));
-  const nextN = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-  const instanceId = `playthrough-${nextN}`;
-  const instanceDir = path.join(instancesDir, instanceId);
+  let nextN = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+  let instanceDir;
+  let instanceId;
+  for (let attempt = 0; attempt < 1000; attempt += 1, nextN += 1) {
+    instanceId = `playthrough-${nextN}`;
+    instanceDir = path.join(instancesDir, instanceId);
+    try {
+      await mkdir(instanceDir);
+      break;
+    } catch (error) {
+      if (error?.code === "EEXIST") {
+        continue;
+      }
+      throw error;
+    }
+  }
+  if (!instanceDir) {
+    throw new Error("could not allocate a unique instance id");
+  }
   const createdAt = new Date().toISOString();
   const instanceMeta = {
     displayName: displayName ?? `Playthrough ${nextN}`,
     createdAt,
     lastPlayedAt: null
   };
-  await mkdir(instanceDir, { recursive: true });
   await writeFile(path.join(instanceDir, "instance.json"), `${JSON.stringify(instanceMeta, null, 2)}\n`, "utf8");
   return {
-    worldId,
+    worldId: safeWorldId,
     instanceId,
     displayName: instanceMeta.displayName,
     createdAt: instanceMeta.createdAt,
@@ -290,23 +355,31 @@ async function handleCreateInstance(worldId, displayName) {
 }
 
 async function handleGetStories(worldId, instanceId) {
+  const safeWorldId = validateId(worldId, "worldId");
+  const safeInstanceId = validateId(instanceId, "instanceId");
   // Templates come from world.json scenarios list
-  const worldJsonPath = path.join(repoRoot, "worlds", worldId, "world.json");
+  const worldJsonPath = path.join(repoRoot, "worlds", safeWorldId, "world.json");
   let templates = [];
   try {
     const raw = await readFile(worldJsonPath, "utf8");
     const world = JSON.parse(raw);
     templates = Array.isArray(world.scenarios) ? world.scenarios : [];
-  } catch {
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      throw error;
+    }
     // No world.json — no templates
   }
 
   // Story instances live under instances/<worldId>/<instanceId>/stories/
-  const storiesDir = path.join(repoRoot, "instances", worldId, instanceId, "stories");
+  const storiesDir = path.join(repoRoot, "instances", safeWorldId, safeInstanceId, "stories");
   let storyEntries = [];
   try {
     storyEntries = await readdir(storiesDir, { withFileTypes: true });
-  } catch {
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      throw error;
+    }
     // No stories yet
   }
   const instances = [];
@@ -315,16 +388,19 @@ async function handleGetStories(worldId, instanceId) {
       continue;
     }
     const storyJsonPath = path.join(storiesDir, entry.name, "story.json");
-    let storyMeta = { status: "in_progress", turnCount: 0 };
-    try {
-      const raw = await readFile(storyJsonPath, "utf8");
-      storyMeta = { ...storyMeta, ...JSON.parse(raw) };
-    } catch {
-      // Use defaults
-    }
+    // Surface parse / unreadable errors so corrupted story.json files fail
+    // loudly instead of being reported as a silent reset to "in_progress".
+    const raw = await readFile(storyJsonPath, "utf8").catch((error) => {
+      if (error?.code === "ENOENT") {
+        return null;
+      }
+      throw error;
+    });
+    const parsed = raw ? JSON.parse(raw) : {};
+    const storyMeta = { status: "in_progress", turnCount: 0, ...parsed };
     instances.push({
-      worldId,
-      instanceId,
+      worldId: safeWorldId,
+      instanceId: safeInstanceId,
       storyId: entry.name,
       status: storyMeta.status ?? "in_progress",
       turnCount: storyMeta.turnCount ?? 0
@@ -334,22 +410,36 @@ async function handleGetStories(worldId, instanceId) {
 }
 
 async function handleCreateStory(worldId, instanceId, storyTemplateId) {
-  const storyDir = path.join(repoRoot, "instances", worldId, instanceId, "stories", storyTemplateId);
+  const safeWorldId = validateId(worldId, "worldId");
+  const safeInstanceId = validateId(instanceId, "instanceId");
+  const safeStoryId = validateId(storyTemplateId, "storyTemplateId");
+  const storyDir = path.join(repoRoot, "instances", safeWorldId, safeInstanceId, "stories", safeStoryId);
   const createdAt = new Date().toISOString();
   const storyMeta = { status: "in_progress", createdAt, turnCount: 0 };
   await mkdir(storyDir, { recursive: true });
   await writeFile(path.join(storyDir, "story.json"), `${JSON.stringify(storyMeta, null, 2)}\n`, "utf8");
   return {
-    worldId,
-    instanceId,
-    storyId: storyTemplateId,
+    worldId: safeWorldId,
+    instanceId: safeInstanceId,
+    storyId: safeStoryId,
     status: "in_progress",
     turnCount: 0
   };
 }
 
 async function handleGetStory(worldId, instanceId, storyId) {
-  const storyJsonPath = path.join(repoRoot, "instances", worldId, instanceId, "stories", storyId, "story.json");
+  const safeWorldId = validateId(worldId, "worldId");
+  const safeInstanceId = validateId(instanceId, "instanceId");
+  const safeStoryId = validateId(storyId, "storyId");
+  const storyJsonPath = path.join(
+    repoRoot,
+    "instances",
+    safeWorldId,
+    safeInstanceId,
+    "stories",
+    safeStoryId,
+    "story.json"
+  );
   let storyMeta = { status: "in_progress", turnCount: 0 };
   try {
     const raw = await readFile(storyJsonPath, "utf8");
@@ -363,9 +453,9 @@ async function handleGetStory(worldId, instanceId, storyId) {
     throw error;
   }
   return {
-    worldId,
-    instanceId,
-    storyId,
+    worldId: safeWorldId,
+    instanceId: safeInstanceId,
+    storyId: safeStoryId,
     status: storyMeta.status ?? "in_progress",
     turnCount: storyMeta.turnCount ?? 0
   };
@@ -378,17 +468,15 @@ async function handleRunTurnNew(worldId, instanceId, storyId, playerAction) {
     throw error;
   }
 
-  // Resolve the instance directory server-side.
-  // The mock agent-author seam (createMockAgentTurnAuthor) wraps runPlayerTurn;
-  // here in server.js we call runPlayerTurn directly and adapt the result to
-  // the AuthoredTurn shape. The shell talks to the typed seam via the SDK,
-  // which hits this endpoint — it never imports parleyRuntime directly.
-  const resolvedInstanceId = instanceId ?? "playthrough-1";
-  const instanceDir = path.join(repoRoot, "instances", worldId, resolvedInstanceId);
+  // Validate every id segment before it touches the filesystem.
+  const safeWorldId = validateId(worldId, "worldId");
+  const safeInstanceId = validateId(instanceId ?? "playthrough-1", "instanceId");
+  const safeStoryId = storyId ? validateId(storyId, "storyId") : null;
+  const instanceDir = path.join(repoRoot, "instances", safeWorldId, safeInstanceId);
 
   // Route through runPlayerTurn (the mock fixture) with the new instance layout.
   const result = await runPlayerTurn({
-    scenarioId: worldId,
+    scenarioId: safeWorldId,
     playerAction,
     instanceDir
   });
@@ -412,17 +500,42 @@ async function handleRunTurnNew(worldId, instanceId, storyId, playerAction) {
     beatRedirect: result.beatRedirect ?? null
   };
 
-  // Update story turnCount if we have a storyId.
-  if (storyId) {
-    const storyJsonPath = path.join(instanceDir, "stories", storyId, "story.json");
+  // Only count + timestamp committed turns. runPlayerTurn returns
+  // committed: false for revise/fail verdicts and does not append a turn,
+  // so bumping turnCount here would let story summaries drift upward even
+  // when the runtime rejected the input.
+  if (result.committed === true) {
+    const playedAt = new Date().toISOString();
+
+    if (safeStoryId) {
+      const storyJsonPath = path.join(instanceDir, "stories", safeStoryId, "story.json");
+      try {
+        const raw = await readFile(storyJsonPath, "utf8");
+        const storyMeta = JSON.parse(raw);
+        storyMeta.turnCount = (storyMeta.turnCount ?? 0) + 1;
+        storyMeta.lastPlayedAt = playedAt;
+        await writeFile(storyJsonPath, `${JSON.stringify(storyMeta, null, 2)}\n`, "utf8");
+      } catch (error) {
+        if (error?.code !== "ENOENT") {
+          throw error;
+        }
+        // No story.json yet — nothing to update.
+      }
+    }
+
+    // Mirror the timestamp onto instance.json so /api/instances no longer
+    // reports every playthrough as "never played" after a successful turn.
+    const instanceJsonPath = path.join(instanceDir, "instance.json");
     try {
-      const raw = await readFile(storyJsonPath, "utf8");
-      const storyMeta = JSON.parse(raw);
-      storyMeta.turnCount = (storyMeta.turnCount ?? 0) + 1;
-      storyMeta.lastPlayedAt = new Date().toISOString();
-      await writeFile(storyJsonPath, `${JSON.stringify(storyMeta, null, 2)}\n`, "utf8");
-    } catch {
-      // Best effort — don't fail the turn just because story.json is missing.
+      const raw = await readFile(instanceJsonPath, "utf8");
+      const instanceMeta = JSON.parse(raw);
+      instanceMeta.lastPlayedAt = playedAt;
+      await writeFile(instanceJsonPath, `${JSON.stringify(instanceMeta, null, 2)}\n`, "utf8");
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
+      // No instance.json yet — first turn before /api/instances POST. Skip.
     }
   }
 

@@ -23,6 +23,7 @@ export interface ProposedFact {
 // StoryConsequence and BeatRedirect are imported from contracts where available.
 import type { StoryConsequence } from "../contracts/storyConsequence.js";
 import type { BeatRedirect } from "../contracts/beatRedirect.js";
+import { fetchJSON } from "../sdk/utils.js";
 
 export type { StoryConsequence, BeatRedirect };
 
@@ -77,9 +78,11 @@ export function createMockAgentTurnAuthor(): AgentTurnAuthor {
     id: "mock-agent-v1",
     mode: "mock-agent",
     async authorTurn(input: TurnInput): Promise<AuthoredTurn> {
-      const response = await fetch("/api/turn", {
+      // fetchJSON owns the !ok-with-body error shape; agentAuthor stays a thin
+      // typed adapter on top so the SDK and the seam never drift in how they
+      // surface HTTP failures.
+      return fetchJSON<AuthoredTurn>("/api/turn", {
         method: "POST",
-        headers: { "content-type": "application/json" },
         body: JSON.stringify({
           worldId: input.worldId,
           instanceId: input.instanceId,
@@ -87,19 +90,6 @@ export function createMockAgentTurnAuthor(): AgentTurnAuthor {
           playerAction: input.playerAction
         })
       });
-      if (!response.ok) {
-        let body: unknown;
-        try {
-          body = await response.json();
-        } catch {
-          body = null;
-        }
-        const error = new Error(`HTTP ${response.status}`);
-        (error as Error & { status: number; body: unknown }).status = response.status;
-        (error as Error & { status: number; body: unknown }).body = body;
-        throw error;
-      }
-      return response.json() as Promise<AuthoredTurn>;
     }
   };
 }

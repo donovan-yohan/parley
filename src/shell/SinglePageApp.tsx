@@ -36,24 +36,40 @@ export function SinglePageApp(): VNode {
   const inputRef = useRef<HTMLInputElement>(null);
   const transcriptRef = useRef<HTMLOListElement>(null);
 
-  // Load worlds on mount
+  // Load worlds on mount.
+  // Bootstraps to `last-lantern` when present so the initial world does not
+  // depend on `readdir` enumeration order; falls back to the first world the
+  // server returns when last-lantern is missing (e.g. custom installs).
+  // The scenario load is awaited inside the effect so the form stays disabled
+  // until the world has finished loading — otherwise the trailing finally
+  // would fire before /api/state resolved.
   useEffect(() => {
-    setTurnRunning(true);
-    setStatusText("Loading scenarios...");
-    getWorlds()
-      .then((loadedWorlds) => {
+    let cancelled = false;
+    (async () => {
+      setTurnRunning(true);
+      setStatusText("Loading scenarios...");
+      try {
+        const loadedWorlds = await getWorlds();
+        if (cancelled) return;
         setWorlds(loadedWorlds);
         if (loadedWorlds.length > 0) {
-          loadScenarioState(loadedWorlds[0].id, loadedWorlds);
+          const preferred = loadedWorlds.find((w) => w.id === "last-lantern") ?? loadedWorlds[0];
+          await loadScenarioState(preferred.id, loadedWorlds);
         }
-      })
-      .catch((error: Error) => {
-        setTranscript([{ speaker: "system", text: error.message ?? "Could not load scenarios." }]);
-      })
-      .finally(() => {
-        setTurnRunning(false);
-        setStatusText("");
-      });
+      } catch (error) {
+        if (cancelled) return;
+        const message = (error as Error).message ?? "Could not load scenarios.";
+        setTranscript([{ speaker: "system", text: message }]);
+      } finally {
+        if (!cancelled) {
+          setTurnRunning(false);
+          setStatusText("");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
