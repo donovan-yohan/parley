@@ -1,0 +1,25 @@
+src/contracts/storyConsequence.ts
+  6fd9bdc7c61f8cc6 1-27
+test/contracts/storyConsequence.test.ts
+  6fd9bdc7c61f8cc6 1-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "aefd9a4892bae63ffc4221cb29617c48339a626a",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 140,
+      "total_deletions": 0,
+      "accepted_lines": 140,
+      "overriden_lines": 0
+    }
+  }
+}
