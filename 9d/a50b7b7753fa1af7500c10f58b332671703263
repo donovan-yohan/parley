@@ -1,0 +1,23 @@
+test/agent-author-seam.test.js
+  450676fd0e253278 1-262
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "9da50b7b7753fa1af7500c10f58b332671703263",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 569,
+      "total_deletions": 498,
+      "accepted_lines": 262,
+      "overriden_lines": 0
+    }
+  }
+}
