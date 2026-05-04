@@ -142,9 +142,10 @@ async function formatError(err, opts) {
 
   // Profile name budget validation
   if (msg.includes("profile name budget validation failed")) {
-    // Forward field errors verbatim (strip the leading summary line)
+    // Forward field errors verbatim — strip the leading summary line so only
+    // the per-character error entries are shown to the user.
     const lines = msg.split("\n");
-    return lines.join("\n");
+    return lines.slice(1).join("\n");
   }
 
   // Belayer crag init failure

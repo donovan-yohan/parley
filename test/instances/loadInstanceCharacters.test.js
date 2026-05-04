@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -193,6 +193,51 @@ test("frontmatter-less file produces a usable record with humanized name from fi
 });
 
 // ---------------------------------------------------------------------------
+// Prose-only file: tags extracted from ## Tags section
+// ---------------------------------------------------------------------------
+
+test("prose-only file: extracts tags from ## Tags section when no frontmatter", async () => {
+  const sandbox = await makeTmpDir();
+
+  const proseBody = `# Mara Underbough
+
+Schema: \`parley-character/v1\`
+
+Mara Underbough is a reusable Parley character.
+
+## Tags
+
+- \`location:last-lantern-tavern\`
+- \`role:tavernkeep\`
+- \`importance:recurring\`
+- \`faction:last-lantern-staff\`
+
+## Knowledge Boundary
+
+Knows local rumors only.
+`;
+
+  await writeCharacterFile(sandbox, "mara-underbough", null, proseBody);
+
+  const characters = await loadInstanceCharacters({
+    instanceDir: sandbox,
+    sceneId: "last-lantern-tavern"
+  });
+
+  assert.equal(characters.length, 1);
+  const mara = characters[0];
+
+  assert.equal(mara.id, "mara-underbough");
+  assert.ok(mara.tags.includes("location:last-lantern-tavern"), "should extract location tag");
+  assert.ok(mara.tags.includes("role:tavernkeep"), "should extract role tag");
+  assert.ok(mara.tags.includes("importance:recurring"), "should extract importance tag");
+  assert.ok(mara.tags.includes("faction:last-lantern-staff"), "should extract faction tag");
+  assert.ok(mara.tags.includes("scene:last-lantern-tavern"), "should have scene tag");
+  // role extracted from role:<name> tag entry
+  assert.equal(mara.role, "tavernkeep", "role should be extracted from role: tag in prose");
+});
+
+// ---------------------------------------------------------------------------
 // Missing characters dir returns empty array (don't throw)
 // ---------------------------------------------------------------------------
 
@@ -237,40 +282,57 @@ test("scene tag is not duplicated when already present in frontmatter tags", asy
 // ---------------------------------------------------------------------------
 
 test("integration: loadInstanceCharacters works against real materialized last-lantern instance", async () => {
-  // Use the real repo root (src/runtime/instances/ is under repoRoot/src/...)
-  // We can import repoRoot from scenarioPacks.js
-  const { repoRoot } = await import("../../src/runtime/scenarioPacks.js");
+  // Use a temp repoRoot so no files are written into the actual repository.
+  // We still need the real world template — copy it via the materializeInstance call
+  // which reads from the real worlds/last-lantern directory.
+  const { repoRoot: realRepoRoot } = await import("../../src/runtime/scenarioPacks.js");
 
+  const tmpRepoRoot = await makeTmpDir();
   const hermesProfilesRoot = await makeTmpDir();
   const mockSpawn = makeMockSpawn();
 
-  const { instanceDir } = await materializeInstance({
-    worldId: "last-lantern",
-    instanceId: "last-lantern-test",
-    repoRoot,
-    hermesProfilesRoot,
-    spawnSubprocess: mockSpawn,
-    // force: true so repeated test runs don't fail on a stale instance directory
-    force: true
-  });
-
-  const characters = await loadInstanceCharacters({
-    instanceDir,
-    sceneId: "last-lantern-tavern"
-  });
-
-  // last-lantern has exactly one character: mara-underbough
-  assert.ok(characters.length >= 1, "should load at least 1 character from last-lantern");
-
-  const mara = characters.find((c) => c.id === "mara-underbough");
-  assert.ok(mara, "mara-underbough should be present");
-  assert.ok(
-    mara.tags.includes("scene:last-lantern-tavern"),
-    "mara should have scene:last-lantern-tavern tag"
+  // Symlink (or pass repoRoot override) — materializeInstance reads from
+  // repoRoot/worlds/<worldId> and writes to repoRoot/instances/<worldId>/<instanceId>.
+  // We use a repoRoot that has a symlink to the real worlds/ directory so the
+  // character template is found, while the instances/ output lands in tmp.
+  const { symlink } = await import("node:fs/promises");
+  await symlink(
+    path.join(realRepoRoot, "worlds"),
+    path.join(tmpRepoRoot, "worlds")
   );
-  assert.equal(mara.schema_version, "parley-character/v1");
-  assert.equal(mara.reusable, true);
-  assert.equal(mara.belayerGeneratedTalent.schema_version, "belayer-generated-talent/v1");
-  assert.equal(mara.belayerGeneratedTalent.source_request, "instance-load");
-  assert.deepEqual(mara.portrait, { status: "missing" });
+
+  let instanceDir;
+  try {
+    ({ instanceDir } = await materializeInstance({
+      worldId: "last-lantern",
+      instanceId: "last-lantern-test",
+      repoRoot: tmpRepoRoot,
+      hermesProfilesRoot,
+      spawnSubprocess: mockSpawn,
+    }));
+
+    const characters = await loadInstanceCharacters({
+      instanceDir,
+      sceneId: "last-lantern-tavern"
+    });
+
+    // last-lantern has exactly one character: mara-underbough
+    assert.ok(characters.length >= 1, "should load at least 1 character from last-lantern");
+
+    const mara = characters.find((c) => c.id === "mara-underbough");
+    assert.ok(mara, "mara-underbough should be present");
+    assert.ok(
+      mara.tags.includes("scene:last-lantern-tavern"),
+      "mara should have scene:last-lantern-tavern tag"
+    );
+    assert.equal(mara.schema_version, "parley-character/v1");
+    assert.equal(mara.reusable, true);
+    assert.equal(mara.belayerGeneratedTalent.schema_version, "belayer-generated-talent/v1");
+    assert.equal(mara.belayerGeneratedTalent.source_request, "instance-load");
+    assert.deepEqual(mara.portrait, { status: "missing" });
+  } finally {
+    // Always clean up — ensures no instances/last-lantern/last-lantern-test lands in repo
+    await rm(tmpRepoRoot, { recursive: true, force: true });
+    await rm(hermesProfilesRoot, { recursive: true, force: true });
+  }
 });

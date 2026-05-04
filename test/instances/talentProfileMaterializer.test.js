@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readFile, stat } from "node:fs/promises";
+import { mkdtemp, readFile, stat, mkdir } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 
@@ -155,6 +155,31 @@ test("invalid budget: uppercase cragSlug throws invalid profile name budget erro
       return true;
     },
   );
+});
+
+// ---------------------------------------------------------------------------
+// Partial state: dir exists but yaml missing → completes materialization
+// ---------------------------------------------------------------------------
+
+test("partial state: dir exists without .belayer-talent.yaml → completes materialization", async () => {
+  const hermesProfilesRoot = await makeTmpDir();
+  const args = { ...BASE_ARGS, hermesProfilesRoot };
+
+  // Simulate a prior run that died after mkdir but before file write
+  const profileName = "blyr-last-lantern-alpha-mara-underbough";
+  const profileDir = path.join(hermesProfilesRoot, profileName);
+  await mkdir(profileDir, { recursive: true });
+  // Do NOT write .belayer-talent.yaml
+
+  // A second call without force should complete the materialization (not return alreadyExists: true)
+  const result = await materializeTalentProfile(args);
+  assert.equal(result.alreadyExists, false, "should not report alreadyExists when yaml was missing");
+  assert.equal(result.profileDir, profileDir, "profileDir should match");
+
+  // The yaml file should now exist
+  const yamlPath = path.join(profileDir, ".belayer-talent.yaml");
+  const yamlStat = await stat(yamlPath);
+  assert.ok(yamlStat.isFile(), ".belayer-talent.yaml should exist after completing materialization");
 });
 
 // ---------------------------------------------------------------------------

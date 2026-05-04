@@ -94,7 +94,25 @@ export async function persistCharacterMarkdown({ character, worldDir }) {
   const charactersDir = path.join(worldDir, "characters");
   await mkdir(charactersDir, { recursive: true });
 
-  const content = `# ${character.name}
+  const tagsYaml = JSON.stringify(character.tags ?? []);
+  const frontmatter = [
+    "---",
+    `id: ${character.id}`,
+    `name: ${character.name}`,
+    `role: ${character.role ?? "unspecified"}`,
+    `lifecycle: ${character.lifecycle ?? "resumable"}`,
+    ...(character.world != null ? [`world: ${character.world}`] : []),
+    ...(character.scene != null ? [`scene: ${character.scene}`] : []),
+    ...(character.faction != null ? [`faction: ${character.faction}`] : []),
+    ...(character.tone != null ? [`tone: ${character.tone}`] : []),
+    ...(character.importance != null ? [`importance: ${character.importance}`] : []),
+    ...(character.knowledgeBoundary != null ? [`knowledgeBoundary: ${character.knowledgeBoundary}`] : []),
+    `tags: ${tagsYaml}`,
+    "---",
+    "",
+  ].join("\n");
+
+  const content = `${frontmatter}# ${character.name}
 
 Schema: \`${character.schema_version}\`
 

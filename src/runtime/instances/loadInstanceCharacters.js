@@ -47,6 +47,40 @@ function parseFrontmatter(content) {
 }
 
 // ---------------------------------------------------------------------------
+// Prose tags parser (fallback for files without YAML frontmatter)
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse a `## Tags` section from a prose markdown body.
+ * Each line of the form `- \`tag:value\`` contributes a tag.
+ * Also extracts `role` if a tag entry of the form `role:<name>` is present.
+ *
+ * @param {string} body - Markdown body (no frontmatter)
+ * @returns {{ tags: string[], role: string | undefined }}
+ */
+function parseProseTags(body) {
+  const tags = [];
+  let role;
+
+  // Find the ## Tags section (capture until the next ## heading or end of string)
+  const tagsMatch = body.match(/^##\s+Tags\s*\n([\s\S]*?)(?=^##\s|\Z)/m);
+  if (!tagsMatch) return { tags, role };
+
+  for (const line of tagsMatch[1].split("\n")) {
+    // Match lines like: - `some:tag`
+    const tagMatch = line.match(/^-\s+`([^`]+)`/);
+    if (!tagMatch) continue;
+    const tag = tagMatch[1].trim();
+    tags.push(tag);
+    if (tag.startsWith("role:")) {
+      role = tag.slice("role:".length);
+    }
+  }
+
+  return { tags, role };
+}
+
+// ---------------------------------------------------------------------------
 // Humanize helper
 // ---------------------------------------------------------------------------
 
@@ -145,10 +179,14 @@ export async function loadInstanceCharacters({ instanceDir, sceneId }) {
 async function loadCharacterFile({ charsDir, mdFile, sceneId }) {
   const id = path.basename(mdFile, ".md");
   const content = await readFile(path.join(charsDir, mdFile), "utf8");
-  const { frontmatter } = parseFrontmatter(content);
+  const { frontmatter, body } = parseFrontmatter(content);
+
+  // If no frontmatter, fall back to parsing the prose ## Tags section.
+  const hasFrontmatter = Object.keys(frontmatter).length > 0;
+  const proseFallback = hasFrontmatter ? { tags: [], role: undefined } : parseProseTags(body);
 
   const name = frontmatter.name ?? humanizeId(id);
-  const role = frontmatter.role ?? "unspecified";
+  const role = frontmatter.role ?? proseFallback.role ?? "unspecified";
   const lifecycle = frontmatter.lifecycle ?? "resumable";
   const world = frontmatter.world ?? undefined;
   const faction = frontmatter.faction ?? undefined;
@@ -157,8 +195,10 @@ async function loadCharacterFile({ charsDir, mdFile, sceneId }) {
   const knowledgeBoundary = frontmatter.knowledgeBoundary ?? undefined;
   const visual = frontmatter.visual ?? undefined;
 
-  // Build tags: start with any frontmatter tags, then add scene tag.
-  const baseTags = Array.isArray(frontmatter.tags) ? [...frontmatter.tags] : [];
+  // Build tags: start with frontmatter tags or prose-extracted tags, then add scene tag.
+  const baseTags = Array.isArray(frontmatter.tags)
+    ? [...frontmatter.tags]
+    : [...proseFallback.tags];
   const sceneTag = `scene:${sceneId}`;
   const tags = baseTags.includes(sceneTag) ? baseTags : [...baseTags, sceneTag];
 

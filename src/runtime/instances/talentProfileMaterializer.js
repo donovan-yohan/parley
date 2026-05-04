@@ -108,13 +108,20 @@ export async function materializeTalentProfile({
   // 2. Compute profile directory path
   const profileDir = path.join(hermesProfilesRoot, profileName);
 
-  // 3. Idempotency check: if directory exists and force is false, return early
+  // 3. Idempotency check: if directory AND .belayer-talent.yaml both exist, return early.
+  // If only the directory exists (e.g. a prior run died after mkdir but before file write),
+  // fall through and finish the materialization rather than silently reporting success.
   if (!force) {
-    const exists = await stat(profileDir)
+    const dirExists = await stat(profileDir)
       .then(() => true)
       .catch(() => false);
-    if (exists) {
-      return { profileDir, profileName, alreadyExists: true };
+    if (dirExists) {
+      const yamlExists = await stat(path.join(profileDir, ".belayer-talent.yaml"))
+        .then(() => true)
+        .catch(() => false);
+      if (yamlExists) {
+        return { profileDir, profileName, alreadyExists: true };
+      }
     }
   }
 

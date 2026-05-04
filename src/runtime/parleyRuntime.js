@@ -38,7 +38,10 @@ export async function runPlayerTurn({
   const scenario = await loadRuntimeScenario({ scenarioId, scenePath });
   const scene = scenario.scene;
   const resolvedStateDir = stateDir ?? scenario.stateDir;
-  const resolvedWorldDir = worldDir ?? scenario.worldDir;
+  // When instanceDir is provided and worldDir is not explicitly set, derive worldDir
+  // from the instance so visual asset reads/writes and truth-authority calls hit the
+  // instance's copy of the world rather than the shared template.
+  const resolvedWorldDir = worldDir ?? (instanceDir ? path.join(instanceDir, "world") : scenario.worldDir);
   await mkdir(resolvedStateDir, { recursive: true });
 
   const worldStatePath = path.join(resolvedStateDir, "world-state.json");

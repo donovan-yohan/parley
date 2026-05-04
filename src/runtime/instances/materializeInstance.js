@@ -49,6 +49,31 @@ function defaultSpawn(cmd, args) {
 }
 
 // ---------------------------------------------------------------------------
+// Directory copy helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Recursively copy a directory tree from src to dest.
+ * @param {string} src
+ * @param {string} dest
+ * @param {{ skip?: Set<string> }} [opts]
+ */
+async function copyDir(src, dest, { skip = new Set() } = {}) {
+  await mkdir(dest, { recursive: true });
+  const entries = await readdir(src, { withFileTypes: true });
+  for (const entry of entries) {
+    if (skip.has(entry.name)) continue;
+    const s = path.join(src, entry.name);
+    const d = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      await copyDir(s, d, { skip });
+    } else {
+      await copyFile(s, d);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -115,7 +140,10 @@ export async function materializeInstance({
 
   // 5. Read character templates from worlds/<worldId>/characters/*.md
   const charsTemplateDir = path.join(worldDir, "characters");
-  const charFiles = await readdir(charsTemplateDir).catch(() => []);
+  const charFiles = await readdir(charsTemplateDir).catch((err) => {
+    if (err.code === "ENOENT") return [];
+    throw err;
+  });
   const mdFiles = charFiles.filter((f) => f.endsWith(".md"));
   const characterIds = mdFiles.map((f) => path.basename(f, ".md"));
 
@@ -143,16 +171,8 @@ export async function materializeInstance({
   const profiles = [];
 
   try {
-    // 7. Create instance directories
-    const instanceCharsDir = path.join(instanceDir, "world", "characters");
-    await mkdir(instanceCharsDir, { recursive: true });
-
-    // Copy character .md files into instance
-    for (const mdFile of mdFiles) {
-      const src = path.join(charsTemplateDir, mdFile);
-      const dest = path.join(instanceCharsDir, mdFile);
-      await copyFile(src, dest);
-    }
+    // 7. Copy full world template into instance/world/, skipping state/ (runtime-only)
+    await copyDir(worldDir, path.join(instanceDir, "world"), { skip: new Set(["state"]) });
 
     // Write manifest.json
     const manifest = {

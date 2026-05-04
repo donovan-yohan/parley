@@ -142,20 +142,7 @@ async function migrateScenarioJson(scenarioId, instanceIdOverride, dryRun) {
     return { scenarioPath, oldValue, newValue, changed: true };
   }
 
-  // Mutate: remove crag, add instance
-  delete scene.crag;
-  scene.instance = newValue;
-
-  // Reinsert instance at the position crag was (preserve field order roughly).
-  // We rebuild scene with instance in place of where crag was by reconstructing the object.
-  const reorderedScene = {};
-  // Walk the original keys; crag is gone, insert instance where crag was.
-  for (const key of Object.keys(scene)) {
-    reorderedScene[key] = scene[key];
-  }
-  // But we already deleted crag and added instance at the end — to match the
-  // original order (schema_version, id, title, crag/instance, climb, ...) we
-  // need to rebuild the scene object with instance inserted at the right spot.
+  // Mutate: rebuild scene with instance inserted at the position crag occupied.
   // Re-parse the original to get key order, then rebuild.
   const origScene = JSON.parse(raw).scene;
   const newScene = {};

@@ -25,6 +25,7 @@ async function scaffoldWorld(repoRoot, worldId, characterIds) {
   const charsDir = path.join(worldDir, "characters");
   await mkdir(charsDir, { recursive: true });
   await writeFile(path.join(worldDir, "WORLD.md"), `# ${worldId} world\n`, "utf8");
+  await writeFile(path.join(worldDir, "art-style.md"), `# Art Style\n`, "utf8");
   for (const characterId of characterIds) {
     await writeFile(
       path.join(charsDir, `${characterId}.md`),
@@ -351,4 +352,37 @@ test("multi-character: both profiles materialized; mockSpawn called once", async
     const exists = await stat(profileDir).then(() => true).catch(() => false);
     assert.ok(exists, `profile dir for ${characterId} should exist`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Full world copy: WORLD.md and art-style.md are present in instance/world/
+// ---------------------------------------------------------------------------
+
+test("full world copy: WORLD.md and art-style.md exist in instance/world/ after materialization", async () => {
+  const repoRoot = await makeTmpDir();
+  const hermesProfilesRoot = await makeTmpDir();
+  await scaffoldWorld(repoRoot, WORLD_ID, CHARACTERS);
+
+  const mockSpawn = makeMockSpawn();
+
+  const result = await materializeInstance({
+    worldId: WORLD_ID,
+    instanceId: INSTANCE_ID,
+    repoRoot,
+    hermesProfilesRoot,
+    spawnSubprocess: mockSpawn,
+  });
+
+  const worldMdPath = path.join(result.instanceDir, "world", "WORLD.md");
+  const worldMdStat = await stat(worldMdPath);
+  assert.ok(worldMdStat.isFile(), "WORLD.md should be copied into instance/world/");
+
+  const artStylePath = path.join(result.instanceDir, "world", "art-style.md");
+  const artStyleStat = await stat(artStylePath);
+  assert.ok(artStyleStat.isFile(), "art-style.md should be copied into instance/world/");
+
+  // Characters should still be present (covered by recursive copy)
+  const maraPath = path.join(result.instanceDir, "world", "characters", "mara-underbough.md");
+  const maraStat = await stat(maraPath);
+  assert.ok(maraStat.isFile(), "character file should still exist under instance/world/characters/");
 });
