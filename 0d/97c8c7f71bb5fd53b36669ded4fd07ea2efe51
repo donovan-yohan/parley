@@ -1,0 +1,23 @@
+src/server.js
+  7d7420fb00981e5c 619-625,628-636,638-639,641,646-671,676
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "0d97c8c7f71bb5fd53b36669ded4fd07ea2efe51",
+  "prompts": {
+    "7d7420fb00981e5c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6b14623f-7419-4221-ad6a-aafdc795412c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 949,
+      "total_deletions": 11,
+      "accepted_lines": 949,
+      "overriden_lines": 0
+    }
+  }
+}
