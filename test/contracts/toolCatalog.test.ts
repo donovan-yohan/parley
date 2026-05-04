@@ -67,12 +67,22 @@ describe("ToolCatalogEntrySchema — negative", () => {
     assert.equal(result.success, false);
   });
 
-  it("rejects a tool name with numbers", () => {
+  it("accepts a tool name with digits after the first char", () => {
     const result = ToolCatalogEntrySchema.safeParse({
-      name: "speak2",
+      name: "emit_v2_event",
       authority: "actor",
       write_path: "instance-public",
-      description: "Bad name."
+      description: "Future-proof name."
+    });
+    assert.equal(result.success, true);
+  });
+
+  it("rejects a tool name with leading digit", () => {
+    const result = ToolCatalogEntrySchema.safeParse({
+      name: "2speak",
+      authority: "actor",
+      write_path: "instance-public",
+      description: "Bad name (leading digit)."
     });
     assert.equal(result.success, false);
   });

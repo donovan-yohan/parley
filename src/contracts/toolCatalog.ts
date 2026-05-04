@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const ToolCatalogEntrySchema = z.object({
-  name: z.string().regex(/^[a-z][a-z_]{0,31}$/, "tool name lowercase, snake_case, max 32"),
+  name: z.string().regex(/^[a-z][a-z0-9_]{0,31}$/, "tool name lowercase snake_case (digits ok after first char), max 32"),
   authority: z.enum(["actor", "gm-only", "validator-only", "lifecycle"]),
   write_path: z.enum(["profile-private", "instance-public", "none"]),
   description: z.string().min(1),

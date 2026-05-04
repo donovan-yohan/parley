@@ -80,3 +80,25 @@ describe("worldInstanceEvaluationWriter - validateEvaluation injection", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Idempotent rewrite: second write with different content overwrites first
+// ---------------------------------------------------------------------------
+describe("worldInstanceEvaluationWriter - idempotent rewrite", () => {
+  it("rewrites without error and second write wins", async () => {
+    const instanceDir = await makeTmpDir();
+    const storyId = "story-rewrite";
+
+    const first = makeEvaluation({ summary: "First pass — preliminary observations." });
+    const second = makeEvaluation({ summary: "Second pass — reviewed and corrected." });
+
+    const r1 = await writeWorldInstanceEvaluation({ instanceDir, storyId, evaluation: first });
+    const after1 = JSON.parse(await readFile(r1.evalPath, "utf8"));
+    assert.equal(after1.summary, "First pass — preliminary observations.");
+
+    const r2 = await writeWorldInstanceEvaluation({ instanceDir, storyId, evaluation: second });
+    assert.equal(r2.evalPath, r1.evalPath, "second write should target same path");
+    const after2 = JSON.parse(await readFile(r2.evalPath, "utf8"));
+    assert.equal(after2.summary, "Second pass — reviewed and corrected.", "second write should overwrite first");
+  });
+});

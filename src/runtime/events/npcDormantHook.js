@@ -27,8 +27,14 @@ export async function emitNpcDormantEvent({
   return appendStoryEventFn({ instanceDir, storyId, event });
 }
 
+/**
+ * Returns evaluation artifact paths newer than `sinceTimestamp` (ms epoch or ISO string).
+ * If `sinceTimestamp` is null/undefined, returns all matching artifacts.
+ *
+ * Filtering uses file mtime (not file content); a polling caller should pass
+ * the timestamp of the prior poll to avoid re-emitting npc.dormant events.
+ */
 export async function findNewTalentEvaluations({ artifactsDir, sinceTimestamp = null }) {
-  // Returns list of evaluation artifact paths newer than sinceTimestamp.
   const exists = await stat(artifactsDir)
     .then(() => true)
     .catch(() => false);
@@ -37,5 +43,21 @@ export async function findNewTalentEvaluations({ artifactsDir, sinceTimestamp = 
   const evaluations = files.filter(
     (f) => f.startsWith("talent-evaluation-") && f.endsWith(".json"),
   );
-  return evaluations.map((f) => path.join(artifactsDir, f));
+  const fullPaths = evaluations.map((f) => path.join(artifactsDir, f));
+
+  if (sinceTimestamp == null) return fullPaths;
+
+  const sinceMs = typeof sinceTimestamp === "number"
+    ? sinceTimestamp
+    : new Date(sinceTimestamp).getTime();
+  if (Number.isNaN(sinceMs)) {
+    throw new Error(`findNewTalentEvaluations: sinceTimestamp ${sinceTimestamp} is not a valid timestamp`);
+  }
+
+  const newer = [];
+  for (const full of fullPaths) {
+    const st = await stat(full).catch(() => null);
+    if (st && st.mtimeMs > sinceMs) newer.push(full);
+  }
+  return newer;
 }
