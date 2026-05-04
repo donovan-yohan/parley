@@ -1,0 +1,27 @@
+worlds/orchard-welcome/world.json
+  450676fd0e253278 1-8
+worlds/last-lantern/world.json
+  450676fd0e253278 1-8
+worlds/neon-afterhours/world.json
+  450676fd0e253278 1-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "a36d297d0bb8563caf82ffb7472b79bf1e332062",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 24,
+      "total_deletions": 0,
+      "accepted_lines": 27,
+      "overriden_lines": 0
+    }
+  }
+}
