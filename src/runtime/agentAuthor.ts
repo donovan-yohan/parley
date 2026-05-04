@@ -56,6 +56,13 @@ export interface AuthoredTurn {
   proposedFacts: ProposedFact[];
   storyConsequence?: StoryConsequence | null;
   beatRedirect?: BeatRedirect | null;
+  /**
+   * Truth-authority verdict on the turn. When "revise", the shell surfaces
+   * `rejectionMessage` instead of appending the turn to the transcript.
+   */
+  verdict?: "accept" | "revise";
+  /** Player-facing reason a turn was rejected; only present when verdict === "revise". */
+  rejectionMessage?: string;
 }
 
 /** The contract any turn-authoring agent must satisfy. */

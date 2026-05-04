@@ -377,7 +377,7 @@ test("POST /api/turn with new shape returns AuthoredTurn", async () => {
   assert.match(data.narration, /Mara Underbough/);
 });
 
-test("POST /api/turn with old shape (scenarioId, playerAction) still returns the legacy result", async () => {
+test("POST /api/turn with old shape (scenarioId, playerAction) returns 400 — legacy shape removed in 1d", async () => {
   const server = createParleyServer({
     instanceDir: path.join(repoRoot, "instances", "last-lantern", "playthrough-1")
   });
@@ -390,17 +390,11 @@ test("POST /api/turn with old shape (scenarioId, playerAction) still returns the
       playerAction: "I ask who signed the audit lockout."
     })
   });
-  assert.equal(response.status, 200);
+  // The legacy { scenarioId } shape was removed in 1d. worldId is required.
+  assert.equal(response.status, 400);
 
   const data = await response.json();
-
-  // Legacy shape: runPlayerTurn result passed directly — includes scenario, narration, etc.
-  assert.ok(typeof data.narration === "string" && data.narration.length > 0, "narration must be a non-empty string");
-  // The neon-afterhours mock fixture always mentions Veyra Sol
-  assert.match(data.narration, /Veyra Sol/);
-  // Legacy result includes the scenario object
-  assert.ok(data.scenario, "legacy result should include scenario");
-  assert.equal(data.scenario.id, "neon-afterhours");
+  assert.ok(typeof data.error === "string", "error message should be present for rejected legacy shape");
 });
 
 test("POST /api/turn rejects with 400 when new shape is missing playerAction", async () => {

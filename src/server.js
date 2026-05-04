@@ -1,20 +1,16 @@
 import { createServer } from "node:http";
-import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { loadCurrentState, runPlayerTurn } from "./runtime/parleyRuntime.js";
-import { defaultScenarioId, listScenarioPacks, loadScenarioPack, repoRoot } from "./runtime/scenarioPacks.js";
+import { runPlayerTurn } from "./runtime/parleyRuntime.js";
+import { defaultScenarioId, loadScenarioPack, repoRoot } from "./runtime/scenarioPacks.js";
 import { subscribe } from "./runtime/events/sseBroadcaster.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const legacyClientDir = path.join(root, "src", "client");
+// 1d removed src/client/ entirely — the Vite-built shell is now the only UI.
 const distDir = path.join(root, "dist");
-// Prefer the Vite-built shell (`npm run build` → dist/) when present so
-// `npm start` exposes the new Preact UI through the production server.
-// Fall back to the pre-1b src/client UI when no build output exists.
-const clientDir = existsSync(distDir) ? distDir : legacyClientDir;
+const clientDir = distDir;
 const port = Number(process.env.PORT ?? 4173);
 const host = process.env.HOST ?? "127.0.0.1";
 const maxJsonBodyBytes = 1_000_000;
@@ -68,14 +64,30 @@ export async function handleParleyRequest(request, response, runtimeOptions = {}
 
     {
       const instanceMatch = requestUrl.pathname.match(/^\/api\/instances\/([^/]+)\/([^/]+)$/);
-      if (request.method === "GET" && instanceMatch) {
+      if (instanceMatch) {
         const worldId = decodeURIComponent(instanceMatch[1]);
         const instanceId = decodeURIComponent(instanceMatch[2]);
-        const result = await handleGetInstance(worldId, instanceId);
-        if (!result) {
-          return sendJson(response, { error: "instance not found" }, 404);
+
+        if (request.method === "GET") {
+          const result = await handleGetInstance(worldId, instanceId);
+          if (!result) {
+            return sendJson(response, { error: "instance not found" }, 404);
+          }
+          return sendJson(response, result);
         }
-        return sendJson(response, result);
+
+        if (request.method === "PATCH") {
+          const body = await readJsonBody(request);
+          if (!body.displayName) {
+            return sendJson(response, { error: "displayName required" }, 400);
+          }
+          return sendJson(response, await handleRenameInstance(worldId, instanceId, body.displayName));
+        }
+
+        if (request.method === "DELETE") {
+          await handleDeleteInstance(worldId, instanceId);
+          return sendJson(response, { ok: true });
+        }
       }
     }
 
@@ -116,36 +128,20 @@ export async function handleParleyRequest(request, response, runtimeOptions = {}
 
     // ── Existing endpoints ───────────────────────────────────────────────────
 
-
-    if (request.method === "GET" && requestUrl.pathname === "/api/scenarios") {
-      return sendJson(response, {
-        defaultScenarioId,
-        scenarios: await listScenarioPacks()
-      });
-    }
-
-    if (request.method === "GET" && requestUrl.pathname === "/api/state") {
-      return sendJson(response, await loadCurrentState({
-        ...runtimeOptions,
-        scenarioId: requestUrl.searchParams.get("scenario") ?? runtimeOptions.scenarioId ?? defaultScenarioId
-      }));
-    }
+    // GET /api/scenarios — removed in 1d (replaced by GET /api/worlds).
+    // GET /api/state — removed in 1d (no longer needed; shell uses new endpoints).
+    // POST /api/turn legacy shape { scenarioId, playerAction } — removed in 1d.
 
     if (request.method === "POST" && requestUrl.pathname === "/api/turn") {
       const body = await readJsonBody(request);
 
-      // New shape: { worldId, instanceId, storyId, playerAction }
-      if (body.worldId) {
-        const result = await handleRunTurnNew(body.worldId, body.instanceId, body.storyId, body.playerAction);
-        return sendJson(response, result);
+      // Reject old shape: { scenarioId, playerAction }
+      if (!body.worldId) {
+        return sendJson(response, { error: "worldId is required. Legacy {scenarioId} shape is no longer accepted." }, 400);
       }
 
-      // Legacy shape: { scenarioId, playerAction } — back-compat until 1d.
-      const result = await runPlayerTurn({
-        ...runtimeOptions,
-        scenarioId: body.scenarioId ?? runtimeOptions.scenarioId ?? defaultScenarioId,
-        playerAction: body.playerAction
-      });
+      // New shape: { worldId, instanceId, storyId, playerAction }
+      const result = await handleRunTurnNew(body.worldId, body.instanceId, body.storyId, body.playerAction);
       return sendJson(response, result);
     }
 
@@ -354,6 +350,48 @@ async function handleCreateInstance(worldId, displayName) {
   };
 }
 
+async function handleRenameInstance(worldId, instanceId, displayName) {
+  // Safety: resolve the instance dir and ensure it stays inside instances/.
+  // Without this, "../" segments in worldId or instanceId would let a
+  // crafted PATCH request rewrite arbitrary instance.json files.
+  const instancesRoot = path.resolve(path.join(repoRoot, "instances"));
+  const resolvedInstanceDir = path.resolve(path.join(repoRoot, "instances", worldId, instanceId));
+  if (!resolvedInstanceDir.startsWith(instancesRoot + path.sep)) {
+    const error = new Error("Path traversal detected");
+    error.statusCode = 400;
+    throw error;
+  }
+  const instanceJsonPath = path.join(resolvedInstanceDir, "instance.json");
+  let meta = { displayName: instanceId, createdAt: null, lastPlayedAt: null };
+  try {
+    const raw = await readFile(instanceJsonPath, "utf8");
+    meta = { ...meta, ...JSON.parse(raw) };
+  } catch (err) {
+    // Missing instance.json is OK — we'll create it below.
+    // Re-throw any other error (permissions, IO) so we don't silently
+    // overwrite a file we couldn't read for a real reason.
+    if (err.code !== "ENOENT") {
+      throw err;
+    }
+  }
+  meta.displayName = displayName;
+  await writeFile(instanceJsonPath, `${JSON.stringify(meta, null, 2)}\n`, "utf8");
+  return { worldId, instanceId, displayName, createdAt: meta.createdAt, lastPlayedAt: meta.lastPlayedAt };
+}
+
+async function handleDeleteInstance(worldId, instanceId) {
+  const instanceDir = path.join(repoRoot, "instances", worldId, instanceId);
+  // Safety: ensure the resolved path is within the instances directory
+  const instancesRoot = path.join(repoRoot, "instances");
+  const resolved = path.resolve(instanceDir);
+  if (!resolved.startsWith(path.resolve(instancesRoot) + path.sep)) {
+    const error = new Error("Path traversal detected");
+    error.statusCode = 400;
+    throw error;
+  }
+  await rm(resolved, { recursive: true, force: true });
+}
+
 async function handleGetStories(worldId, instanceId) {
   const safeWorldId = validateId(worldId, "worldId");
   const safeInstanceId = validateId(instanceId, "instanceId");
@@ -431,15 +469,15 @@ async function handleGetStory(worldId, instanceId, storyId) {
   const safeWorldId = validateId(worldId, "worldId");
   const safeInstanceId = validateId(instanceId, "instanceId");
   const safeStoryId = validateId(storyId, "storyId");
-  const storyJsonPath = path.join(
+  const storyDir = path.join(
     repoRoot,
     "instances",
     safeWorldId,
     safeInstanceId,
     "stories",
-    safeStoryId,
-    "story.json"
+    safeStoryId
   );
+  const storyJsonPath = path.join(storyDir, "story.json");
   let storyMeta = { status: "in_progress", turnCount: 0 };
   try {
     const raw = await readFile(storyJsonPath, "utf8");
@@ -452,13 +490,33 @@ async function handleGetStory(worldId, instanceId, storyId) {
     }
     throw error;
   }
+  const turns = await readStoryTurns(storyDir);
   return {
     worldId: safeWorldId,
     instanceId: safeInstanceId,
     storyId: safeStoryId,
     status: storyMeta.status ?? "in_progress",
-    turnCount: storyMeta.turnCount ?? 0
+    turnCount: storyMeta.turnCount ?? 0,
+    turns
   };
+}
+
+async function readStoryTurns(storyDir) {
+  const turnsPath = path.join(storyDir, "turns.jsonl");
+  try {
+    const raw = await readFile(turnsPath, "utf8");
+    return raw
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        try { return JSON.parse(line); } catch { return null; }
+      })
+      .filter(Boolean);
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
 }
 
 async function handleRunTurnNew(worldId, instanceId, storyId, playerAction) {
@@ -508,7 +566,8 @@ async function handleRunTurnNew(worldId, instanceId, storyId, playerAction) {
     const playedAt = new Date().toISOString();
 
     if (safeStoryId) {
-      const storyJsonPath = path.join(instanceDir, "stories", safeStoryId, "story.json");
+      const storyDir = path.join(instanceDir, "stories", safeStoryId);
+      const storyJsonPath = path.join(storyDir, "story.json");
       try {
         const raw = await readFile(storyJsonPath, "utf8");
         const storyMeta = JSON.parse(raw);
@@ -520,6 +579,18 @@ async function handleRunTurnNew(worldId, instanceId, storyId, playerAction) {
           throw error;
         }
         // No story.json yet — nothing to update.
+      }
+      // Append turn to per-story log so resumes can rehydrate the transcript.
+      try {
+        const turnRecord = {
+          playerAction,
+          authoredTurn,
+          recordedAt: playedAt
+        };
+        await mkdir(storyDir, { recursive: true });
+        await appendFile(path.join(storyDir, "turns.jsonl"), `${JSON.stringify(turnRecord)}\n`, "utf8");
+      } catch {
+        // Best effort: a missing log shouldn't break a successful turn return.
       }
     }
 
@@ -586,9 +657,9 @@ function isWorldImageAsset(filePath) {
 async function serveStatic(request, response) {
   const urlPath = new URL(request.url, `http://localhost:${port}`).pathname;
   const relativePath = urlPath === "/" ? "index.html" : urlPath.slice(1);
-  const filePath = path.join(clientDir, relativePath);
+  const filePath = path.join(distDir, relativePath);
 
-  if (!filePath.startsWith(clientDir)) {
+  if (!filePath.startsWith(distDir)) {
     return sendJson(response, { error: "Not found" }, 404);
   }
 

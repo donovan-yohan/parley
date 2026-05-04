@@ -40,15 +40,29 @@ export interface StorySummary {
   storyId: string;
   status: "in_progress" | "completed" | "abandoned";
   turnCount: number;
+  /** ISO timestamp of the last `runTurn` call against this story, if any. */
+  lastPlayedAt?: string | null;
 }
 
-export async function getStory(opts: { worldId: string; instanceId: string; storyId: string }): Promise<StorySummary> {
+/** A single turn persisted to the story log; replayed on resume. */
+export interface PersistedTurn {
+  playerAction: string;
+  authoredTurn: AuthoredTurn;
+  recordedAt: string;
+}
+
+export interface StoryDetail extends StorySummary {
+  /** Empty for brand-new stories. */
+  turns: PersistedTurn[];
+}
+
+export async function getStory(opts: { worldId: string; instanceId: string; storyId: string }): Promise<StoryDetail> {
   const params = new URLSearchParams({
     world: opts.worldId,
     instance: opts.instanceId,
     story: opts.storyId
   });
-  return fetchJSON<StorySummary>(`/api/story?${params.toString()}`);
+  return fetchJSON<StoryDetail>(`/api/story?${params.toString()}`);
 }
 
 export async function getStories(worldId: string, instanceId: string): Promise<{ templates: string[]; instances: StorySummary[] }> {
@@ -61,6 +75,27 @@ export async function createStory(worldId: string, instanceId: string, storyTemp
     method: "POST",
     body: JSON.stringify({ worldId, instanceId, storyTemplateId })
   });
+}
+
+/** Sort a list by lastPlayedAt descending (recent first); items missing the field sort last. */
+export function sortByLastPlayedDesc<T extends { lastPlayedAt?: string | null }>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const ta = a.lastPlayedAt ? Date.parse(a.lastPlayedAt) : 0;
+    const tb = b.lastPlayedAt ? Date.parse(b.lastPlayedAt) : 0;
+    return tb - ta;
+  });
+}
+
+/** Fetch all instances for a world; returns [] if none exist. */
+export async function getInstances(worldId: string): Promise<InstanceSummary[]> {
+  try {
+    const data = await fetchJSON<{ instances: InstanceSummary[] }>(
+      `/api/instances?world=${encodeURIComponent(worldId)}`
+    );
+    return data.instances ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export interface RunTurnInput {
