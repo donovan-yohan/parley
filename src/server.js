@@ -616,29 +616,64 @@ async function handleRunTurnNew(worldId, instanceId, storyId, playerAction) {
 // ── Existing helpers ──────────────────────────────────────────────────────────
 
 async function serveWorldAsset(requestUrl, response, runtimeOptions = {}) {
-  const scenarioId = requestUrl.searchParams.get("scenario") ?? runtimeOptions.scenarioId ?? defaultScenarioId;
-  const scenario = runtimeOptions.worldDir ? null : await loadScenarioPack(scenarioId);
-  const worldDir = runtimeOptions.worldDir ?? scenario.worldDir;
+  // The query param is named ?scenario= for back-compat, but the value is
+  // a world id (1d shifted from scenario-keyed UI to world-keyed UI). Resolve
+  // the world directory directly so asset serving doesn't depend on a
+  // scenario pack existing at worlds/<id>/scenarios/<id>/ (which is no longer
+  // an invariant since flagship worlds ship scenarios with different ids).
+  const worldId = requestUrl.searchParams.get("scenario") ?? runtimeOptions.scenarioId ?? defaultScenarioId;
+  const worldDir = runtimeOptions.worldDir ?? path.join(repoRoot, "worlds", worldId);
   const relativeAssetPath = decodeURIComponent(requestUrl.pathname.slice("/world-assets/".length));
   const filePath = path.resolve(worldDir, relativeAssetPath);
-  const assetsDir = path.resolve(worldDir, "assets");
+  const worldRoot = path.resolve(worldDir);
 
-  if (!filePath.startsWith(`${assetsDir}${path.sep}`) || !isWorldImageAsset(filePath)) {
+  // Whitelist:
+  //   - theme.yaml + stylesheet.css at the world root (required by the
+  //     theme cascade and the per-world stylesheet hook).
+  //   - any image file under assets/ (PNG, JPEG, WEBP).
+  // Anything else → 404, regardless of whether it would resolve.
+  const isThemeYaml = filePath === path.join(worldRoot, "theme.yaml");
+  const isStylesheet = filePath === path.join(worldRoot, "stylesheet.css");
+  const assetsDir = path.resolve(worldDir, "assets");
+  const isImageAsset =
+    filePath.startsWith(`${assetsDir}${path.sep}`) && isWorldImageAsset(filePath);
+
+  if (!isThemeYaml && !isStylesheet && !isImageAsset) {
     return sendJson(response, { error: "Not found" }, 404);
   }
 
   try {
-    const [realAssetsDir, realFilePath] = await Promise.all([realpath(assetsDir), realpath(filePath)]);
-    if (
-      realFilePath === realAssetsDir ||
-      !realFilePath.startsWith(`${realAssetsDir}${path.sep}`) ||
-      !isWorldImageAsset(realFilePath)
-    ) {
+    if (isImageAsset) {
+      const [realAssetsDir, realFilePath] = await Promise.all([
+        realpath(assetsDir),
+        realpath(filePath)
+      ]);
+      if (
+        realFilePath === realAssetsDir ||
+        !realFilePath.startsWith(`${realAssetsDir}${path.sep}`) ||
+        !isWorldImageAsset(realFilePath)
+      ) {
+        return sendJson(response, { error: "Not found" }, 404);
+      }
+      const data = await readFile(realFilePath);
+      response.writeHead(200, {
+        "content-type": contentType(realFilePath),
+        "x-content-type-options": "nosniff"
+      });
+      response.end(data);
+      return;
+    }
+
+    // theme.yaml / stylesheet.css — confirm it is still inside the world dir
+    // after symlink resolution and serve with the right MIME type.
+    const realWorldRoot = await realpath(worldRoot);
+    const realFilePath = await realpath(filePath);
+    if (!realFilePath.startsWith(`${realWorldRoot}${path.sep}`)) {
       return sendJson(response, { error: "Not found" }, 404);
     }
     const data = await readFile(realFilePath);
     response.writeHead(200, {
-      "content-type": contentType(realFilePath),
+      "content-type": isThemeYaml ? "text/yaml; charset=utf-8" : "text/css; charset=utf-8",
       "x-content-type-options": "nosniff"
     });
     response.end(data);
