@@ -127,7 +127,7 @@ test("getWorlds returns a non-empty array of WorldSummary", async () => {
   }
 });
 
-test("getWorlds includes all three installed worlds", async () => {
+test("getWorlds includes all installed worlds (original three + flagship worlds)", async () => {
   const server = createParleyServer();
   const originalFetch = globalThis.fetch;
   globalThis.fetch = makeInProcessFetch(server);
@@ -135,11 +135,14 @@ test("getWorlds includes all three installed worlds", async () => {
     const worlds = await getWorlds();
     const ids = worlds.map((w) => w.id).sort();
 
-    assert.deepEqual(
-      ids,
-      ["last-lantern", "neon-afterhours", "orchard-welcome"],
-      "exactly the three installed worlds must be returned"
-    );
+    // Original three worlds must always be present
+    assert.ok(ids.includes("last-lantern"), "last-lantern must be present");
+    assert.ok(ids.includes("neon-afterhours"), "neon-afterhours must be present");
+    assert.ok(ids.includes("orchard-welcome"), "orchard-welcome must be present");
+    // Part-2 flagship worlds
+    assert.ok(ids.includes("night-city-after-curfew"), "night-city-after-curfew must be present");
+    assert.ok(ids.includes("verdant-aria"), "verdant-aria must be present");
+    assert.ok(ids.length >= 3, "at least three worlds must be returned");
   } finally {
     globalThis.fetch = originalFetch;
   }

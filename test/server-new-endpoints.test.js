@@ -135,7 +135,7 @@ async function cleanupWorldInstances(worldId) {
 
 // ── Tests: GET /api/worlds ────────────────────────────────────────────────────
 
-test("GET /api/worlds returns 200 with three world summaries", async () => {
+test("GET /api/worlds returns 200 with world summaries (original three + flagship worlds)", async () => {
   const server = createParleyServer();
   const fetch = createInProcessFetch(server);
 
@@ -144,7 +144,7 @@ test("GET /api/worlds returns 200 with three world summaries", async () => {
 
   const data = await response.json();
   assert.ok(Array.isArray(data.worlds), "response should have a worlds array");
-  assert.equal(data.worlds.length, 3, "expected exactly three worlds");
+  assert.ok(data.worlds.length >= 3, "expected at least three worlds");
 });
 
 test("GET /api/worlds entries include schema_version, id, name, premise, tone", async () => {
@@ -164,9 +164,12 @@ test("GET /api/worlds entries include schema_version, id, name, premise, tone", 
   assert.equal(lastLantern.tone, "grounded fantasy mystery");
   assert.ok(Array.isArray(lastLantern.scenarios), "scenarios should be an array");
 
-  // Verify all three known worlds are present
+  // Verify the original three worlds are present (plus any flagship worlds added in Part 2)
   const ids = data.worlds.map((world) => world.id).sort();
-  assert.deepEqual(ids, ["last-lantern", "neon-afterhours", "orchard-welcome"]);
+  assert.ok(ids.includes("last-lantern"), "last-lantern must be present");
+  assert.ok(ids.includes("neon-afterhours"), "neon-afterhours must be present");
+  assert.ok(ids.includes("orchard-welcome"), "orchard-welcome must be present");
+  assert.ok(ids.includes("night-city-after-curfew"), "night-city-after-curfew must be present");
 
   // Each entry must have the required fields
   for (const world of data.worlds) {

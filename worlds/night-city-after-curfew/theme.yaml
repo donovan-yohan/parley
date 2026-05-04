@@ -1,0 +1,40 @@
+schema_version: parley-theme/v1
+
+palette:
+  background:   "#0a0a0f"
+  midground:    "#3d0a3d"
+  foreground:   "#00f0ff"
+  warmGlow:     "rgba(255,0,200,0.4)"
+  noiseOpacity: 0.08
+
+typography:
+  fontMono:      "Share Tech Mono"
+  fontDisplay:   "Orbitron"
+  fontSans:      "Inter"
+  fontUrl:       "https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Inter:wght@400;500&display=swap"
+  baseSize:      14
+  lineHeight:    1.5
+  letterSpacing: "0.02em"
+
+layout:
+  radius:  "0"
+  density: compact
+
+layoutVariant: hud
+
+assets:
+  bg: "assets/backgrounds/silver-shard-extraction.prompt.md"
+
+componentStyles:
+  card:
+    background:  "rgba(15,15,25,0.85)"
+    borderColor: "rgba(0,240,255,0.4)"
+    clipPath:    "polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)"
+  dialogueFrame:
+    background:   "rgba(0,0,0,0.85)"
+    borderColor:  "#ff00c8"
+    borderWidth:  "2px"
+
+colorOverrides:
+  primary: "#00f0ff"
+  ring:    "rgba(0,240,255,0.5)"

@@ -1,0 +1,641 @@
+/* =========================================================================
+   Night City After Curfew — Custom Stylesheet
+   HUD-grade cyberpunk overlay: scanlines, glitch, holographic shimmer,
+   neon glow. Composited on top of theme.yaml token cascade.
+   ========================================================================= */
+
+/* ── Font baseline ─────────────────────────────────────────────────────── */
+
+[data-layout-variant="hud"],
+[data-layout-variant="hud"] * {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-layout-variant="hud"] h1,
+[data-layout-variant="hud"] h2,
+[data-layout-variant="hud"] h3,
+[data-layout-variant="hud"] .hud-display {
+  font-family: "Orbitron", "Share Tech Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* ── Scanline overlay (fixed, pointer-events:none) ─────────────────────── */
+
+@keyframes scanline-drift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 0 100vh; }
+}
+
+.ncac-scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.18) 3px,
+    rgba(0, 0, 0, 0.18) 4px
+  );
+  animation: scanline-drift 8s linear infinite;
+  mix-blend-mode: overlay;
+}
+
+/* ── CRT vignette ─────────────────────────────────────────────────────── */
+
+.ncac-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(0, 0, 0, 0.65) 100%
+  );
+}
+
+/* ── Glitch animation on L3 heading ───────────────────────────────────── */
+
+@keyframes glitch-shift {
+  0%, 90%, 100% {
+    text-shadow:
+      0 0 8px #00f0ff,
+      0 0 20px #00f0ff,
+      0 0 40px rgba(0, 240, 255, 0.4);
+    transform: translate(0, 0);
+    clip-path: none;
+  }
+  91% {
+    text-shadow:
+      -3px 0 #ff00c8,
+      3px 0 #00f0ff,
+      0 0 20px #ff00c8;
+    transform: translate(-2px, 0);
+  }
+  93% {
+    text-shadow:
+      3px 0 #ff00c8,
+      -3px 0 #00f0ff,
+      0 0 20px #00f0ff;
+    transform: translate(2px, 0);
+  }
+  95% {
+    text-shadow:
+      0 0 8px #00f0ff,
+      0 0 20px #00f0ff;
+    transform: translate(0, 0);
+  }
+}
+
+.ncac-l3-title,
+.l3-storyplay h1 {
+  animation: glitch-shift 6s steps(1) infinite;
+  color: #00f0ff;
+  text-shadow:
+    0 0 8px #00f0ff,
+    0 0 20px #00f0ff,
+    0 0 40px rgba(0, 240, 255, 0.4);
+}
+
+/* ── Neon grid overlay on L3 backdrop ─────────────────────────────────── */
+
+.ncac-neon-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 1;
+}
+
+/* ── HUD stat bar ──────────────────────────────────────────────────────── */
+
+.ncac-stat-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(0, 0, 0, 0.7);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.25);
+  font-family: "Orbitron", monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(0, 240, 255, 0.7);
+}
+
+.ncac-stat-label {
+  color: rgba(255, 0, 200, 0.8);
+  flex-shrink: 0;
+}
+
+.ncac-stat-value {
+  color: #00f0ff;
+  font-weight: 700;
+}
+
+.ncac-stat-divider {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(0, 240, 255, 0.4),
+    transparent
+  );
+}
+
+.ncac-worldid-badge {
+  font-size: 0.55rem;
+  color: rgba(255, 0, 200, 0.6);
+  letter-spacing: 0.15em;
+  margin-left: auto;
+}
+
+/* ── HUD header wrapper ────────────────────────────────────────────────── */
+
+.ncac-hud-header {
+  background: rgba(0, 0, 0, 0.85);
+  border-bottom: 2px solid rgba(0, 240, 255, 0.3);
+  position: relative;
+}
+
+.ncac-hud-header::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 0, 200, 0.6) 30%,
+    rgba(0, 240, 255, 0.8) 60%,
+    transparent
+  );
+}
+
+.ncac-back-btn {
+  background: transparent;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: rgba(0, 240, 255, 0.7);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+}
+
+.ncac-back-btn:hover {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: #00f0ff;
+  color: #00f0ff;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+}
+
+/* ── World title (L2) ──────────────────────────────────────────────────── */
+
+.ncac-world-title {
+  font-family: "Orbitron", monospace;
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #00f0ff;
+  text-shadow:
+    0 0 10px rgba(0, 240, 255, 0.6),
+    0 0 30px rgba(0, 240, 255, 0.2);
+  margin: 0;
+}
+
+.ncac-world-tone {
+  font-size: 0.65rem;
+  color: rgba(255, 0, 200, 0.7);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 0.1rem;
+}
+
+/* ── Story list (L2 body) ──────────────────────────────────────────────── */
+
+.ncac-story-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+.ncac-story-group {
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  background: rgba(15, 15, 25, 0.85);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ncac-story-group:hover {
+  border-color: rgba(0, 240, 255, 0.6);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.15), inset 0 0 12px rgba(0, 240, 255, 0.03);
+}
+
+@keyframes glitch-hover {
+  0%, 100% { transform: translate(0, 0); }
+  25%       { transform: translate(-1px, 0); }
+  75%       { transform: translate(1px, 0); }
+}
+
+.ncac-story-group:hover .ncac-template-title {
+  animation: glitch-hover 0.15s steps(1) 1;
+}
+
+.ncac-template-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ncac-template-title {
+  font-family: "Orbitron", monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #00f0ff;
+}
+
+.ncac-new-badge {
+  font-size: 0.6rem;
+  color: #ff00c8;
+  border: 1px solid rgba(255, 0, 200, 0.5);
+  padding: 0.1rem 0.4rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%);
+  transition: background 0.15s;
+}
+
+.ncac-template-header:hover .ncac-new-badge {
+  background: rgba(255, 0, 200, 0.15);
+}
+
+.ncac-instance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+.ncac-instance-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-top: 1px solid rgba(0, 240, 255, 0.05);
+  font-size: 0.75rem;
+}
+
+.ncac-instance-row:hover {
+  background: rgba(0, 240, 255, 0.05);
+}
+
+.ncac-instance-label {
+  flex: 1;
+  color: rgba(0, 240, 255, 0.8);
+  font-size: 0.7rem;
+}
+
+.ncac-instance-meta {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.65rem;
+}
+
+.ncac-status-badge {
+  font-size: 0.55rem;
+  padding: 0.1rem 0.35rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%);
+}
+
+.ncac-status-badge.in-progress {
+  color: #00f0ff;
+  border-color: rgba(0, 240, 255, 0.4);
+}
+
+.ncac-status-badge.completed {
+  color: rgba(0, 240, 255, 0.4);
+  border-color: rgba(0, 240, 255, 0.2);
+}
+
+.ncac-status-badge.abandoned {
+  color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── L2 empty/loading states ───────────────────────────────────────────── */
+
+.ncac-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: rgba(0, 240, 255, 0.4);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
+/* ── L3 StoryPlay — full-bleed black with neon grid ───────────────────── */
+
+.ncac-storyplay-root {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ncac-storyplay-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    160deg,
+    #0a0a0f 0%,
+    #0d001a 40%,
+    #001a2e 100%
+  );
+}
+
+/* ── L3 Transcript ─────────────────────────────────────────────────────── */
+
+.ncac-transcript {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+  z-index: 2;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 240, 255, 0.3) transparent;
+}
+
+.ncac-narration {
+  color: rgba(220, 220, 240, 0.85);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  font-style: italic;
+  padding: 0.5rem 0;
+  border-left: 2px solid rgba(0, 240, 255, 0.2);
+  padding-left: 0.75rem;
+}
+
+.ncac-player-action {
+  align-self: flex-end;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: #00f0ff;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+  max-width: 70%;
+}
+
+/* ── L3 Speaker dialogue box ───────────────────────────────────────────── */
+
+.ncac-speaker-box {
+  border: 2px solid #ff00c8;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 0.75rem 1rem;
+  position: relative;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+}
+
+.ncac-speaker-label {
+  font-family: "Orbitron", monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ff00c8;
+  text-shadow: 0 0 8px rgba(255, 0, 200, 0.6);
+  margin-bottom: 0.4rem;
+  display: block;
+}
+
+.ncac-speaker-label::before {
+  content: "► ";
+  opacity: 0.7;
+}
+
+.ncac-speaker-quote {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+/* ── L3 Input area ─────────────────────────────────────────────────────── */
+
+.ncac-footer {
+  position: relative;
+  z-index: 2;
+  border-top: 1px solid rgba(0, 240, 255, 0.2);
+  background: rgba(0, 0, 0, 0.85);
+  padding: 0.75rem 1rem;
+}
+
+.ncac-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.ncac-text-input {
+  flex: 1;
+  background: rgba(0, 10, 20, 0.9);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 0;
+  color: #00f0ff;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+}
+
+.ncac-text-input:focus {
+  border-color: #00f0ff;
+  box-shadow:
+    0 0 0 1px rgba(0, 240, 255, 0.3),
+    0 0 12px rgba(0, 240, 255, 0.25),
+    inset 0 0 8px rgba(0, 240, 255, 0.05);
+}
+
+.ncac-text-input::placeholder {
+  color: rgba(0, 240, 255, 0.3);
+  font-size: 0.75rem;
+}
+
+.ncac-text-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ncac-submit-btn {
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  color: #00f0ff;
+  font-family: "Orbitron", monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+}
+
+.ncac-submit-btn:hover:not(:disabled) {
+  background: rgba(0, 240, 255, 0.2);
+  border-color: #00f0ff;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+}
+
+.ncac-submit-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Holographic shimmer on choice buttons ─────────────────────────────── */
+
+@keyframes holo-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.ncac-choice-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: rgba(10, 10, 20, 0.8);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  color: rgba(0, 240, 255, 0.85);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.72rem;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  position: relative;
+  overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+  letter-spacing: 0.02em;
+}
+
+.ncac-choice-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(0, 240, 255, 0.15) 50%,
+    rgba(255, 0, 200, 0.08) 55%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: holo-shimmer 3s linear infinite;
+  pointer-events: none;
+}
+
+.ncac-choice-btn:hover:not(:disabled) {
+  border-color: rgba(0, 240, 255, 0.7);
+  color: #00f0ff;
+  background: rgba(0, 240, 255, 0.05);
+}
+
+.ncac-choice-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ncac-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+/* ── Rejection / error pill ────────────────────────────────────────────── */
+
+.ncac-rejection {
+  background: rgba(255, 0, 200, 0.1);
+  border: 1px solid rgba(255, 0, 200, 0.5);
+  color: #ff00c8;
+  font-size: 0.7rem;
+  padding: 0.4rem 0.75rem;
+  margin-bottom: 0.5rem;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+  letter-spacing: 0.03em;
+}
+
+/* ── L2 root wrapper ───────────────────────────────────────────────────── */
+
+.ncac-worldhome-root {
+  min-height: 100vh;
+  background: #0a0a0f;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.ncac-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0;
+}
+
+/* ── Scrollable collapsibles ────────────────────────────────────────────── */
+
+.ncac-collapsible {
+  padding: 0 1rem;
+  margin-top: 0.5rem;
+}
+
+.ncac-collapsible summary {
+  cursor: pointer;
+  font-size: 0.65rem;
+  color: rgba(0, 240, 255, 0.4);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.35rem 0;
+  list-style: none;
+}
+
+.ncac-collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+.ncac-collapsible summary::before {
+  content: "+ ";
+  color: rgba(255, 0, 200, 0.5);
+}
+
+[open].ncac-collapsible summary::before {
+  content: "- ";
+}
