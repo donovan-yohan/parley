@@ -1,0 +1,25 @@
+src/runtime/instances/talentProfileMaterializer.js
+  6fd9bdc7c61f8cc6 1-151
+test/instances/talentProfileMaterializer.test.js
+  6fd9bdc7c61f8cc6 1-207
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "6c1295b90512c382897c62c259557bacfd51f88d",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 358,
+      "total_deletions": 0,
+      "accepted_lines": 1227,
+      "overriden_lines": 0
+    }
+  }
+}
