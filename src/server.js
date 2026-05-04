@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { loadCurrentState, runPlayerTurn } from "./runtime/parleyRuntime.js";
 import { defaultScenarioId, listScenarioPacks, loadScenarioPack } from "./runtime/scenarioPacks.js";
+import { subscribe } from "./runtime/events/sseBroadcaster.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const clientDir = path.join(root, "src", "client");
@@ -19,6 +20,31 @@ export function createParleyServer(runtimeOptions = {}) {
 export async function handleParleyRequest(request, response, runtimeOptions = {}) {
   try {
     const requestUrl = new URL(request.url, `http://${host}:${port}`);
+
+    // SSE: GET /events/:storyId
+    // Streams story events to subscribed UI clients.
+    if (request.method === "GET" && /^\/events\/[a-z0-9-]+$/i.test(requestUrl.pathname)) {
+      const storyId = requestUrl.pathname.split("/").pop();
+      response.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      });
+      response.write(":\n\n"); // initial comment to flush headers
+      const heartbeat = setInterval(() => {
+        try { response.write("event: ping\ndata: {}\n\n"); } catch {}
+      }, 15_000);
+      const unsubscribe = subscribe({
+        storyId,
+        write: (payload) => response.write(payload)
+      });
+      request.on("close", () => {
+        clearInterval(heartbeat);
+        unsubscribe();
+        try { response.end(); } catch {}
+      });
+      return;
+    }
 
     if (request.method === "GET" && requestUrl.pathname === "/api/scenarios") {
       return sendJson(response, {

@@ -58,6 +58,9 @@ form.addEventListener("submit", async (event) => {
     latestResult = await response.json();
     currentState = mergeTurnIntoState({ state: currentState, result: latestResult });
     localTranscript.push({ speaker: "narrator", text: latestResult.narration });
+    if (latestResult.scenarioId ?? selectedScenarioId) {
+      startEventStream(latestResult.scenarioId ?? selectedScenarioId);
+    }
   } catch (error) {
     localTranscript.push({ speaker: "system", text: error.message ?? "Turn failed." });
   } finally {
@@ -375,6 +378,36 @@ function humanTag(tag) {
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+function startEventStream(storyId) {
+  if (window._parleyEventSource) {
+    window._parleyEventSource.close();
+  }
+  const es = new EventSource(`/events/${encodeURIComponent(storyId)}`);
+  es.onmessage = (e) => {
+    try {
+      const event = JSON.parse(e.data);
+      handleStoryEvent(event);
+    } catch {}
+  };
+  es.onerror = () => {
+    // Browser will auto-reconnect
+  };
+  window._parleyEventSource = es;
+}
+
+function handleStoryEvent(event) {
+  // Minimal renderer: append to #event-stream if it exists; else console.log.
+  const container = document.getElementById("event-stream");
+  if (!container) {
+    console.log("[story event]", event);
+    return;
+  }
+  const el = document.createElement("div");
+  el.className = `event event-${event.type ?? "unknown"}`;
+  el.textContent = `${event.emitted_at} — ${event.type}: ${JSON.stringify(event.inputs ?? event.refs ?? {})}`;
+  container.appendChild(el);
 }
 
 function memoryGroup(label, facts) {
