@@ -1,0 +1,12 @@
+{
+  "schema_version": "parley-world/v1",
+  "id": "night-city-after-curfew",
+  "name": "Night City After Curfew",
+  "premise": "A sprawling megacity where corporate law ends at midnight and the real deals happen in neon-lit back alleys between netrunners, data brokers, and chrome-laced street operatives.",
+  "tone": "neon-noir cyberpunk thriller",
+  "shell": "custom",
+  "layoutVariant": "hud",
+  "theme": "theme.yaml",
+  "stylesheet": "stylesheet.css",
+  "scenarios": ["silver-shard-extraction"]
+}

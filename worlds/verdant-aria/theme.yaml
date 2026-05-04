@@ -1,0 +1,43 @@
+schema_version: parley-theme/v1
+
+palette:
+  background:   "#0a0e3d"
+  midground:    "#5b3387"
+  foreground:   "#f5e8c8"
+  warmGlow:     "rgba(212,175,55,0.22)"
+  noiseOpacity: 0.04
+
+typography:
+  fontSans:    "Spectral"
+  fontMono:    "JetBrains Mono"
+  fontDisplay: "Cinzel"
+  fontUrl:     "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap"
+  baseSize:    16
+  lineHeight:  1.7
+
+layout:
+  radius:  "0.4rem"
+  density: comfortable
+
+layoutVariant: noir
+
+assets:
+  bg:    "assets/backgrounds/song-of-the-broken-crown.prompt.md"
+  crest: "assets/crest.prompt.md"
+
+componentStyles:
+  dialogueFrame:
+    background:   "rgba(245,232,200,0.95)"
+    borderColor:  "#d4af37"
+    color:        "#0a0e3d"
+    borderRadius: "0.4rem"
+  choiceList:
+    background:   "rgba(91,51,135,0.12)"
+    borderColor:  "#d4af37"
+  card:
+    borderColor: "#d4af37"
+    boxShadow:   "0 0 0 1px rgba(212,175,55,0.4) inset"
+
+colorOverrides:
+  primary: "#d4af37"
+  ring:    "rgba(212,175,55,0.5)"

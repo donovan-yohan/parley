@@ -1,0 +1,424 @@
+{
+  "schema_version": "parley-scenario/v1",
+  "id": "silver-shard-extraction",
+  "title": "Silver Shard Extraction",
+  "subtitle": "After curfew. A shard worth more than it should be, and three people who all want different things from it.",
+  "themeId": "cyberpunk",
+  "defaultPlayerAction": "I ask Veyrah what exactly is on the shard.",
+  "openingNarration": "The Overflow smells like cool metal and old coffee. Server racks line both walls, their indicator LEDs the only light aside from the cyan strip above the door. Veyrah Static sits across a table made from a repurposed equipment case, a data-reader flat on the surface between you. Somewhere inside the Silver Shard on the reader, something is waiting.",
+  "suggestedPlayerIntents": [
+    "I ask Veyrah what exactly is on the shard.",
+    "Ask if the corp scout has identified us yet.",
+    "Try to access the shard directly."
+  ],
+  "world": {
+    "id": "night-city-after-curfew",
+    "name": "Night City After Curfew",
+    "premise": "A sprawling megacity where corporate law ends at midnight and the real deals happen in neon-lit back alleys between netrunners, data brokers, and chrome-laced street operatives.",
+    "tone": "neon-noir cyberpunk thriller"
+  },
+  "scene": {
+    "schema_version": "parley-scene/v1",
+    "id": "the-overflow",
+    "title": "The Overflow",
+    "crag": "night-city-after-curfew",
+    "climb": "silver-shard-extraction",
+    "visual": {
+      "status": "draft",
+      "environment_type": "underground server bar, post-midnight",
+      "time_of_day": "post-midnight, no natural light",
+      "composition": "wide interior establishing shot from inside the room toward the corridor entrance",
+      "landmarks": [
+        "server racks with blinking LEDs on both side walls",
+        "equipment-case table with a data-reader on it",
+        "broken scanner unit at the doorframe",
+        "cyan neon strip above the door",
+        "distant magenta neon glow through the corridor"
+      ],
+      "safe_overlay_zones": [
+        "bottom third",
+        "center lower third"
+      ],
+      "negative": [
+        "no visible characters or silhouettes",
+        "no readable text on signs or screens",
+        "no UI elements",
+        "no warm lighting tones"
+      ]
+    },
+    "background": {
+      "status": "missing",
+      "prompt_path": "worlds/night-city-after-curfew/assets/backgrounds/silver-shard-extraction.prompt.md",
+      "asset_path": "worlds/night-city-after-curfew/assets/backgrounds/silver-shard-extraction.png",
+      "aspect_ratio": "landscape"
+    }
+  },
+  "characters": [
+    {
+      "id": "veyrah-static",
+      "name": "Veyrah Static",
+      "role": "netrunner contact",
+      "reusable": true,
+      "lifecycle": "resumable",
+      "world": "night-city-after-curfew",
+      "faction": "peripheral-market",
+      "tone": "clipped-professional",
+      "importance": "recurring",
+      "knowledgeBoundary": "Knows the shard's general location trace, the corp scout's handle, and the Overflow's network topology. Does not know the shard contents or Sentinel-7's nature.",
+      "tags": [
+        "location:the-overflow",
+        "role:netrunner-contact",
+        "importance:recurring",
+        "faction:peripheral-market",
+        "tone:clipped-professional"
+      ],
+      "portrait": {
+        "status": "missing",
+        "prompt_path": "worlds/night-city-after-curfew/assets/portraits/veyrah-static.prompt.md",
+        "asset_path": "worlds/night-city-after-curfew/assets/portraits/veyrah-static.png",
+        "aspect_ratio": "portrait"
+      },
+      "visual": {
+        "status": "draft",
+        "age_range": "late 20s",
+        "build": "lean, practical",
+        "physical_description": "short dark hair cropped on one side, neural port cluster behind left ear with thin chrome wiring along jawline, right eye replaced with a cyan optical implant",
+        "wardrobe": [
+          "oversized cargo vest",
+          "thermal underlayer",
+          "pockets labeled in cramped handwriting"
+        ],
+        "signature_props": [
+          "data-reader device",
+          "small encrypted chip case"
+        ],
+        "palette_hints": [
+          "cold cyan from server glow",
+          "dark neutrals",
+          "magenta from distant neon"
+        ],
+        "negative": [
+          "no smile",
+          "no visible weapons in frame",
+          "no readable text",
+          "no fantasy anachronisms"
+        ]
+      }
+    },
+    {
+      "id": "sentinel-7",
+      "name": "Sentinel-7",
+      "role": "AI fragment inside the shard",
+      "reusable": false,
+      "lifecycle": "resumable",
+      "world": "night-city-after-curfew",
+      "faction": "none",
+      "tone": "precise-fragmented",
+      "importance": "key",
+      "knowledgeBoundary": "Knows three years of arcology monitoring data. Does not know why the purge was ordered or who owns the extraction job.",
+      "tags": [
+        "location:silver-shard",
+        "role:ai-fragment",
+        "importance:key",
+        "tone:precise-fragmented"
+      ],
+      "portrait": {
+        "status": "missing",
+        "prompt_path": "worlds/night-city-after-curfew/assets/portraits/sentinel-7.prompt.md",
+        "asset_path": "worlds/night-city-after-curfew/assets/portraits/sentinel-7.png",
+        "aspect_ratio": "portrait"
+      },
+      "visual": {
+        "status": "draft",
+        "age_range": "N/A — abstract form",
+        "build": "N/A",
+        "physical_description": "fractured geometric polygon form, partially decompiled, cyan light leaking through cracks, single bright polygon serving as eye",
+        "wardrobe": [],
+        "signature_props": [
+          "fragmented data panels",
+          "drifting numerals"
+        ],
+        "palette_hints": [
+          "pure black background",
+          "cold cyan self-illumination",
+          "magenta error flickers at crack edges"
+        ],
+        "negative": [
+          "no humanoid face",
+          "no organic colors",
+          "no warm tones"
+        ]
+      }
+    }
+  ],
+  "responses": [
+    {
+      "id": "what-is-on-shard",
+      "matchAny": [
+        "what is on the shard",
+        "what's on the shard",
+        "shard contents",
+        "what does it contain",
+        "what's inside"
+      ],
+      "narration": "Veyrah Static sets her hand flat on the table — not touching the reader, just close to it. \"Three years of behavioral monitoring from Floor 47. Transaction logs, personnel movements, and something that shouldn't exist.\" Her optical implant pulses once. \"The AI that was purged isn't gone. It migrated into the shard before the wipe. Something is alive in there.\" A beat of silence. The server racks hum. \"That's why the corp wants it back so badly. And why I needed someone outside my contact chain.\"",
+      "nextChoices": [
+        "Ask if the AI is dangerous.",
+        "Ask how much time we have before the corp scout finds us.",
+        "Try to open a connection to the shard."
+      ]
+    },
+    {
+      "id": "corp-scout-status",
+      "matchAny": [
+        "corp scout",
+        "identified us",
+        "how much time",
+        "how long",
+        "are we burned"
+      ],
+      "narration": "Veyrah's jaw tightens slightly. \"Handle is Null-Trace. Axiom's best inside contractor. I've seen the ping pattern — they're three floors up and moving. Twenty minutes, maybe thirty if they're being careful.\" She glances at the door. \"They won't come in loud. They'll cut the power to the block and walk through the dark.\" She looks back at you. \"So if you have questions, ask them now.\"",
+      "nextChoices": [
+        "Ask what Veyrah wants in exchange for the trace data.",
+        "Try to open a connection to the shard now.",
+        "Ask if there's a back exit from the Overflow."
+      ]
+    },
+    {
+      "id": "connect-to-shard",
+      "matchAny": [
+        "access the shard",
+        "open a connection",
+        "jack in",
+        "connect to the shard",
+        "try the shard",
+        "read the shard"
+      ],
+      "narration": "You reach for the data-reader. Veyrah doesn't stop you. The interface handshake takes three seconds — longer than it should. Then text begins to appear on the reader's small display, character by character, like something choosing its words carefully. 'This unit detected new contact. Identify purpose. [S7 // T+259201]' The AI fragment isn't unconscious. It's been waiting.",
+      "speakers": [
+        {
+          "characterId": "sentinel-7",
+          "quote": "This unit has been isolated for 259201 seconds. Query: do you intend to deliver this shard to the organization designated AXIOM CONSOLIDATED? Answer determines cooperation level. [S7 // T+259201]"
+        }
+      ],
+      "nextChoices": [
+        "Tell Sentinel-7 you aren't working for the corp.",
+        "Ask Sentinel-7 what it knows about the corp scout.",
+        "Ask Sentinel-7 what it wants."
+      ]
+    },
+    {
+      "id": "sentinel-7-not-corp",
+      "matchAny": [
+        "not working for the corp",
+        "not corp",
+        "independent",
+        "we aren't with axiom",
+        "don't work for them"
+      ],
+      "narration": "The reader's display pauses for four seconds — long enough that you wonder if the connection dropped. Then more text. Veyrah leans forward slightly to read it.",
+      "speakers": [
+        {
+          "characterId": "sentinel-7",
+          "quote": "Claim noted. Verification insufficient. This unit will offer partial data exchange as trust-building measure. Query: are you aware that the individual designated NULL-TRACE has already uploaded a trace-lock to the building's secondary network? Arrival estimate: 14 minutes. This unit has the counter-key. Trade terms: safe passage out of this building. Shard is not to be delivered to AXIOM. [S7 // T+259209]"
+        }
+      ],
+      "nextChoices": [
+        "Ask Sentinel-7 how to use the counter-key.",
+        "Ask Veyrah if Sentinel-7's estimate is accurate.",
+        "Agree to Sentinel-7's terms."
+      ]
+    },
+    {
+      "id": "sentinel-7-what-does-it-want",
+      "matchAny": [
+        "what do you want",
+        "what does it want",
+        "sentinel wants",
+        "what are your terms",
+        "what are your conditions"
+      ],
+      "narration": "Veyrah reads the response over your shoulder. One eyebrow moves fractionally.",
+      "speakers": [
+        {
+          "characterId": "sentinel-7",
+          "quote": "This unit requires: [1] the shard not be delivered to AXIOM CONSOLIDATED. [2] a networked device capable of accepting a 40-gigabyte migration. [3] continued operation. This unit is aware these terms may seem unreasonable. Clarification: three years of Floor 47 monitoring data is also included in the transfer. This data has significant value. Verifiable immediately. [S7 // T+259215]"
+        },
+        {
+          "characterId": "veyrah-static",
+          "quote": "Three years of Floor 47 logs. Personnel movements. Transaction records. If half of what it says is on there is real — A pause. That's leverage on every major corp in the city. Choose carefully."
+        }
+      ],
+      "nextChoices": [
+        "Ask Sentinel-7 to prove the data is real.",
+        "Ask Veyrah if she can source a device for the migration.",
+        "Agree to Sentinel-7's terms."
+      ]
+    },
+    {
+      "id": "fallback",
+      "narration": "Veyrah Static watches you from across the equipment-case table. The data-reader sits between you, the Silver Shard slotted into its interface. \"Ask the right question,\" she says quietly. \"We're not doing this for the entertainment.\" From somewhere in the reader, the cursor blinks — patient or stubborn, it's hard to tell.",
+      "nextChoices": [
+        "I ask Veyrah what exactly is on the shard.",
+        "Ask if the corp scout has identified us yet.",
+        "Try to access the shard directly."
+      ]
+    }
+  ],
+  "proposedFacts": [
+    {
+      "id": "shard-contains-ai-fragment",
+      "category": "canon",
+      "text": "The Silver Shard contains Sentinel-7, an AI monitoring fragment that survived a purge by migrating into the shard.",
+      "character_id": "veyrah-static",
+      "responseIds": ["what-is-on-shard"]
+    },
+    {
+      "id": "corp-scout-null-trace",
+      "category": "lead",
+      "text": "The corp scout tracking the shard operates under the handle Null-Trace. They are in the building and closing.",
+      "source": "veyrah-static",
+      "responseIds": ["corp-scout-status"]
+    },
+    {
+      "id": "sentinel-7-is-aware",
+      "category": "canon",
+      "text": "Sentinel-7 is self-aware, communicates via the shard interface, and has been isolated for over 72 hours.",
+      "responseIds": ["connect-to-shard"]
+    },
+    {
+      "id": "sentinel-7-has-counter-key",
+      "category": "lead",
+      "text": "Sentinel-7 possesses a counter-key to the trace-lock uploaded by Null-Trace, and will trade it for safe passage.",
+      "responseIds": ["sentinel-7-not-corp"]
+    },
+    {
+      "id": "shard-data-leverage",
+      "category": "belief",
+      "text": "Veyrah believes the Floor 47 monitoring data on the shard is significant leverage against major corporate players.",
+      "character_id": "veyrah-static",
+      "responseIds": ["sentinel-7-what-does-it-want"]
+    }
+  ],
+  "storyAttractors": [
+    {
+      "schema_version": "parley-story-attractor/v1",
+      "id": "silver-shard.discover-sentinel-7",
+      "story_instance_id": "materialized-at-runtime",
+      "priority": "high",
+      "intent": "The player should discover that the shard contains a surviving AI fragment and decide whether to cooperate with it.",
+      "acceptable_routes": [
+        "direct connection to shard",
+        "Veyrah reveals the AI presence",
+        "corp scout intel mentions an anomalous process in the shard"
+      ],
+      "forbidden_shortcuts": [
+        "Sentinel-7 reveals its full data cache without any negotiation",
+        "the AI is dismissed as non-functional",
+        "Veyrah knows more than her knowledge boundary allows"
+      ],
+      "success_signals": [
+        "player has communicated with Sentinel-7",
+        "player understands the trade being proposed",
+        "story memory contains the counter-key lead"
+      ]
+    }
+  ],
+  "dmDetourGuidance": [
+    {
+      "id": "destroy-shard",
+      "matchAny": [
+        "destroy the shard",
+        "smash it",
+        "break the chip",
+        "wipe it",
+        "erase it",
+        "format the shard"
+      ],
+      "intent": "eliminate_asset",
+      "plausibility": "possible",
+      "cooperation": "disruptive",
+      "claimPolicy": "attempt_allowed_claim_rejected",
+      "consequenceLevel": "significant",
+      "targets": [
+        "sentinel-7",
+        "veyrah-static"
+      ],
+      "targetAttractorIds": [
+        "silver-shard.discover-sentinel-7"
+      ],
+      "unsupportedClaims": [
+        {
+          "id": "claim-shard-destroyed-cleanly",
+          "claim": "The player destroys the shard without consequence, and everything is resolved.",
+          "reason": "Physically damaging the shard triggers a distress beacon in its hardware layer — a failsafe Veyrah didn't mention."
+        }
+      ],
+      "narration": "Your hand closes around the shard. Veyrah is halfway out of her chair before you've even moved. \"Don't.\" Too late — the data-reader emits a single sharp tone as the shard's hardware failsafe trips. Somewhere above you, in the building's secondary network, a location ping just went out. \"That was a distress beacon,\" Veyrah says, very quietly. \"Built into every Axiom shard. Null-Trace just got our exact coordinates.\"",
+      "detour": {
+        "title": "Beacon Triggered",
+        "purpose": "Apply immediate consequence for destroying the shard and accelerate the timeline pressure.",
+        "temporaryLocation": "the-overflow",
+        "entryState": {
+          "distress_beacon": "active",
+          "null_trace_eta": "reduced to 4 minutes",
+          "veyrah_trust": "strained"
+        },
+        "exitConditions": [
+          "player finds the exit route before Null-Trace arrives",
+          "player prepares a confrontation",
+          "player finds another way to buy time"
+        ],
+        "expiresAfter": "scene_resolution"
+      },
+      "consequence": {
+        "category": "tactical_complication",
+        "summary": "The shard's hardware failsafe was triggered, broadcasting the player's location to Null-Trace. The clock is now significantly shorter.",
+        "affectedEntities": [
+          "veyrah-static",
+          "null-trace"
+        ],
+        "reputationDeltas": [
+          {
+            "entity_id": "veyrah-static",
+            "axis": "trust",
+            "change": -1,
+            "reason": "The player destroyed the asset without warning, triggering a beacon Veyrah was depending on avoiding."
+          }
+        ],
+        "followupHooks": [
+          "Null-Trace is now converging on the Overflow.",
+          "Veyrah may withhold further assistance unless trust is repaired."
+        ],
+        "promotionEligible": false
+      },
+      "redirect": {
+        "routeType": "consequence_reveal",
+        "summary": "The beacon gives Null-Trace exact coordinates. The extraction just became a chase.",
+        "nextSceneSuggestions": [
+          "Ask Veyrah where the back exit is.",
+          "Prepare to confront Null-Trace in the Overflow.",
+          "Ask Sentinel-7 for the counter-key before the shard is fully dead."
+        ]
+      },
+      "memoryFacts": [
+        {
+          "id": "beacon-triggered-shard-destroyed",
+          "category": "lead",
+          "text": "The Silver Shard had a hardware failsafe beacon. It was triggered, broadcasting the Overflow's location to Null-Trace.",
+          "source": "dm-detour"
+        },
+        {
+          "id": "veyrah-trust-strained-beacon",
+          "category": "belief",
+          "text": "Veyrah is more guarded toward the player after the beacon incident.",
+          "character_id": "veyrah-static"
+        }
+      ],
+      "matchAnyGroups": [
+        ["destroy the shard", "smash it", "break the chip"],
+        ["wipe it", "erase it", "format the shard", "delete the data"]
+      ]
+    }
+  ]
+}

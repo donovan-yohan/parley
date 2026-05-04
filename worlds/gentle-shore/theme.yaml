@@ -1,0 +1,42 @@
+schema_version: parley-theme/v1
+
+palette:
+  background: "#fff4e0"
+  midground:  "#a8d5a8"
+  foreground: "#5c4a3a"
+  warmGlow:   "rgba(255,200,150,0.18)"
+
+typography:
+  fontDisplay: "Fraunces"
+  fontSans:    "Quicksand"
+  fontMono:    "Inconsolata"
+  fontUrl:     "https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;1,400&family=Quicksand:wght@400;500;600&family=Inconsolata:wght@400;500&display=swap"
+  baseSize:    17
+  lineHeight:  1.75
+
+layout:
+  radius:  "1.25rem"
+  density: spacious
+
+layoutVariant: cozy
+
+assets:
+  bg: "assets/backgrounds/seashell-festival.prompt.md"
+
+componentStyles:
+  dialogueFrame:
+    background:   "#fff8ec"
+    borderColor:  "#a8d5a8"
+    borderRadius: "1.25rem"
+    boxShadow:    "0 4px 12px rgba(168,213,168,0.3)"
+    padding:      "1.25rem"
+  choiceList:
+    borderRadius: "1rem"
+  card:
+    background:   "#fff8ec"
+    borderColor:  "rgba(168,213,168,0.5)"
+    borderRadius: "1.25rem"
+
+colorOverrides:
+  primary: "#a8d5a8"
+  ring:    "rgba(168,213,168,0.5)"
