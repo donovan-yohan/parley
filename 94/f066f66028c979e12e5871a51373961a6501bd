@@ -1,0 +1,27 @@
+examples/last-lantern/artifacts/world-state.json
+  50ae6158376486b1 2
+AGENTS.md
+  50ae6158376486b1 42
+docs/specs/2026-05-01-nightshift-addendum-stacked-prs-ui-prose.md
+  50ae6158376486b1 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "94f066f66028c979e12e5871a51373961a6501bd",
+  "prompts": {
+    "50ae6158376486b1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019de93f-02c7-7220-a83a-7ce19a776b02",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 3,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    }
+  }
+}
