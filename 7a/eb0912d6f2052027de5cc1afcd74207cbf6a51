@@ -1,0 +1,57 @@
+worlds/night-city-after-curfew/assets/portraits/sentinel-7.prompt.md
+  450676fd0e253278 1-32
+worlds/night-city-after-curfew/scenarios/silver-shard-extraction/scenario.json
+  450676fd0e253278 1-424
+worlds/night-city-after-curfew/stylesheet.css
+  450676fd0e253278 1-641
+worlds/night-city-after-curfew/characters/sentinel-7.md
+  450676fd0e253278 1-55
+worlds/night-city-after-curfew/lore/index.md
+  450676fd0e253278 1-75
+worlds/night-city-after-curfew/characters/veyrah-static.md
+  450676fd0e253278 1-46
+worlds/night-city-after-curfew/shell/pages/StoryPlay.tsx
+  450676fd0e253278 1-291
+test/sdk-api.test.js
+  450676fd0e253278 130,138-145
+worlds/night-city-after-curfew/assets/backgrounds/silver-shard-extraction.prompt.md
+  450676fd0e253278 1-34
+worlds/night-city-after-curfew/shell/pages/WorldHome.tsx
+  450676fd0e253278 1-350
+worlds/night-city-after-curfew/world.json
+  450676fd0e253278 1-12
+worlds/night-city-after-curfew/shell/entry.tsx
+  450676fd0e253278 1-24
+worlds/night-city-after-curfew/assets/portraits/veyrah-static.prompt.md
+  450676fd0e253278 1-32
+worlds/night-city-after-curfew/art-style.md
+  450676fd0e253278 1-70
+vite.config.ts
+  450676fd0e253278 5,9-76,89-90,92-100
+worlds/night-city-after-curfew/theme.yaml
+  450676fd0e253278 1-40
+test/server-new-endpoints.test.js
+  450676fd0e253278 138,147,167,169-172
+scripts/discover-worlds.ts
+  450676fd0e253278 10-11,25-49,87-98,101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "7aeb0912d6f2052027de5cc1afcd74207cbf6a51",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 5148,
+      "total_deletions": 101,
+      "accepted_lines": 12240,
+      "overriden_lines": 0
+    }
+  }
+}
