@@ -1,10 +1,10 @@
 import { createServer } from "node:http";
-import { readFile, realpath } from "node:fs/promises";
+import { mkdir, readdir, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCurrentState, runPlayerTurn } from "./runtime/parleyRuntime.js";
-import { defaultScenarioId, listScenarioPacks, loadScenarioPack } from "./runtime/scenarioPacks.js";
+import { defaultScenarioId, listScenarioPacks, loadScenarioPack, repoRoot } from "./runtime/scenarioPacks.js";
 import { subscribe } from "./runtime/events/sseBroadcaster.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -46,6 +46,58 @@ export async function handleParleyRequest(request, response, runtimeOptions = {}
       return;
     }
 
+    // ── New endpoints (Part 1b) ──────────────────────────────────────────────
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/worlds") {
+      return sendJson(response, await handleGetWorlds());
+    }
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/instances") {
+      const worldId = requestUrl.searchParams.get("world");
+      if (!worldId) {
+        return sendJson(response, { error: "world query param required" }, 400);
+      }
+      return sendJson(response, await handleGetInstances(worldId));
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/instances") {
+      const body = await readJsonBody(request);
+      if (!body.worldId) {
+        return sendJson(response, { error: "worldId required" }, 400);
+      }
+      return sendJson(response, await handleCreateInstance(body.worldId, body.displayName));
+    }
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/stories") {
+      const worldId = requestUrl.searchParams.get("world");
+      const instanceId = requestUrl.searchParams.get("instance");
+      if (!worldId || !instanceId) {
+        return sendJson(response, { error: "world and instance query params required" }, 400);
+      }
+      return sendJson(response, await handleGetStories(worldId, instanceId));
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/stories") {
+      const body = await readJsonBody(request);
+      if (!body.worldId || !body.instanceId || !body.storyTemplateId) {
+        return sendJson(response, { error: "worldId, instanceId, storyTemplateId required" }, 400);
+      }
+      return sendJson(response, await handleCreateStory(body.worldId, body.instanceId, body.storyTemplateId));
+    }
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/story") {
+      const worldId = requestUrl.searchParams.get("world");
+      const instanceId = requestUrl.searchParams.get("instance");
+      const storyId = requestUrl.searchParams.get("story");
+      if (!worldId || !instanceId || !storyId) {
+        return sendJson(response, { error: "world, instance, story query params required" }, 400);
+      }
+      return sendJson(response, await handleGetStory(worldId, instanceId, storyId));
+    }
+
+    // ── Existing endpoints ───────────────────────────────────────────────────
+
+
     if (request.method === "GET" && requestUrl.pathname === "/api/scenarios") {
       return sendJson(response, {
         defaultScenarioId,
@@ -62,6 +114,14 @@ export async function handleParleyRequest(request, response, runtimeOptions = {}
 
     if (request.method === "POST" && requestUrl.pathname === "/api/turn") {
       const body = await readJsonBody(request);
+
+      // New shape: { worldId, instanceId, storyId, playerAction }
+      if (body.worldId) {
+        const result = await handleRunTurnNew(body.worldId, body.instanceId, body.storyId, body.playerAction);
+        return sendJson(response, result);
+      }
+
+      // Legacy shape: { scenarioId, playerAction } — back-compat until 1d.
       const result = await runPlayerTurn({
         ...runtimeOptions,
         scenarioId: body.scenarioId ?? runtimeOptions.scenarioId ?? defaultScenarioId,
@@ -96,6 +156,240 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.log(`Parley scenario app running at http://${host}:${port}`);
   });
 }
+
+// ── New endpoint handlers (Part 1b) ───────────────────────────────────────────
+
+async function handleGetWorlds() {
+  const worldsDir = path.join(repoRoot, "worlds");
+  const entries = await readdir(worldsDir, { withFileTypes: true });
+  const worlds = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const worldJsonPath = path.join(worldsDir, entry.name, "world.json");
+    try {
+      const raw = await readFile(worldJsonPath, "utf8");
+      const world = JSON.parse(raw);
+      worlds.push({
+        id: world.id,
+        name: world.name,
+        premise: world.premise ?? "",
+        tone: world.tone ?? "",
+        cover: world.cover ?? undefined,
+        scenarios: Array.isArray(world.scenarios) ? world.scenarios : []
+      });
+    } catch {
+      // Skip worlds with missing or malformed world.json
+    }
+  }
+  return { worlds };
+}
+
+async function handleGetInstances(worldId) {
+  const instancesDir = path.join(repoRoot, "instances", worldId);
+  let entries;
+  try {
+    entries = await readdir(instancesDir, { withFileTypes: true });
+  } catch {
+    return { instances: [] };
+  }
+  const instances = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const instanceJsonPath = path.join(instancesDir, entry.name, "instance.json");
+    let meta = { displayName: entry.name, createdAt: null, lastPlayedAt: null };
+    try {
+      const raw = await readFile(instanceJsonPath, "utf8");
+      meta = { ...meta, ...JSON.parse(raw) };
+    } catch {
+      // Use defaults if instance.json missing
+    }
+    instances.push({
+      worldId,
+      instanceId: entry.name,
+      displayName: meta.displayName ?? entry.name,
+      createdAt: meta.createdAt ?? new Date(0).toISOString(),
+      lastPlayedAt: meta.lastPlayedAt ?? null
+    });
+  }
+  return { instances };
+}
+
+async function handleCreateInstance(worldId, displayName) {
+  const instancesDir = path.join(repoRoot, "instances", worldId);
+  let entries = [];
+  try {
+    entries = await readdir(instancesDir, { withFileTypes: true });
+  } catch {
+    // Directory doesn't exist yet — will be created below
+  }
+  const existingNumbers = entries
+    .filter((entry) => entry.isDirectory() && /^playthrough-\d+$/.test(entry.name))
+    .map((entry) => Number(entry.name.replace("playthrough-", "")));
+  const nextN = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+  const instanceId = `playthrough-${nextN}`;
+  const instanceDir = path.join(instancesDir, instanceId);
+  const createdAt = new Date().toISOString();
+  const instanceMeta = {
+    displayName: displayName ?? `Playthrough ${nextN}`,
+    createdAt,
+    lastPlayedAt: null
+  };
+  await mkdir(instanceDir, { recursive: true });
+  await writeFile(path.join(instanceDir, "instance.json"), `${JSON.stringify(instanceMeta, null, 2)}\n`, "utf8");
+  return {
+    worldId,
+    instanceId,
+    displayName: instanceMeta.displayName,
+    createdAt: instanceMeta.createdAt,
+    lastPlayedAt: null
+  };
+}
+
+async function handleGetStories(worldId, instanceId) {
+  // Templates come from world.json scenarios list
+  const worldJsonPath = path.join(repoRoot, "worlds", worldId, "world.json");
+  let templates = [];
+  try {
+    const raw = await readFile(worldJsonPath, "utf8");
+    const world = JSON.parse(raw);
+    templates = Array.isArray(world.scenarios) ? world.scenarios : [];
+  } catch {
+    // No world.json — no templates
+  }
+
+  // Story instances live under instances/<worldId>/<instanceId>/stories/
+  const storiesDir = path.join(repoRoot, "instances", worldId, instanceId, "stories");
+  let storyEntries = [];
+  try {
+    storyEntries = await readdir(storiesDir, { withFileTypes: true });
+  } catch {
+    // No stories yet
+  }
+  const instances = [];
+  for (const entry of storyEntries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const storyJsonPath = path.join(storiesDir, entry.name, "story.json");
+    let storyMeta = { status: "in_progress", turnCount: 0 };
+    try {
+      const raw = await readFile(storyJsonPath, "utf8");
+      storyMeta = { ...storyMeta, ...JSON.parse(raw) };
+    } catch {
+      // Use defaults
+    }
+    instances.push({
+      worldId,
+      instanceId,
+      storyId: entry.name,
+      status: storyMeta.status ?? "in_progress",
+      turnCount: storyMeta.turnCount ?? 0
+    });
+  }
+  return { templates, instances };
+}
+
+async function handleCreateStory(worldId, instanceId, storyTemplateId) {
+  const storyDir = path.join(repoRoot, "instances", worldId, instanceId, "stories", storyTemplateId);
+  const createdAt = new Date().toISOString();
+  const storyMeta = { status: "in_progress", createdAt, turnCount: 0 };
+  await mkdir(storyDir, { recursive: true });
+  await writeFile(path.join(storyDir, "story.json"), `${JSON.stringify(storyMeta, null, 2)}\n`, "utf8");
+  return {
+    worldId,
+    instanceId,
+    storyId: storyTemplateId,
+    status: "in_progress",
+    turnCount: 0
+  };
+}
+
+async function handleGetStory(worldId, instanceId, storyId) {
+  const storyJsonPath = path.join(repoRoot, "instances", worldId, instanceId, "stories", storyId, "story.json");
+  let storyMeta = { status: "in_progress", turnCount: 0 };
+  try {
+    const raw = await readFile(storyJsonPath, "utf8");
+    storyMeta = { ...storyMeta, ...JSON.parse(raw) };
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      const notFound = new Error("Story not found");
+      notFound.statusCode = 404;
+      throw notFound;
+    }
+    throw error;
+  }
+  return {
+    worldId,
+    instanceId,
+    storyId,
+    status: storyMeta.status ?? "in_progress",
+    turnCount: storyMeta.turnCount ?? 0
+  };
+}
+
+async function handleRunTurnNew(worldId, instanceId, storyId, playerAction) {
+  if (!playerAction) {
+    const error = new Error("playerAction is required");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Resolve the instance directory server-side.
+  // The mock agent-author seam (createMockAgentTurnAuthor) wraps runPlayerTurn;
+  // here in server.js we call runPlayerTurn directly and adapt the result to
+  // the AuthoredTurn shape. The shell talks to the typed seam via the SDK,
+  // which hits this endpoint — it never imports parleyRuntime directly.
+  const resolvedInstanceId = instanceId ?? "playthrough-1";
+  const instanceDir = path.join(repoRoot, "instances", worldId, resolvedInstanceId);
+
+  // Route through runPlayerTurn (the mock fixture) with the new instance layout.
+  const result = await runPlayerTurn({
+    scenarioId: worldId,
+    playerAction,
+    instanceDir
+  });
+
+  // Adapt the raw runtime result to the AuthoredTurn shape defined in agentAuthor.ts.
+  const narration = String(result.narration ?? "");
+  const nextChoices = Array.isArray(result.nextChoices) ? result.nextChoices : [];
+  const proposedFacts = Array.isArray(result.proposedFacts) ? result.proposedFacts : [];
+  const rawCharacters = Array.isArray(result.characters) ? result.characters : [];
+  const speakers = rawCharacters
+    .filter((character) => character.name && narration.includes(character.name))
+    .map((character) => ({ characterId: String(character.id ?? character.name), quote: narration }));
+
+  const authoredTurn = {
+    responseId: String(result.responseId ?? result.response_id ?? "authored"),
+    narration,
+    speakers,
+    nextChoices,
+    proposedFacts,
+    storyConsequence: result.storyConsequence ?? null,
+    beatRedirect: result.beatRedirect ?? null
+  };
+
+  // Update story turnCount if we have a storyId.
+  if (storyId) {
+    const storyJsonPath = path.join(instanceDir, "stories", storyId, "story.json");
+    try {
+      const raw = await readFile(storyJsonPath, "utf8");
+      const storyMeta = JSON.parse(raw);
+      storyMeta.turnCount = (storyMeta.turnCount ?? 0) + 1;
+      storyMeta.lastPlayedAt = new Date().toISOString();
+      await writeFile(storyJsonPath, `${JSON.stringify(storyMeta, null, 2)}\n`, "utf8");
+    } catch {
+      // Best effort — don't fail the turn just because story.json is missing.
+    }
+  }
+
+  return authoredTurn;
+}
+
+// ── Existing helpers ──────────────────────────────────────────────────────────
 
 async function serveWorldAsset(requestUrl, response, runtimeOptions = {}) {
   const scenarioId = requestUrl.searchParams.get("scenario") ?? runtimeOptions.scenarioId ?? defaultScenarioId;
