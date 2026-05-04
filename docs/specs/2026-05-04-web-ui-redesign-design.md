@@ -289,9 +289,38 @@ Tracked migrations from current state:
 
 ## Implementation Phases
 
-**Part 1 — Infrastructure.** Build the shell, SDK, theme cascade, slot system, manifest loader, repo migration (instance/template split, scenarios under worlds), API endpoints, and a single bare-bones default theme that proves the cascade works end-to-end. No flagship demo worlds yet. Acceptance for Part 1 is below.
+Part 1 lands as **three stacked PRs** following the project's existing PR-chain convention (PRs #1–#15 chain). Each PR is independently reviewable in the 300–600 LoC range, and each leaves the test suite green.
+
+**Part 1a — Repo migration.** Move `scenarios/<id>/` → `worlds/<world-id>/scenarios/<id>/`. Introduce `instances/<world-id>/<instance-id>/` directory layout and migrate existing `worlds/<id>/state/` content into `instances/<world-id>/default/`. Add `world.json` manifest stubs to each world. Update `src/runtime/scenarioPacks.js` and tests. No UI changes in this PR.
+
+**Part 1b — Preact shell + SDK + agent-author seam stub.** Replace `src/client/` with `src/shell/` (Preact + Vite + TS). Stand up `__PARLEY_SDK__`, the slot system, the typed agent-author seam (mocked — see Agent-Author Seam below), and the new API endpoints. The shell renders the existing UX shape (single-page, scenario picker, transcript) so reviewers can verify the framework swap is behaviour-preserving. No new screens, no theme cascade in this PR.
+
+**Part 1c — Theme cascade + slot system + new screens + demo cleanup.** Implement the `theme.yaml` palette + `color-mix()` cascade, `componentStyles` bucket emission, `layoutVariant` data-attribute, asset slot CSS vars, and the L1/L2/L3 screens from the Screen Designs section. Remove the scenario dropdown, the visible truth-verdict panel, the old `src/client/`, and any smoke scripts coupled to the demo UI.
 
 **Part 2 — Three flagship demo worlds.** Build three themed worlds whose sole purpose is to demonstrate the depth of the override system. Each ships its own `theme.yaml`, `stylesheet.css`, slot components, and `layoutVariant`. At least one of the three uses `shell: "custom"` to demonstrate the rung-6 ceiling.
+
+## Agent-Author Seam
+
+Part 1 cannot wait on `belayer-profile-coupling` (PR #15+, currently a five-PR runtime stack with nothing merged). Instead, Part 1b lands a **typed mock turn-author** that mirrors the eventual production contract.
+
+```ts
+// src/runtime/agentAuthor.ts (Part 1b)
+export interface AgentTurnAuthor {
+  id: string;
+  mode: 'mock-agent' | 'live-agent';
+  authorTurn(input: TurnInput): Promise<AuthoredTurn>;
+}
+
+export function createMockAgentTurnAuthor(): AgentTurnAuthor {
+  // Returns a deterministic-but-shaped-like-real turn.
+  // Same response shape as the eventual belayer-profile-coupling author.
+  // Used for tests and Part 1 acceptance.
+}
+```
+
+The shell only knows about `AgentTurnAuthor`. When `belayer-profile-coupling` lands its production author, we drop in a `createLiveAgentTurnAuthor()` that satisfies the same interface; no shell code changes.
+
+The legacy `createScenarioFixtureAuthor` (`src/runtime/turnAuthor.js`) stays untouched for the existing 142-test suite. It is not used by the new shell.
 
 | Codename | Inspiration | Theme angle | layoutVariant | shell |
 |---|---|---|---|---|
@@ -351,6 +380,7 @@ The deterministic-fixture turn author (`createScenarioFixtureAuthor`) is **not**
 - Should `shell: "custom"` worlds be loaded via dynamic `import()` from `dist/worlds/<id>/entry.js`, or via `<script type="module">` injection? Both work; dynamic import is cleaner but couples world bundle URLs to Vite's hashing.
 - For instance naming: should the user be prompted on first instance creation, or always auto-name? Currently: auto-name to `Playthrough N`, renameable from L2. Open to feedback.
 - For the `__PARLEY_SDK__.api` surface: should world bundles be allowed to call `runTurn` directly, or only the shell? Locking to the shell is safer; allowing it gives flagship worlds more freedom. Recommendation: shell-only for now, revisit when first `shell: "custom"` world ships.
+- The Part 2 codenames (`verdant-aria`, `night-city-after-curfew`, `gentle-shore`) reference well-known IPs. Spec stance: theme inspirations only, no licensed assets, no IP names in shipped strings or repo paths beyond the codenames. Re-confirm before any publishable release.
 
 ## References
 
