@@ -1,0 +1,25 @@
+test/contracts/common.test.ts
+  6fd9bdc7c61f8cc6 117-122
+src/contracts/common.ts
+  6fd9bdc7c61f8cc6 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "5ce9a0b7bba3f03bc8957c01c301d6b022421863",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 7,
+      "total_deletions": 1,
+      "accepted_lines": 619,
+      "overriden_lines": 0
+    }
+  }
+}
