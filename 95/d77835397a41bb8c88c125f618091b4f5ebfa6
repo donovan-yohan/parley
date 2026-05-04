@@ -1,0 +1,45 @@
+test/parley-runtime.test.js
+  450676fd0e253278 13,18,41-43,45,49,71,89,105,109,114,139,145,183,217,244,247,279,288,320,354,367,392,395,418-419,424,427,461,470,505,508,545,562,598
+worlds/orchard-welcome/scenarios/orchard-welcome/scenario.json
+  450676fd0e253278 1-344
+scripts/smoke-parley-e2e.mjs
+  450676fd0e253278 12,19,21,23-25,28,140-142
+scripts/smoke-parley-runtime.mjs
+  450676fd0e253278 10,13,15-17,22,34,37-39
+src/runtime/truthAuthority.js
+  450676fd0e253278 11,103,115,120-121,123
+worlds/last-lantern/scenarios/last-lantern/scenario.json
+  450676fd0e253278 1-341
+scripts/smoke-parley-scenarios.mjs
+  450676fd0e253278 46,51,68-70
+test/visual-assets.test.js
+  450676fd0e253278 149,154,169,347,352,361,370,377
+src/runtime/scenarioPacks.js
+  450676fd0e253278 1,11-14,16-36,38,57-58,62,66-67
+worlds/neon-afterhours/scenarios/neon-afterhours/scenario.json
+  450676fd0e253278 1-393
+test/dm-detour-tools.test.js
+  450676fd0e253278 105,110,126-129,131,135,144,159,201,207,240
+src/runtime/parleyRuntime.js
+  450676fd0e253278 12,25,38,40,42,44,80,87,119-122,145,150,152-153,247-248,378,383,394,404
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "95d77835397a41bb8c88c125f618091b4f5ebfa6",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 1220,
+      "total_deletions": 135,
+      "accepted_lines": 1223,
+      "overriden_lines": 0
+    }
+  }
+}
