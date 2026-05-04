@@ -1,0 +1,31 @@
+test/demo-cleanup.test.js
+  450676fd0e253278 1-241
+test/page-landing.test.js
+  450676fd0e253278 1-243
+test/shell-routing.test.js
+  450676fd0e253278 1-144
+test/page-world-home.test.js
+  450676fd0e253278 1-296
+test/page-story-play.test.js
+  450676fd0e253278 1-287
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "0dca9c499693b182902099f5e5a2e1147b0fe24d",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 2016,
+      "total_deletions": 15,
+      "accepted_lines": 4764,
+      "overriden_lines": 0
+    }
+  }
+}
