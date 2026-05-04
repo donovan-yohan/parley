@@ -1,0 +1,45 @@
+src/runtime/tools/instancePublicWriter.js
+  6fd9bdc7c61f8cc6 1-12,14-19,21-37,39
+test/tools/loadCatalog.test.js
+  6fd9bdc7c61f8cc6 1-89
+src/runtime/tools/loadCatalog.js
+  6fd9bdc7c61f8cc6 1-29
+src/contracts/toolCatalog.ts
+  6fd9bdc7c61f8cc6 1-3,5-15
+src/runtime/tools/profilePrivateWriter.js
+  6fd9bdc7c61f8cc6 1-43
+src/contracts/index.ts
+  6fd9bdc7c61f8cc6 1-14
+src/runtime/tools/narrowToolBundle.js
+  6fd9bdc7c61f8cc6 1-46
+test/tools/narrowToolBundle.test.js
+  6fd9bdc7c61f8cc6 1-161
+test/tools/profilePrivateWriter.test.js
+  6fd9bdc7c61f8cc6 1-167
+test/contracts/toolCatalog.test.ts
+  6fd9bdc7c61f8cc6 1-69,71,73-74,76-184
+src/runtime/tools/catalog.json
+  6fd9bdc7c61f8cc6 1-116
+test/tools/instancePublicWriter.test.js
+  6fd9bdc7c61f8cc6 1-145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "6bb0ade88d66b0a9271926face100e2de69bbc90",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 1035,
+      "total_deletions": 0,
+      "accepted_lines": 1028,
+      "overriden_lines": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+src/runtime/belayer/belayerProcess.js
+  6fd9bdc7c61f8cc6 99-107
+src/runtime/parleyRuntime.js
+  6fd9bdc7c61f8cc6 180-184
+src/runtime/wake/wakeNpc.js
+  6fd9bdc7c61f8cc6 21-24,162-164,166
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "c572c00d6115c3cea0a45687ef6da10c4494d3ab",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 67,
+      "total_deletions": 5,
+      "accepted_lines": 21,
+      "overriden_lines": 0
+    }
+  }
+}
