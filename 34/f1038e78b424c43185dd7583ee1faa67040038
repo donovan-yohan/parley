@@ -1,0 +1,41 @@
+src/runtime/instances/loadInstanceCharacters.js
+  6fd9bdc7c61f8cc6 50-82,182-186,189,198-201
+test/instances/talentProfileMaterializer.test.js
+  6fd9bdc7c61f8cc6 3,160-184
+src/runtime/instances/materializeInstance.js
+  6fd9bdc7c61f8cc6 52-75,143-146,174-175
+test/instances/loadInstanceCharacters.test.js
+  6fd9bdc7c61f8cc6 2,195-239,285-288,290,294-301,303-337
+scripts/parley-instance-materialize.mjs
+  6fd9bdc7c61f8cc6 145-146,148
+test/instances/materializeInstance.test.js
+  6fd9bdc7c61f8cc6 28,356-388
+scripts/parley-migrate-scenario.mjs
+  6fd9bdc7c61f8cc6 145
+src/runtime/parleyRuntime.js
+  6fd9bdc7c61f8cc6 41-44
+src/runtime/belayerCharacterAdapter.js
+  6fd9bdc7c61f8cc6 97-115
+src/runtime/instances/talentProfileMaterializer.js
+  6fd9bdc7c61f8cc6 111-113,115,118-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "34f1038e78b424c43185dd7583ee1faa67040038",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 3482,
+      "total_deletions": 371,
+      "accepted_lines": 3847,
+      "overriden_lines": 32
+    }
+  }
+}
