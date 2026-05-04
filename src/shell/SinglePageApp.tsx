@@ -3,6 +3,7 @@ import type { VNode } from "preact";
 import { useState, useEffect, useRef } from "preact/hooks";
 import { getWorlds, runTurn } from "@parley/sdk";
 import type { WorldSummary } from "@parley/sdk";
+import { loadWorldTheme } from "./theme/loadWorldTheme.js";
 
 interface TranscriptEntry {
   speaker: "player" | "narrator" | "system";
@@ -99,6 +100,11 @@ export function SinglePageApp(): VNode {
       };
 
       const world = wList.find((w) => w.id === worldId);
+
+      // Apply the world theme (fire-and-forget; does not block the scenario load).
+      loadWorldTheme(worldId).catch((err) => {
+        console.error(`[Parley] Failed to load theme for world "${worldId}":`, err);
+      });
 
       setSelectedWorldId(worldId);
       setSceneState({
