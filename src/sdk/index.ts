@@ -9,6 +9,10 @@ export { Card, Button, Tabs, Drawer, Backdrop, ChoiceList } from "./components/i
 export { registerSlot, useSlot, PluginSlot } from "./slots.js";
 export type { SlotName, SlotContext } from "./slots.js";
 
+// Custom shell system
+export { registerCustomShell, getCustomShell, useCustomShellRegistry } from "./customShell.js";
+export type { CustomShellHandlers } from "./customShell.js";
+
 // API client
 export {
   getWorlds,
