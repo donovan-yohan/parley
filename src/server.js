@@ -60,6 +60,19 @@ export async function handleParleyRequest(request, response, runtimeOptions = {}
       return sendJson(response, await handleGetInstances(worldId));
     }
 
+    {
+      const instanceMatch = requestUrl.pathname.match(/^\/api\/instances\/([^/]+)\/([^/]+)$/);
+      if (request.method === "GET" && instanceMatch) {
+        const worldId = decodeURIComponent(instanceMatch[1]);
+        const instanceId = decodeURIComponent(instanceMatch[2]);
+        const result = await handleGetInstance(worldId, instanceId);
+        if (!result) {
+          return sendJson(response, { error: "instance not found" }, 404);
+        }
+        return sendJson(response, result);
+      }
+    }
+
     if (request.method === "POST" && requestUrl.pathname === "/api/instances") {
       const body = await readJsonBody(request);
       if (!body.worldId) {
@@ -216,6 +229,33 @@ async function handleGetInstances(worldId) {
     });
   }
   return { instances };
+}
+
+async function handleGetInstance(worldId, instanceId) {
+  const instanceDir = path.join(repoRoot, "instances", worldId, instanceId);
+  const instanceJsonPath = path.join(instanceDir, "instance.json");
+  let meta = { displayName: instanceId, createdAt: null, lastPlayedAt: null };
+  try {
+    const stats = await readdir(instanceDir);
+    if (!Array.isArray(stats)) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  try {
+    const raw = await readFile(instanceJsonPath, "utf8");
+    meta = { ...meta, ...JSON.parse(raw) };
+  } catch {
+    // instance.json missing — directory exists but unmaterialized; use defaults
+  }
+  return {
+    worldId,
+    instanceId,
+    displayName: meta.displayName ?? instanceId,
+    createdAt: meta.createdAt ?? new Date(0).toISOString(),
+    lastPlayedAt: meta.lastPlayedAt ?? null
+  };
 }
 
 async function handleCreateInstance(worldId, displayName) {

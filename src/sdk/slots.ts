@@ -2,6 +2,15 @@ import { h } from "preact";
 import type { VNode } from "preact";
 import { useState, useEffect } from "preact/hooks";
 
+// Registry layer delegated to a plain-JS module so that Node --test suites
+// can import the registry without needing tsx or a Preact renderer.
+import {
+  slotRegistry,
+  subscribers,
+  registerSlot as _registerSlot,
+  getSlot,
+} from "./slots-registry.js";
+
 export type SlotName =
   | "scene-backdrop"
   | "dialogue-frame"
@@ -20,32 +29,11 @@ export interface SlotContext {
 type SlotComponent = (props: SlotContext & Record<string, unknown>) => VNode | null;
 
 /**
- * Registry: worldId → (slotName → component).
- * Last-write-wins for duplicate registration.
- */
-const slotRegistry = new Map<string, Map<SlotName, SlotComponent>>();
-
-/**
- * Module-level subscriber list for useSlot re-renders on late registration.
- */
-const subscribers = new Set<() => void>();
-
-function notifySubscribers() {
-  for (const fn of subscribers) {
-    fn();
-  }
-}
-
-/**
  * Register a component into a named slot for a specific world.
  * Calling again with the same (worldId, slot) replaces the previous component.
  */
 export function registerSlot(worldId: string, slot: SlotName, component: SlotComponent): void {
-  if (!slotRegistry.has(worldId)) {
-    slotRegistry.set(worldId, new Map());
-  }
-  slotRegistry.get(worldId)!.set(slot, component);
-  notifySubscribers();
+  _registerSlot(worldId, slot, component as (props: Record<string, unknown>) => unknown);
 }
 
 /**
@@ -63,7 +51,7 @@ export function useSlot(slot: SlotName, context: SlotContext): SlotComponent | n
     };
   }, []);
 
-  return slotRegistry.get(context.worldId)?.get(slot) ?? null;
+  return (getSlot(context.worldId, slot) as SlotComponent | null);
 }
 
 interface PluginSlotProps {
