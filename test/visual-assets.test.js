@@ -146,12 +146,12 @@ test("deferred portrait status is preserved and does not request a prompt", asyn
 
 test("runtime attaches visual asset requests to world state without generating every turn", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-runtime-visual-assets-"));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   const worldDir = path.join(rootDir, "world");
 
   const result = await runPlayerTurn({
     playerAction: "I ask who remembers the old north road.",
-    stateDir,
+    instanceDir,
     worldDir
   });
 
@@ -166,7 +166,7 @@ test("runtime attaches visual asset requests to world state without generating e
   await stat(path.join(worldDir, "assets", "portraits", "mara-underbough.prompt.md"));
   await stat(path.join(worldDir, "assets", "backgrounds", "last-lantern-tavern.prompt.md"));
 
-  const turnLog = await readFile(path.join(stateDir, "turns.jsonl"), "utf8");
+  const turnLog = await readFile(path.join(instanceDir, "turns.jsonl"), "utf8");
   assert.match(turnLog, /visual_assets/);
   assert.doesNotMatch(turnLog, /image_data|base64|generated-on-turn/);
 });
@@ -344,12 +344,12 @@ test("locked generated asset with missing prompt writes a fresh prompt hash", as
 
 test("loadCurrentState reloads updated visual manifest instead of stale world-state asset data", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-visual-state-refresh-"));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   const worldDir = path.join(rootDir, "world");
 
   await runPlayerTurn({
     playerAction: "I ask who remembers the old north road.",
-    stateDir,
+    instanceDir,
     worldDir
   });
 
@@ -358,7 +358,7 @@ test("loadCurrentState reloads updated visual manifest instead of stale world-st
   const scenario = await loadScenarioPack("last-lantern");
   await prepareVisualAssetsForScenario({ scenario, scene: scenario.scene, characters: scenario.characters, worldDir });
 
-  const state = await loadCurrentState({ scenarioId: "last-lantern", stateDir, worldDir });
+  const state = await loadCurrentState({ scenarioId: "last-lantern", instanceDir, worldDir });
   const portrait = state.visualAssets.assets.find((asset) => asset.id === "portrait:mara-underbough");
   assert.equal(portrait.status, "generated");
   assert.equal(portrait.public_url, "/world-assets/assets/portraits/mara-underbough.png?scenario=last-lantern");
@@ -367,14 +367,14 @@ test("loadCurrentState reloads updated visual manifest instead of stale world-st
 test("server only serves image assets and includes nosniff", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-world-asset-route-"));
   const worldDir = path.join(rootDir, "world");
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   const portraitDir = path.join(worldDir, "assets", "portraits");
   await mkdir(portraitDir, { recursive: true });
   await writeFile(path.join(portraitDir, "mara-underbough.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
   const outsideImage = path.join(rootDir, "outside.png");
   await writeFile(outsideImage, "SYMLINK_SECRET", "utf8");
 
-  const server = createParleyServer({ stateDir, worldDir });
+  const server = createParleyServer({ instanceDir, worldDir });
   const ok = await requestServer(server, { method: "GET", url: "/world-assets/assets/portraits/mara-underbough.png" });
   assert.equal(ok.status, 200);
   assert.match(ok.headers["content-type"], /image\/png/);

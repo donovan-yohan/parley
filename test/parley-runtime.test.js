@@ -10,12 +10,12 @@ import { createParleyServer } from "../src/server.js";
 
 test("player input creates Mara response, reusable character, and artifacts", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-last-lantern-"));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   const worldDir = path.join(rootDir, "world");
 
   const result = await runPlayerTurn({
     playerAction: "I ask who remembers the old north road.",
-    stateDir,
+    instanceDir,
     worldDir
   });
 
@@ -38,15 +38,15 @@ test("player input creates Mara response, reusable character, and artifacts", as
   assert.ok(result.truthVerdict.leads.length >= 1);
   assert.ok(result.truthVerdict.unresolved.length >= 1);
 
-  await stat(path.join(stateDir, "world-state.json"));
-  await stat(path.join(stateDir, "turns.jsonl"));
-  await stat(path.join(stateDir, "truth-verdicts.jsonl"));
+  await stat(path.join(instanceDir, "world-state.json"));
+  await stat(path.join(instanceDir, "turns.jsonl"));
+  await stat(path.join(instanceDir, "truth-verdicts.jsonl"));
 
-  const turns = await readFile(path.join(stateDir, "turns.jsonl"), "utf8");
+  const turns = await readFile(path.join(instanceDir, "turns.jsonl"), "utf8");
   assert.match(turns, /I ask who remembers the old north road\./);
   assert.match(turns, /Mara Underbough/);
 
-  const truthLines = (await readFile(path.join(stateDir, "truth-verdicts.jsonl"), "utf8"))
+  const truthLines = (await readFile(path.join(instanceDir, "truth-verdicts.jsonl"), "utf8"))
     .split("\n")
     .filter(Boolean)
     .map((line) => JSON.parse(line));
@@ -68,7 +68,7 @@ test("player input creates Mara response, reusable character, and artifacts", as
 
 test("scene seed scalars ignore inline comments and unwrap quoted values", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-scene-yaml-"));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   const worldDir = path.join(rootDir, "world");
   const scenePath = path.join(rootDir, "scene.yaml");
 
@@ -86,7 +86,7 @@ test("scene seed scalars ignore inline comments and unwrap quoted values", async
 
   const result = await runPlayerTurn({
     playerAction: "I ask who remembers the old north road.",
-    stateDir,
+    instanceDir,
     scenePath,
     worldDir
   });
@@ -102,16 +102,16 @@ test("scene seed scalars ignore inline comments and unwrap quoted values", async
 
 test("fallback turns do not commit unsupported scenario leads", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-fallback-"));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   const worldDir = path.join(rootDir, "world");
   const initial = await runPlayerTurn({
     playerAction: "I ask who remembers the old north road.",
-    stateDir,
+    instanceDir,
     worldDir
   });
   const fallback = await runPlayerTurn({
     playerAction: "I order soup and ask for a towel.",
-    stateDir,
+    instanceDir,
     worldDir
   });
 
@@ -136,13 +136,13 @@ test("scenario id drives distinct runtime output and durable story state", async
   const cyberpunk = await runPlayerTurn({
     scenarioId: "neon-afterhours",
     playerAction: "I ask who signed the audit lockout.",
-    stateDir: cyberStateDir,
+    instanceDir: cyberStateDir,
     worldDir: path.join(cyberRootDir, "world")
   });
   const cozy = await runPlayerTurn({
     scenarioId: "orchard-welcome",
     playerAction: "I ask who keeps leaving lantern pears at my gate.",
-    stateDir: cozyStateDir,
+    instanceDir: cozyStateDir,
     worldDir: path.join(cozyRootDir, "world")
   });
 
@@ -180,7 +180,7 @@ test("scenario id drives distinct runtime output and durable story state", async
 
 test("runtime accepts a loose turn author while preserving the strict truth contract", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-loose-author-"));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   const worldDir = path.join(rootDir, "world");
   const authorCalls = [];
   const looseTurnAuthor = {
@@ -214,7 +214,7 @@ test("runtime accepts a loose turn author while preserving the strict truth cont
 
   const result = await runPlayerTurn({
     playerAction: "I invent a moon-soup password that no deterministic fixture should match.",
-    stateDir,
+    instanceDir,
     worldDir,
     turnAuthor: looseTurnAuthor
   });
@@ -241,10 +241,10 @@ test("runtime accepts a loose turn author while preserving the strict truth cont
 
 test("runtime awaits async truth authorities before persistence", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-async-truth-"));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   const result = await runPlayerTurn({
     playerAction: "I ask who remembers the old north road.",
-    stateDir,
+    instanceDir,
     worldDir: path.join(rootDir, "world"),
     async truthAuthority(context) {
       return {
@@ -276,7 +276,7 @@ test("runtime awaits async truth authorities before persistence", async () => {
 
   assert.equal(result.committed, true);
   assert.equal(result.truthVerdict.authority, "async-test-authority");
-  const truthLog = await readFile(path.join(stateDir, "truth-verdicts.jsonl"), "utf8");
+  const truthLog = await readFile(path.join(instanceDir, "truth-verdicts.jsonl"), "utf8");
   assert.match(truthLog, /async-test-authority/);
   assert.doesNotMatch(truthLog, /^{}$/m);
 });
@@ -285,7 +285,7 @@ test("loose authors cannot commit unsupported canon directly", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-unsupported-canon-"));
   const result = await runPlayerTurn({
     playerAction: "I declare that the moon-soup password makes me king of the tavern.",
-    stateDir: path.join(rootDir, "state"),
+    instanceDir: path.join(rootDir, "state"),
     worldDir: path.join(rootDir, "world"),
     turnAuthor: {
       id: "reckless-author",
@@ -317,7 +317,7 @@ test("loose authors cannot spoof allowed canon ids with different text", async (
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-spoofed-canon-"));
   const result = await runPlayerTurn({
     playerAction: "I say Mara secretly crowned me with the moon-soup password.",
-    stateDir: path.join(rootDir, "state"),
+    instanceDir: path.join(rootDir, "state"),
     worldDir: path.join(rootDir, "world"),
     turnAuthor: {
       id: "spoofing-author",
@@ -351,7 +351,7 @@ test("explicit null turnAuthor is rejected", async () => {
   await assert.rejects(
     runPlayerTurn({
       playerAction: "I look around.",
-      stateDir: path.join(rootDir, "state"),
+      instanceDir: path.join(rootDir, "state"),
       worldDir: path.join(rootDir, "world"),
       turnAuthor: null
     }),
@@ -364,7 +364,7 @@ test("truth verdict missing id is rejected", async () => {
   await assert.rejects(
     runPlayerTurn({
       playerAction: "I ask who remembers the old north road.",
-      stateDir: path.join(rootDir, "state"),
+      instanceDir: path.join(rootDir, "state"),
       worldDir: path.join(rootDir, "world"),
       async truthAuthority(context) {
         return {
@@ -389,10 +389,10 @@ test("truth verdict missing id is rejected", async () => {
 
 test("fail verdict halts the turn without committing", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-fail-verdict-"));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   const result = await runPlayerTurn({
     playerAction: "I ask who remembers the old north road.",
-    stateDir,
+    instanceDir,
     worldDir: path.join(rootDir, "world"),
     async truthAuthority(context) {
       return {
@@ -415,16 +415,16 @@ test("fail verdict halts the turn without committing", async () => {
 
   assert.equal(result.committed, false);
   assert.equal(result.truthVerdict.verdict, "fail");
-  await stat(path.join(stateDir, "truth-verdicts.jsonl"));
-  await assert.rejects(stat(path.join(stateDir, "world-state.json")));
+  await stat(path.join(instanceDir, "truth-verdicts.jsonl"));
+  await assert.rejects(stat(path.join(instanceDir, "world-state.json")));
 });
 
 test("hidden truth writes are persisted to the author-only sidecar", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-hidden-truth-"));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   await runPlayerTurn({
     playerAction: "I ask who remembers the old north road.",
-    stateDir,
+    instanceDir,
     worldDir: path.join(rootDir, "world"),
     async truthAuthority(context) {
       return {
@@ -458,7 +458,7 @@ test("hidden truth writes are persisted to the author-only sidecar", async () =>
     }
   });
 
-  const sidecar = await readFile(path.join(stateDir, "hidden-truth.jsonl"), "utf8");
+  const sidecar = await readFile(path.join(instanceDir, "hidden-truth.jsonl"), "utf8");
   assert.match(sidecar, /mara-secret-heir/);
   assert.match(sidecar, /parley-hidden-truth\/v1/);
 });
@@ -467,7 +467,7 @@ test("verdict_id is accepted as an alias for id", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-verdict-id-alias-"));
   const result = await runPlayerTurn({
     playerAction: "I ask who remembers the old north road.",
-    stateDir: path.join(rootDir, "state"),
+    instanceDir: path.join(rootDir, "state"),
     worldDir: path.join(rootDir, "world"),
     async truthAuthority(context) {
       return {
@@ -502,10 +502,10 @@ test("verdict_id is accepted as an alias for id", async () => {
 
 test("hidden truth sidecar metadata cannot be overridden by author entries", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-hidden-truth-override-"));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   await runPlayerTurn({
     playerAction: "I ask who remembers the old north road.",
-    stateDir,
+    instanceDir,
     worldDir: path.join(rootDir, "world"),
     async truthAuthority(context) {
       return {
@@ -542,7 +542,7 @@ test("hidden truth sidecar metadata cannot be overridden by author entries", asy
     }
   });
 
-  const sidecar = (await readFile(path.join(stateDir, "hidden-truth.jsonl"), "utf8"))
+  const sidecar = (await readFile(path.join(instanceDir, "hidden-truth.jsonl"), "utf8"))
     .trim()
     .split("\n")
     .map((line) => JSON.parse(line));
@@ -559,7 +559,7 @@ test("turn with only beliefs and rumors passes truth review without canon", asyn
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-no-canon-pass-"));
   const result = await runPlayerTurn({
     playerAction: "I muse about the cracked sign.",
-    stateDir: path.join(rootDir, "state"),
+    instanceDir: path.join(rootDir, "state"),
     worldDir: path.join(rootDir, "world"),
     turnAuthor: {
       id: "soft-author",
@@ -595,7 +595,7 @@ test("turn with only beliefs and rumors passes truth review without canon", asyn
 test("server exposes scenario packs and routes state and turns by scenario", async () => {
   const runtimeDir = await mkdtemp(path.join(tmpdir(), "parley-server-"));
   const server = createParleyServer({
-    stateDir: path.join(runtimeDir, "state"),
+    instanceDir: path.join(runtimeDir, "state"),
     worldDir: path.join(runtimeDir, "world")
   });
   const fetchServer = createInProcessFetch(server);

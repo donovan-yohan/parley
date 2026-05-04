@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
+import { mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -6,15 +6,36 @@ import { validateStoryAttractor } from "./dm/detourContracts.js";
 
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(runtimeDir, "..", "..");
-export const scenariosDir = path.join(repoRoot, "scenarios");
 export const defaultScenarioId = "last-lantern";
 
+export async function ensureInstanceDir(instanceDir) {
+  await mkdir(instanceDir, { recursive: true });
+}
+
 export async function listScenarioPacks() {
-  const entries = await readdir(scenariosDir, { withFileTypes: true });
+  const worldsDir = path.join(repoRoot, "worlds");
+  const worldEntries = await readdir(worldsDir, { withFileTypes: true });
+  const scenarioIds = [];
+  for (const worldEntry of worldEntries) {
+    if (!worldEntry.isDirectory()) {
+      continue;
+    }
+    const scenariosDirForWorld = path.join(worldsDir, worldEntry.name, "scenarios");
+    let scenarioEntries;
+    try {
+      scenarioEntries = await readdir(scenariosDirForWorld, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const scenarioEntry of scenarioEntries) {
+      if (scenarioEntry.isDirectory()) {
+        scenarioIds.push(scenarioEntry.name);
+      }
+    }
+  }
+
   const settled = await Promise.allSettled(
-    entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => loadScenarioPack(entry.name))
+    scenarioIds.map((id) => loadScenarioPack(id))
   );
 
   const scenarios = [];
@@ -33,16 +54,17 @@ export async function listScenarioPacks() {
 
 export async function loadScenarioPack(scenarioId = defaultScenarioId) {
   const id = normalizeScenarioId(scenarioId);
-  const scenarioPath = path.join(scenariosDir, id, "scenario.json");
+  const worldId = id; // 1a invariant; future PRs may decouple
+  const scenarioPath = path.join(repoRoot, "worlds", worldId, "scenarios", id, "scenario.json");
   const raw = await readFile(scenarioPath, "utf8");
   const scenario = JSON.parse(raw);
   validateScenarioPack(scenario, scenarioPath);
-  const worldId = normalizeWorldId(scenario.world?.id, scenarioPath);
+  normalizeWorldId(scenario.world?.id, scenarioPath);
   return {
     ...scenario,
     scenarioPath,
-    stateDir: path.join(repoRoot, "worlds", worldId, "state"),
-    worldDir: path.join(repoRoot, "worlds", worldId)
+    worldDir: path.join(repoRoot, "worlds", worldId),
+    instanceDir: path.join(repoRoot, "instances", worldId, "playthrough-1")
   };
 }
 

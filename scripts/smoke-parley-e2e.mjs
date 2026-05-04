@@ -9,23 +9,23 @@ import { Readable, Writable } from "node:stream";
 import { createParleyServer } from "../src/server.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-let stateDir;
+let instanceDir;
 let worldDir;
 const playerAction = "I ask who remembers the old north road.";
 const originalFetch = globalThis.fetch;
 
 async function main() {
   const runtimeDir = await mkdtemp(path.join(tmpdir(), "parley-e2e-"));
-  stateDir = path.join(runtimeDir, "state");
+  instanceDir = path.join(runtimeDir, "instance");
   worldDir = path.join(runtimeDir, "world");
-  await mkdir(stateDir, { recursive: true });
+  await mkdir(instanceDir, { recursive: true });
   await Promise.all([
-    rm(path.join(stateDir, "world-state.json"), { force: true }),
-    rm(path.join(stateDir, "turns.jsonl"), { force: true }),
-    rm(path.join(stateDir, "truth-verdicts.jsonl"), { force: true })
+    rm(path.join(instanceDir, "world-state.json"), { force: true }),
+    rm(path.join(instanceDir, "turns.jsonl"), { force: true }),
+    rm(path.join(instanceDir, "truth-verdicts.jsonl"), { force: true })
   ]);
 
-  const server = createParleyServer({ stateDir, worldDir });
+  const server = createParleyServer({ instanceDir, worldDir });
   const serverFetch = createInProcessFetch(server);
 
   try {
@@ -137,9 +137,9 @@ async function main() {
     choiceButton.dispatchEvent({ type: "click" });
     assert.equal(harness.input.value, choiceButton.textContent);
 
-    const worldStatePath = path.join(stateDir, "world-state.json");
-    const turnsPath = path.join(stateDir, "turns.jsonl");
-    const truthPath = path.join(stateDir, "truth-verdicts.jsonl");
+    const worldStatePath = path.join(instanceDir, "world-state.json");
+    const turnsPath = path.join(instanceDir, "turns.jsonl");
+    const truthPath = path.join(instanceDir, "truth-verdicts.jsonl");
 
     for (const artifactPath of [worldStatePath, turnsPath, truthPath]) {
       await stat(artifactPath);

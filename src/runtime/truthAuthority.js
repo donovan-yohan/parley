@@ -8,7 +8,7 @@ export function judgeTurn({
   characters = character ? [character] : [],
   proposedFacts,
   handledRejectedClaims = [],
-  stateDir,
+  instanceDir,
   worldDir
 }) {
   const blockingRejectedClaims = [];
@@ -100,7 +100,7 @@ export function judgeTurn({
     character_beliefs: beliefs,
     unresolved,
     author_only_hidden_truth: [],
-    evidence: buildEvidencePaths({ scenario, stateDir, worldDir })
+    evidence: buildEvidencePaths({ scenario, instanceDir, worldDir })
   };
 }
 
@@ -112,17 +112,15 @@ function materializeContractFact({ contractFact, evidenceTurn }) {
   };
 }
 
-function buildEvidencePaths({ scenario, stateDir, worldDir }) {
+function buildEvidencePaths({ scenario, instanceDir, worldDir }) {
   const evidence = [];
   if (scenario?.scenarioPath) {
     evidence.push(scenario.scenarioPath);
   }
-  if (stateDir) {
-    evidence.push(`${stateDir}/turns.jsonl`);
-  } else if (worldDir) {
-    evidence.push(`${worldDir}/state/turns.jsonl`);
+  if (instanceDir) {
+    evidence.push(`${instanceDir}/turns.jsonl`);
   } else if (scenario?.world?.id) {
-    evidence.push(`worlds/${scenario.world.id}/state/turns.jsonl`);
+    evidence.push(`instances/${scenario.world.id}/playthrough-1/turns.jsonl`);
   }
   return evidence;
 }
