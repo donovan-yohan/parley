@@ -2,11 +2,11 @@ import { z } from "zod";
 
 /**
  * Unique identifier for a conversation turn.
- * Format: turn-<8+ lowercase hex digits>
+ * Format: turn-<4+ zero-padded decimal digits> (e.g. turn-0001)
  */
 export const TurnId = z
   .string()
-  .regex(/^turn-[0-9a-f]{8,}$/, "TurnId must match turn-<hex8+>");
+  .regex(/^turn-[0-9]{4,}$/, "TurnId must match turn-<digits4+>");
 
 /**
  * ISO 8601 datetime string with timezone offset (Z or ±HH:MM).

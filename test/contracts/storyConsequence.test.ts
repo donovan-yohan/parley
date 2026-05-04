@@ -6,7 +6,7 @@ import { StoryConsequenceSchema } from "../../src/contracts/storyConsequence.ts"
 const minimalValid = {
   schema_version: "parley-story-consequence/v1",
   id: "sc-001",
-  source_turn_id: "turn-a1b2c3d4",
+  source_turn_id: "turn-0001",
   category: "alliance",
   scope: "story_instance",
   summary: "The party saved the merchant.",
@@ -25,11 +25,13 @@ describe("StoryConsequenceSchema — positive", () => {
   it("accepts a full object with all optional fields including rejected_claims", () => {
     const full = {
       ...minimalValid,
-      reputation_deltas: ["merchant-aldric:+10"],
+      reputation_deltas: [
+        { entity_id: "merchant-aldric", axis: "trust", change: 10, reason: "Party saved merchant" },
+      ],
       followup_hooks: ["hook-rescue-followup"],
       rejected_claims: [
-        { claim: "The merchant was ungrateful", reason: "Contradicts scene log" },
-        { claim: "Party demanded payment", reason: "No evidence in transcript" },
+        { id: "rc-1", claim: "The merchant was ungrateful", reason: "Contradicts scene log", handled: true },
+        { id: "rc-2", claim: "Party demanded payment", reason: "No evidence in transcript", handled: false },
       ],
       promotion_eligible: true,
     };
@@ -107,6 +109,38 @@ describe("StoryConsequenceSchema — negative", () => {
     const result = StoryConsequenceSchema.safeParse({
       ...minimalValid,
       rejected_claims: [{ claim: "", reason: "some reason" }],
+    });
+    assert.equal(result.success, false);
+  });
+
+  it("rejects a rejected_claims entry missing id", () => {
+    const result = StoryConsequenceSchema.safeParse({
+      ...minimalValid,
+      rejected_claims: [{ claim: "some claim", reason: "some reason", handled: true }],
+    });
+    assert.equal(result.success, false);
+  });
+
+  it("rejects a rejected_claims entry missing handled", () => {
+    const result = StoryConsequenceSchema.safeParse({
+      ...minimalValid,
+      rejected_claims: [{ id: "rc-1", claim: "some claim", reason: "some reason" }],
+    });
+    assert.equal(result.success, false);
+  });
+
+  it("rejects a reputation_deltas entry that is a plain string", () => {
+    const result = StoryConsequenceSchema.safeParse({
+      ...minimalValid,
+      reputation_deltas: ["merchant-aldric:+10"],
+    });
+    assert.equal(result.success, false);
+  });
+
+  it("rejects a reputation_deltas entry missing change", () => {
+    const result = StoryConsequenceSchema.safeParse({
+      ...minimalValid,
+      reputation_deltas: [{ entity_id: "merchant-aldric", axis: "trust", reason: "saved" }],
     });
     assert.equal(result.success, false);
   });

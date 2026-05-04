@@ -8,7 +8,7 @@ import { DetourScene } from "../../src/contracts/detourScene.ts";
 const validDetourScene = {
   schema_version: "parley-detour-scene/v1",
   id: "detour-001",
-  source_turn_id: "turn-a1b2c3d4",
+  source_turn_id: "turn-0001",
   scope: "story_instance",
   title: "The Hidden Passage",
   purpose: "Explore the underground network",

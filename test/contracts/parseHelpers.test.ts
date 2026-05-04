@@ -10,7 +10,7 @@ import { safeParseWithFieldErrors } from "../../src/contracts/parseHelpers.ts";
 const validNormalContinuation = {
   schema_version: "parley-action-interpretation/v1",
   id: "action-123",
-  turn_id: "turn-a1b2c3d4",
+  turn_id: "turn-0001",
   player_action: "The player opens the door.",
   scene_id: "tavern-scene",
   intent: "explore",
@@ -25,7 +25,7 @@ const validNormalContinuation = {
 const validDetourScene = {
   schema_version: "parley-action-interpretation/v1",
   id: "action-456",
-  turn_id: "turn-b2c3d4e5",
+  turn_id: "turn-0002",
   player_action: "The player attacks the guard.",
   scene_id: "market-scene",
   intent: "combat",

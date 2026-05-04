@@ -16,23 +16,27 @@ import {
 // ---------------------------------------------------------------------------
 describe("TurnId", () => {
   it("accepts a valid turn id", () => {
-    assert.ok(TurnId.safeParse("turn-a1b2c3d4").success);
+    assert.ok(TurnId.safeParse("turn-0001").success);
   });
 
-  it("accepts a turn id with more than 8 hex chars", () => {
-    assert.ok(TurnId.safeParse("turn-a1b2c3d4e5f6").success);
+  it("accepts a turn id with a larger zero-padded number", () => {
+    assert.ok(TurnId.safeParse("turn-0042").success);
+  });
+
+  it("accepts a turn id with more than 4 digits", () => {
+    assert.ok(TurnId.safeParse("turn-99999999").success);
   });
 
   it("rejects a turn id without the turn- prefix", () => {
-    assert.equal(TurnId.safeParse("a1b2c3d4").success, false);
+    assert.equal(TurnId.safeParse("0001").success, false);
   });
 
-  it("rejects a turn id with fewer than 8 hex chars", () => {
-    assert.equal(TurnId.safeParse("turn-a1b2c3d").success, false);
+  it("rejects a turn id with fewer than 4 digits", () => {
+    assert.equal(TurnId.safeParse("turn-abc").success, false);
   });
 
-  it("rejects a turn id with non-hex characters", () => {
-    assert.equal(TurnId.safeParse("turn-g1b2c3d4").success, false);
+  it("rejects a turn id with non-digit characters", () => {
+    assert.equal(TurnId.safeParse("turn-XYZ").success, false);
   });
 
   it("rejects a non-string", () => {
