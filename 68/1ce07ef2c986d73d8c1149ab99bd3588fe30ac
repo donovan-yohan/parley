@@ -1,0 +1,35 @@
+test/contracts/parleyActorAction.test.ts
+  6fd9bdc7c61f8cc6 1-102
+src/contracts/parleyActorAction.ts
+  6fd9bdc7c61f8cc6 1-21
+src/contracts/parleyWakeResult.ts
+  6fd9bdc7c61f8cc6 1-27
+test/contracts/parleyWake.test.ts
+  6fd9bdc7c61f8cc6 1-163
+src/contracts/index.ts
+  6fd9bdc7c61f8cc6 1-13
+src/contracts/parleyWake.ts
+  6fd9bdc7c61f8cc6 1-30
+test/contracts/parleyWakeResult.test.ts
+  6fd9bdc7c61f8cc6 1-134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "681ce07ef2c986d73d8c1149ab99bd3588fe30ac",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 480,
+      "total_deletions": 0,
+      "accepted_lines": 490,
+      "overriden_lines": 0
+    }
+  }
+}
