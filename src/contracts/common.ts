@@ -71,6 +71,17 @@ export const TalentName = z
   );
 
 /**
+ * Unique identifier for a Parley instance.
+ * Leading alphanumeric (a-z0-9), then [a-z0-9-], max 39 chars total.
+ */
+export const InstanceId = z
+  .string()
+  .regex(
+    /^[a-z0-9][a-z0-9-]{0,38}$/,
+    "InstanceId: leading alphanumeric, [a-z0-9-], max 39 chars",
+  );
+
+/**
  * Helper for enforcing a schema_version literal field in contract schemas.
  * Using a generic ensures z.infer resolves to the literal type (e.g. "v1"),
  * not just string, so callers get precise type narrowing.
@@ -94,3 +105,4 @@ export type SceneId = z.infer<typeof SceneId>;
 export type CharacterId = z.infer<typeof CharacterId>;
 export type CragSlug = z.infer<typeof CragSlug>;
 export type TalentName = z.infer<typeof TalentName>;
+export type InstanceId = z.infer<typeof InstanceId>;
