@@ -1,0 +1,25 @@
+package.json
+  6fd9bdc7c61f8cc6 16
+scripts/smoke-belayer-doctor.mjs
+  6fd9bdc7c61f8cc6 1-239
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "85a1225b6ef0546b0ea4afb43f7ea16c1a14aef6",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 305,
+      "total_deletions": 65,
+      "accepted_lines": 1153,
+      "overriden_lines": 0
+    }
+  }
+}
