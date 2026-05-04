@@ -398,6 +398,36 @@ function startEventStream(storyId) {
 }
 
 function handleStoryEvent(event) {
+  // Handle visual_asset_ready: update portrait or background img elements.
+  if (event.type === "visual_asset_ready") {
+    const path = event.inputs?.path;
+    const kind = event.inputs?.target?.kind;
+    const id = event.inputs?.target?.id;
+    if (!path) return; // backward compat: skip silently if path missing
+
+    if (kind === "background") {
+      const bg = document.getElementById("scene-background");
+      if (bg) {
+        bg.src = path;
+        bg.classList.add("asset-fade-in");
+      }
+    } else if (kind === "portrait") {
+      let portrait = document.getElementById(`portrait-${id}`);
+      if (!portrait) {
+        const strip = document.getElementById("portraits-strip");
+        if (!strip) return; // skip silently if container absent
+        portrait = document.createElement("img");
+        portrait.id = `portrait-${id}`;
+        portrait.alt = id ?? "character portrait";
+        portrait.className = "portrait-thumbnail";
+        strip.appendChild(portrait);
+      }
+      portrait.src = path;
+      portrait.classList.add("asset-fade-in");
+    }
+    return;
+  }
+
   // Minimal renderer: append to #event-stream if it exists; else console.log.
   const container = document.getElementById("event-stream");
   if (!container) {

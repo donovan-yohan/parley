@@ -124,6 +124,39 @@ test("happy path: materializeInstance succeeds with two characters", async () =>
     const yamlStat = await stat(yamlPath);
     assert.ok(yamlStat.isFile(), `.belayer-talent.yaml should exist for ${characterId}`);
   }
+
+  // artTalents returned for background-artist and portrait-artist
+  assert.ok(Array.isArray(result.artTalents), "result.artTalents should be an array");
+  assert.equal(result.artTalents.length, 2, "should return 2 art talent entries");
+
+  const artTalentNames = result.artTalents.map((t) => t.talentName).sort();
+  assert.deepEqual(
+    artTalentNames,
+    ["background-artist", "portrait-artist"].sort(),
+    "artTalents should contain background-artist and portrait-artist",
+  );
+
+  for (const talentName of ["background-artist", "portrait-artist"]) {
+    const expectedProfileName = `blyr-${INSTANCE_ID}-${talentName}`;
+    const entry = result.artTalents.find((t) => t.talentName === talentName);
+    assert.ok(entry, `artTalents should contain entry for ${talentName}`);
+    assert.equal(
+      entry.profileName,
+      expectedProfileName,
+      `profileName for ${talentName} should be blyr-<instance>-<talent>`,
+    );
+
+    // .belayer-talent.yaml exists and has memory_scope: crag
+    const yamlPath = path.join(entry.profileDir, ".belayer-talent.yaml");
+    const yamlStat = await stat(yamlPath);
+    assert.ok(yamlStat.isFile(), `.belayer-talent.yaml should exist for ${talentName}`);
+
+    const yamlContent = await readFile(yamlPath, "utf8");
+    assert.ok(
+      yamlContent.includes("memory_scope: crag"),
+      `${talentName} .belayer-talent.yaml should have memory_scope: crag`,
+    );
+  }
 });
 
 // ---------------------------------------------------------------------------
