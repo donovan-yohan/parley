@@ -1,0 +1,33 @@
+scripts/parley-migrate-scenario.mjs
+  6fd9bdc7c61f8cc6 1-280
+scenarios/last-lantern/scenario.json
+  6fd9bdc7c61f8cc6 24
+scenarios/neon-afterhours/scenario.json
+  6fd9bdc7c61f8cc6 24,148
+scenarios/orchard-welcome/scenario.json
+  6fd9bdc7c61f8cc6 24
+package.json
+  6fd9bdc7c61f8cc6 15
+examples/last-lantern/scene.yaml
+  6fd9bdc7c61f8cc6 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "ed4acfabdb557ec8a78102896f2c486b20774fe7",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 286,
+      "total_deletions": 5,
+      "accepted_lines": 1155,
+      "overriden_lines": 0
+    }
+  }
+}
