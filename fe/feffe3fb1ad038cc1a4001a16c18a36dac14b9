@@ -1,0 +1,51 @@
+src/shell/theme/tokens.ts
+  450676fd0e253278 1-107
+src/contracts/theme.ts
+  450676fd0e253278 1-131
+src/shell/components/DialogueFrame.tsx
+  450676fd0e253278 1-66
+src/worlds-loader/index.ts
+  450676fd0e253278 4,6-8,11-163
+src/shell/SinglePageApp.tsx
+  450676fd0e253278 6,88-92
+scripts/discover-worlds.ts
+  450676fd0e253278 1-93
+package.json
+  450676fd0e253278 10
+src/shell/theme/apply.ts
+  450676fd0e253278 1-146
+src/contracts/index.ts
+  450676fd0e253278 9-11
+src/contracts/world.ts
+  450676fd0e253278 1-63
+src/shell/main.tsx
+  450676fd0e253278 4,14-22
+src/sdk/components/index.ts
+  450676fd0e253278 7-8
+src/shell/theme/loadWorldTheme.ts
+  450676fd0e253278 1-115
+src/shell/components/SceneBackdrop.tsx
+  450676fd0e253278 1-67
+src/contracts/worldManifest.ts
+  450676fd0e253278 1-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "fefeffe3fb1ad038cc1a4001a16c18a36dac14b9",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 1204,
+      "total_deletions": 33,
+      "accepted_lines": 3561,
+      "overriden_lines": 1
+    }
+  }
+}
