@@ -1,0 +1,31 @@
+test/contracts/toolCatalog.test.ts
+  6fd9bdc7c61f8cc6 70,72,75-85
+src/runtime/tools/instancePublicWriter.js
+  6fd9bdc7c61f8cc6 7-9,16-17,24-25,32-33,36,38,45-46,49
+test/events/worldInstanceEvaluationWriter.test.js
+  6fd9bdc7c61f8cc6 83-104
+src/runtime/events/npcDormantHook.js
+  6fd9bdc7c61f8cc6 30-36,46-62
+src/contracts/toolCatalog.ts
+  6fd9bdc7c61f8cc6 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "887042da73bd68033f4266fb0e336d61d52d1009",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 4914,
+      "total_deletions": 29,
+      "accepted_lines": 5803,
+      "overriden_lines": 0
+    }
+  }
+}
