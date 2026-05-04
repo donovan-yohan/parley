@@ -1,0 +1,39 @@
+src/contracts/index.ts
+  6fd9bdc7c61f8cc6 18-19
+test/contracts/parleyImageWakeResult.test.ts
+  6fd9bdc7c61f8cc6 1-134
+test/wake/aspectRatioMap.test.js
+  6fd9bdc7c61f8cc6 1-53
+src/runtime/wake/imageWake.js
+  6fd9bdc7c61f8cc6 1-174
+src/contracts/parleyImageWake.ts
+  6fd9bdc7c61f8cc6 1-28
+test/wake/imageWake.test.js
+  6fd9bdc7c61f8cc6 1-292
+test/contracts/parleyImageWake.test.ts
+  6fd9bdc7c61f8cc6 1-147
+src/contracts/parleyImageWakeResult.ts
+  6fd9bdc7c61f8cc6 1-29
+src/runtime/wake/aspectRatioMap.js
+  6fd9bdc7c61f8cc6 1-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "2eee4f385bdcb72f76914fcba7a3d03b9d189b26",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 886,
+      "total_deletions": 1,
+      "accepted_lines": 885,
+      "overriden_lines": 0
+    }
+  }
+}
