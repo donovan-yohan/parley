@@ -1,5 +1,6 @@
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { assertSafeStoryIdSegment } from "./storyIdSafety.js";
 
 export async function writeWorldInstanceEvaluation({
   instanceDir,
@@ -7,6 +8,7 @@ export async function writeWorldInstanceEvaluation({
   evaluation,
   validateEvaluation = null,
 }) {
+  assertSafeStoryIdSegment(storyId);
   if (validateEvaluation) validateEvaluation(evaluation);
   const storyDir = path.join(instanceDir, storyId);
   await mkdir(storyDir, { recursive: true });

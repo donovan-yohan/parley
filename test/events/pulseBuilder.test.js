@@ -117,6 +117,59 @@ describe("pulseBuilder - event aggregation", () => {
 });
 
 // ---------------------------------------------------------------------------
+// npc_intentions dedupe: latest intention per actor wins
+// ---------------------------------------------------------------------------
+describe("pulseBuilder - npc_intentions dedupe to latest per actor", () => {
+  it("keeps only the last intention.set per actor_id", async () => {
+    const instanceDir = await makeTmpDir();
+    const storyId = "story-intentions-dedupe";
+
+    await appendStoryEvent({
+      instanceDir,
+      storyId,
+      event: baseEvent("intention.set", {
+        story_id: storyId,
+        actor_id: "mara-underbough",
+        inputs: { intention: "warn the hero" },
+      }),
+    });
+    // Second event for the same actor — this should overwrite the first.
+    await appendStoryEvent({
+      instanceDir,
+      storyId,
+      event: baseEvent("intention.set", {
+        story_id: storyId,
+        actor_id: "mara-underbough",
+        inputs: { intention: "flee the scene" },
+      }),
+    });
+    // A different actor — should appear as its own entry.
+    await appendStoryEvent({
+      instanceDir,
+      storyId,
+      event: baseEvent("intention.set", {
+        story_id: storyId,
+        actor_id: "quinn-faro",
+        inputs: { intention: "guard the door" },
+      }),
+    });
+
+    const { pulse } = await buildScenePulse({ instanceDir, storyId });
+
+    // Only one entry per actor
+    assert.equal(pulse.npc_intentions.length, 2);
+
+    const maraEntry = pulse.npc_intentions.find((e) => e.actor_id === "mara-underbough");
+    assert.ok(maraEntry, "mara-underbough should be present");
+    assert.equal(maraEntry.intention, "flee the scene", "latest intention should win");
+
+    const quinnEntry = pulse.npc_intentions.find((e) => e.actor_id === "quinn-faro");
+    assert.ok(quinnEntry, "quinn-faro should be present");
+    assert.equal(quinnEntry.intention, "guard the door");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // rosterFn injected → awake_npcs / dormant_npcs populated
 // ---------------------------------------------------------------------------
 describe("pulseBuilder - rosterFn injection", () => {

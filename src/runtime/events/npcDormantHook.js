@@ -15,7 +15,7 @@ export async function emitNpcDormantEvent({
 }) {
   const event = {
     schema_version: "parley-story-event/v1",
-    event_id: `npc-dormant-${characterId}-${Date.now()}`,
+    event_id: `npc-dormant-${characterId}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
     story_id: storyId,
     type: "npc.dormant",
     actor_id: characterId,

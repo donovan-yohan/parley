@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { readStoryEvents } from "./storyEventLog.js";
+import { assertSafeStoryIdSegment } from "./storyIdSafety.js";
 
 export async function buildScenePulse({
   instanceDir,
@@ -8,12 +9,15 @@ export async function buildScenePulse({
   rosterFn = null, // optional: () => { awake: [...], dormant: [...] } from Belayer roster
   validatePulse = null, // optional: ScenePulseSchema.parse
 }) {
+  assertSafeStoryIdSegment(storyId);
   const events = await readStoryEvents({ instanceDir, storyId });
 
   const tensions = new Set();
   const consequences = new Set();
   const leads = new Set();
-  const intentions = [];
+  // Map<actor_id, intention> — keyed so later events overwrite earlier ones,
+  // reflecting CURRENT state rather than accumulating every intention.set event.
+  const intentionsByActor = new Map();
   const unresolved = new Set();
   let lastTurnId = "turn-0000";
 
@@ -26,10 +30,14 @@ export async function buildScenePulse({
       consequences.add(ev.inputs.summary);
     if (ev.type === "lead.surfaced" && ev.inputs?.summary) leads.add(ev.inputs.summary);
     if (ev.type === "intention.set" && ev.actor_id && ev.inputs?.intention) {
-      intentions.push({ actor_id: ev.actor_id, intention: ev.inputs.intention });
+      intentionsByActor.set(ev.actor_id, ev.inputs.intention);
     }
     if (ev.type === "thread.unresolved" && ev.inputs?.summary) unresolved.add(ev.inputs.summary);
   }
+
+  const intentions = Array.from(intentionsByActor.entries()).map(
+    ([actor_id, intention]) => ({ actor_id, intention }),
+  );
 
   const roster = rosterFn ? await rosterFn() : { awake: [], dormant: [] };
 

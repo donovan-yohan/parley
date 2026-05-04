@@ -1,5 +1,6 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { assertSafeStoryIdSegment } from "../events/storyIdSafety.js";
 
 /**
  * Append a structured event to instances/<world>/<instance>/<storyId>/state/events.jsonl.
@@ -24,6 +25,7 @@ export async function writeInstancePublic({
   inputs,
   validateEvent = null
 }) {
+  assertSafeStoryIdSegment(storyId);
   const stateDir = path.join(instanceDir, storyId, "state");
   await mkdir(stateDir, { recursive: true });
 
