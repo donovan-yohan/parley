@@ -1,0 +1,33 @@
+src/contracts/common.ts
+  6fd9bdc7c61f8cc6 74-76,81-82
+test/contracts/common.test.ts
+  6fd9bdc7c61f8cc6 257-258
+src/runtime/parleyRuntime.js
+  6fd9bdc7c61f8cc6 192-193,198,351
+test/instances/materializeInstance.test.js
+  6fd9bdc7c61f8cc6 242,251-252,271-277
+src/runtime/instances/materializeInstance.js
+  6fd9bdc7c61f8cc6 14,138-143,145-148,150-155,157-200
+test/parley-runtime.test.js
+  6fd9bdc7c61f8cc6 81,98,103-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "19f0114fd3f1bd667e55c9a7ce63be5931b47065",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 1514,
+      "total_deletions": 63,
+      "accepted_lines": 1508,
+      "overriden_lines": 0
+    }
+  }
+}
