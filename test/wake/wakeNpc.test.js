@@ -113,26 +113,27 @@ function makeWakeResult({ wakeId = "wake-001" } = {}) {
 
 /**
  * Build a mock belayerProcess object.
+ * Wave C: mailSend replaced by sendToAgent (session-based messaging).
  */
 function makeMockBelayerProcess({
   running = true,
-  mailSendResult = { ok: true, messageId: "msg-001", stdout: "", stderr: "" },
-  mailSendError = null,
+  sendToAgentResult = { ok: true },
+  sendToAgentError = null,
 } = {}) {
-  const mailSendCalls = [];
+  const sendToAgentCalls = [];
   const daemonStatusCalls = [];
 
   return {
-    mailSendCalls,
+    sendToAgentCalls,
     daemonStatusCalls,
     async daemonStatus() {
       daemonStatusCalls.push({});
       return { running, stdout: "", stderr: "" };
     },
-    async mailSend(opts) {
-      mailSendCalls.push(opts);
-      if (mailSendError) throw mailSendError;
-      return mailSendResult;
+    async sendToAgent(opts) {
+      sendToAgentCalls.push(opts);
+      if (sendToAgentError) throw sendToAgentError;
+      return sendToAgentResult;
     },
   };
 }
@@ -152,7 +153,7 @@ function makeMockAwaitWakeResponse(result) {
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-test("wakeNpc happy round-trip: daemon running → mailSend → response returned", async () => {
+test("wakeNpc happy round-trip: daemon running → sendToAgent → response returned", async () => {
   const instanceDir = await makeInstanceDir({ cragSlug: "test-crag" });
   const wakeEnvelope = makeWakeEnvelope({ cragSlug: "test-crag" });
   const wakeResult = makeWakeResult({ wakeId: "wake-001" });
@@ -174,13 +175,16 @@ test("wakeNpc happy round-trip: daemon running → mailSend → response returne
   // Daemon was checked
   assert.equal(belayerProcess.daemonStatusCalls.length, 1);
 
-  // Mail was sent with correct args
-  assert.equal(belayerProcess.mailSendCalls.length, 1);
-  const mailCall = belayerProcess.mailSendCalls[0];
-  assert.equal(mailCall.cragSlug, "test-crag");
-  assert.equal(mailCall.talentName, "mara-underbough");
-  assert.equal(mailCall.clientEventId, "wake-001");
-  assert.ok(mailCall.body.includes("parley-wake/v1"));
+  // Message was sent via sendToAgent with correct args
+  assert.equal(belayerProcess.sendToAgentCalls.length, 1);
+  const sendCall = belayerProcess.sendToAgentCalls[0];
+  // worldInstanceId derives from manifest.instance_id = "test-crag"
+  assert.equal(sendCall.worldInstanceId, "test-crag");
+  // storyId derives from envelope.current_story_context.story_id = "last-lantern"
+  assert.equal(sendCall.storyId, "last-lantern");
+  assert.equal(sendCall.to, "mara-underbough");
+  // The body is the JSON-stringified envelope
+  assert.ok(sendCall.text.includes("parley-wake/v1"));
 
   // awaitWakeResponse was called
   assert.equal(awaitWakeResponse.calls.length, 1);
@@ -193,7 +197,7 @@ test("wakeNpc happy round-trip: daemon running → mailSend → response returne
   assert.equal(result.status, "completed");
 });
 
-test("wakeNpc idempotent retry: calling twice with same wake_id sends mailSend twice (idempotency on Belayer side)", async () => {
+test("wakeNpc idempotent retry: calling twice with same wake_id sends sendToAgent twice (idempotency on Belayer side)", async () => {
   const instanceDir = await makeInstanceDir({ cragSlug: "test-crag" });
   const wakeEnvelope = makeWakeEnvelope({ wakeId: "wake-idem-001", cragSlug: "test-crag" });
   const wakeResult = makeWakeResult({ wakeId: "wake-idem-001" });
@@ -223,13 +227,14 @@ test("wakeNpc idempotent retry: calling twice with same wake_id sends mailSend t
     timeoutMs: 500,
   });
 
-  // Both calls go through — idempotency is Belayer's responsibility via client_event_id
-  assert.equal(belayerProcess.mailSendCalls.length, 2);
-  assert.equal(belayerProcess.mailSendCalls[0].clientEventId, "wake-idem-001");
-  assert.equal(belayerProcess.mailSendCalls[1].clientEventId, "wake-idem-001");
+  // Both calls go through — idempotency is Belayer's responsibility via message deduplication
+  assert.equal(belayerProcess.sendToAgentCalls.length, 2);
+  // Both calls target the same agent
+  assert.equal(belayerProcess.sendToAgentCalls[0].to, "mara-underbough");
+  assert.equal(belayerProcess.sendToAgentCalls[1].to, "mara-underbough");
 });
 
-test("wakeNpc daemon down: returns wake_deferred without calling mailSend", async () => {
+test("wakeNpc daemon down: returns wake_deferred without calling sendToAgent", async () => {
   const instanceDir = await makeInstanceDir({ cragSlug: "test-crag" });
   const wakeEnvelope = makeWakeEnvelope({ cragSlug: "test-crag" });
 
@@ -247,8 +252,8 @@ test("wakeNpc daemon down: returns wake_deferred without calling mailSend", asyn
     timeoutMs: 500,
   });
 
-  // mailSend MUST NOT be called
-  assert.equal(belayerProcess.mailSendCalls.length, 0);
+  // sendToAgent MUST NOT be called when daemon is down
+  assert.equal(belayerProcess.sendToAgentCalls.length, 0);
   // awaitWakeResponse MUST NOT be called
   assert.equal(awaitWakeResponse.calls.length, 0);
 
@@ -277,8 +282,8 @@ test("wakeNpc timeout: awaitWakeResponse returns wake_deferred → returned as-i
     timeoutMs: 500,
   });
 
-  // mailSend was called (we sent the mail before timing out)
-  assert.equal(belayerProcess.mailSendCalls.length, 1);
+  // sendToAgent was called (we sent the message before timing out)
+  assert.equal(belayerProcess.sendToAgentCalls.length, 1);
 
   // Result is the timeout wake_deferred (not validated — pass through)
   assert.equal(result.status, "wake_deferred");
@@ -309,7 +314,7 @@ test("wakeNpc crag mismatch: manifest crag != envelope crag → throws", async (
   );
 
   // Nothing should be sent
-  assert.equal(belayerProcess.mailSendCalls.length, 0);
+  assert.equal(belayerProcess.sendToAgentCalls.length, 0);
 });
 
 test("wakeNpc validation failure: envelope missing current_story_context → validateWake throws → propagates", async () => {
@@ -343,9 +348,9 @@ test("wakeNpc validation failure: envelope missing current_story_context → val
     /current_story_context/
   );
 
-  // Validation must be the FIRST step — no mail sent
+  // Validation must be the FIRST step — no daemon check, no message sent
   assert.equal(belayerProcess.daemonStatusCalls.length, 0);
-  assert.equal(belayerProcess.mailSendCalls.length, 0);
+  assert.equal(belayerProcess.sendToAgentCalls.length, 0);
 });
 
 test("wakeNpc wake result validation failure: malformed response from awaitWakeResponse → validateWakeResult throws → propagates", async () => {
@@ -372,8 +377,8 @@ test("wakeNpc wake result validation failure: malformed response from awaitWakeR
     /ParleyWakeResult/
   );
 
-  // Mail was sent, wake was awaited — validation only fails at the result step
-  assert.equal(belayerProcess.mailSendCalls.length, 1);
+  // sendToAgent was called, wake was awaited — validation only fails at the result step
+  assert.equal(belayerProcess.sendToAgentCalls.length, 1);
   assert.equal(awaitWakeResponse.calls.length, 1);
 });
 

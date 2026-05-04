@@ -15,8 +15,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import {
-  // TODO(Wave C): replace mailSend placeholder with real Belayer climb/message
-  // surface once wakeNpc is retargeted to the new session-based flow.
   daemonStatus as belayerDaemonStatusFn,
 } from "../belayer/belayerProcess.js";
 import {
@@ -24,18 +22,10 @@ import {
   defaultPollFn,
 } from "../belayer/wakeTimeout.js";
 import { validateProfileNameBudget } from "../instances/profileNameBudget.js";
-
-/**
- * Placeholder mail-send function.
- * TODO(Wave C): retarget to climbStart + messageSend once the session-based
- * flow is wired through the full /api/turn pipeline.
- * @returns {Promise<{ ok: boolean, messageId: null, stdout: string, stderr: string }>}
- */
-async function mailSendPlaceholder({ cragSlug, talentName, body, clientEventId } = {}) {
-  // No-op placeholder; the wakeNpc tests inject their own mock, so this code
-  // path is only reached in production (which is Wave C territory).
-  return { ok: true, messageId: null, stdout: "", stderr: "" };
-}
+import {
+  sendToAgent as sessionManagerSendToAgent,
+  SessionNotStartedError,
+} from "../belayer/sessionManager.js";
 
 // ─── Default validators (stubs — must be replaced by caller) ──────────────────
 
@@ -64,10 +54,17 @@ function defaultValidateWakeResult(value) {
 /**
  * Default belayerProcess object wrapping the subprocess bridge.
  * Injectable for tests.
- * NOTE: mailSend is the placeholder until Wave C retargets to climbStart+messageSend.
+ *
+ * Production send: delegates to sessionManager.sendToAgent. The session must
+ * have been established (ensureSession) before wakeNpc is called. If no
+ * session exists for the (worldInstanceId, storyId) pair, SessionNotStartedError
+ * is thrown by sendToAgent.
+ *
+ * The belayerProcess.sendToAgent signature mirrors sessionManager.sendToAgent
+ * so injection is a direct drop-in.
  */
 const defaultBelayerProcess = {
-  mailSend: mailSendPlaceholder,
+  sendToAgent: sessionManagerSendToAgent,
   daemonStatus: belayerDaemonStatusFn,
 };
 
@@ -87,14 +84,63 @@ async function defaultAwaitWakeResponse({ clientEventId, cragSlug, timeoutMs }) 
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+// ─── Story context resolver ───────────────────────────────────────────────────
+
 /**
- * Wake an NPC in a Belayer crag via mail transport.
+ * Derive (worldInstanceId, storyId) from a materialized instance directory.
+ *
+ * worldInstanceId = manifest.instance_id (same as crag_slug per PR #22 design)
+ * storyId = envelope.current_story_context.story_id
+ *
+ * Both fields must be present in the manifest and envelope respectively.
+ *
+ * @param {string} instanceDir
+ * @param {string} storyIdFromEnvelope - story_id from the wake envelope's current_story_context
+ * @returns {Promise<{ worldInstanceId: string, storyId: string }>}
+ */
+export async function resolveStoryContextFromInstanceDir(instanceDir, storyIdFromEnvelope) {
+  const manifestPath = path.join(instanceDir, "manifest.json");
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  } catch (err) {
+    throw new Error(
+      `resolveStoryContextFromInstanceDir: failed to read manifest at ${manifestPath}: ${err.message}`
+    );
+  }
+
+  const worldInstanceId = manifest.instance_id;
+  if (!worldInstanceId) {
+    throw new Error(
+      `resolveStoryContextFromInstanceDir: manifest at ${manifestPath} missing instance_id`
+    );
+  }
+
+  const storyId = storyIdFromEnvelope;
+  if (!storyId) {
+    throw new Error(
+      "resolveStoryContextFromInstanceDir: storyIdFromEnvelope is required"
+    );
+  }
+
+  return { worldInstanceId, storyId };
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Wake an NPC in a Belayer crag via the session-based messaging transport.
+ *
+ * The wake envelope (parley-wake/v1) becomes the JSON body of the message
+ * sent to the agent via sessionManager.sendToAgent. The session must have
+ * been established before calling wakeNpc (call ensureSession from
+ * sessionManager first, or the production path in server.js will do it).
  *
  * @param {object} opts
  * @param {string} opts.instanceDir          - Path to the materialized instance dir
  * @param {string} opts.characterId          - Character / talent name (e.g. "mara-underbough")
  * @param {object} opts.wakeEnvelope         - ParleyWake-shaped envelope object
- * @param {object} [opts.belayerProcess]     - Injectable: { mailSend, daemonStatus }
+ * @param {object} [opts.belayerProcess]     - Injectable: { sendToAgent, daemonStatus }
  * @param {Function} [opts.awaitWakeResponse] - Injectable: (opts) => Promise<any>
  * @param {Function} [opts.validateWake]     - Injectable: (value) => validatedValue (throws on invalid)
  * @param {Function} [opts.validateWakeResult] - Injectable: (value) => validatedValue (throws on invalid)
@@ -148,7 +194,7 @@ export async function wakeNpc({
     throw new Error(`wakeNpc: profile name budget validation failed: ${msgs}`);
   }
 
-  // Step 4: Daemon-down preflight — short-circuit cleanly without dropping mail.
+  // Step 4: Daemon-down preflight — short-circuit cleanly without attempting to send.
   const daemonStatus = await belayerProcess.daemonStatus();
   if (!daemonStatus.running) {
     return {
@@ -158,29 +204,35 @@ export async function wakeNpc({
     };
   }
 
-  // Step 5: Send mail via Belayer. client_event_id = wake_id for idempotency.
-  await belayerProcess.mailSend({
-    cragSlug,
-    talentName: characterId,
-    body: JSON.stringify(validatedEnvelope),
-    clientEventId: validatedEnvelope.wake_id,
+  // Step 5: Resolve session context (worldInstanceId + storyId) from the manifest
+  // and the envelope's current_story_context.story_id.
+  const worldInstanceId = manifest.instance_id ?? cragSlug;
+  const storyId = validatedEnvelope.current_story_context.story_id;
+
+  // Step 6: Send the parley-wake/v1 envelope as a message to the agent via the
+  // active Belayer session. The envelope JSON body is the full wake message.
+  await belayerProcess.sendToAgent({
+    worldInstanceId,
+    storyId,
+    to: characterId,
+    text: JSON.stringify(validatedEnvelope),
   });
 
-  // Step 6: Await the wake response.
+  // Step 7: Await the wake response.
   const response = await awaitWakeResponse({
     clientEventId: validatedEnvelope.wake_id,
     cragSlug,
     timeoutMs,
   });
 
-  // Step 7: If deferred (timeout etc.), normalize shape so consumers always see wake_id.
+  // Step 8: If deferred (timeout etc.), normalize shape so consumers always see wake_id.
   // The timeout path from awaitWakeResponse uses `clientEventId`; daemon-down path here uses `wake_id`.
   // Surface both for now so downstream consumers (PR #14 pulse, PR #15 UI) don't have to disambiguate.
   if (response && response.status === "wake_deferred") {
     return { ...response, wake_id: validatedEnvelope.wake_id };
   }
 
-  // Step 8: Validate the wake result.
+  // Step 9: Validate the wake result.
   const validatedResult = validateWakeResult(response);
   return validatedResult;
 }

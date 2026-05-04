@@ -1,17 +1,73 @@
 import { createServer } from "node:http";
-import { readFile, realpath } from "node:fs/promises";
+import { readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCurrentState, runPlayerTurn } from "./runtime/parleyRuntime.js";
 import { defaultScenarioId, listScenarioPacks, loadScenarioPack } from "./runtime/scenarioPacks.js";
 import { subscribe } from "./runtime/events/sseBroadcaster.js";
+import {
+  ensureSession,
+  registerAgent,
+} from "./runtime/belayer/sessionManager.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const clientDir = path.join(root, "src", "client");
 const port = Number(process.env.PORT ?? 4173);
 const host = process.env.HOST ?? "127.0.0.1";
 const maxJsonBodyBytes = 1_000_000;
+
+// ---------------------------------------------------------------------------
+// Instance detection helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if a materialized instance exists for the given world ID.
+ * Returns the instance manifest (parsed) if found, or null if not.
+ *
+ * Looks for: instances/<worldId>/<worldId>-default/manifest.json
+ *
+ * @param {string} worldId
+ * @returns {Promise<object|null>}
+ */
+async function findDefaultInstance(worldId) {
+  const instanceDir = path.join(root, "instances", worldId, `${worldId}-default`);
+  const manifestPath = path.join(instanceDir, "manifest.json");
+  try {
+    await stat(manifestPath);
+    const raw = await readFile(manifestPath, "utf8");
+    const manifest = JSON.parse(raw);
+    return { manifest, instanceDir };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lazy-load the Zod runtime validators.
+ * Server.js is loaded via `node --import tsx src/server.js` so tsx is active
+ * and the .ts imports inside runtime-validators.mjs will resolve correctly.
+ *
+ * Falls back to null if tsx is not active (test environments inject their own
+ * validators via runtimeOptions).
+ */
+let _cachedValidators = null;
+async function getValidators() {
+  if (_cachedValidators) return _cachedValidators;
+  try {
+    const mod = await import("./contracts/runtime-validators.mjs");
+    _cachedValidators = mod.validators;
+  } catch {
+    // tsx not active — callers must inject validators via runtimeOptions
+    _cachedValidators = null;
+  }
+  return _cachedValidators;
+}
+
+// Character roles that are always registered in a live session.
+// The user must list these in their Belayer climb config for auto-spawn;
+// Parley calls registerAgent to track them in the session roster.
+const SYSTEM_AGENTS = ["storyteller", "truth-judge", "background-artist", "portrait-artist"];
 
 export function createParleyServer(runtimeOptions = {}) {
   return createServer((request, response) => handleParleyRequest(request, response, runtimeOptions));
@@ -62,9 +118,76 @@ export async function handleParleyRequest(request, response, runtimeOptions = {}
 
     if (request.method === "POST" && requestUrl.pathname === "/api/turn") {
       const body = await readJsonBody(request);
+      const scenarioId = body.scenarioId ?? runtimeOptions.scenarioId ?? defaultScenarioId;
+
+      // ── Live-mode detection ─────────────────────────────────────────────────
+      // Check if a default instance is materialized for this world.
+      // If yes: use live Belayer storyteller + truth-judge.
+      // If no: fall back to legacy mock path.
+      const instanceInfo = runtimeOptions.instanceDir
+        ? null  // instanceDir explicitly provided — caller controls live mode
+        : await findDefaultInstance(scenarioId);
+
+      let liveOptions = {};
+      if (instanceInfo && !runtimeOptions.disableLiveMode) {
+        const { manifest, instanceDir } = instanceInfo;
+        const worldInstanceId = manifest.instance_id ?? manifest.crag_slug;
+        // storyId = scenarioId for now; multi-story-per-instance is follow-up.
+        const storyId = scenarioId;
+        const cragSlug = manifest.crag_slug;
+
+        // Ensure a Belayer climb session is alive (idempotent).
+        // Errors here (daemon down, profile budget) propagate to the client.
+        try {
+          const validators = runtimeOptions._validators ?? await getValidators();
+
+          await ensureSession({
+            worldInstanceId,
+            storyId,
+            cragSlug,
+            supervisorTalent: "storyteller",
+            workdir: instanceDir,
+            initialTask: `Parley story instance: ${worldInstanceId} / ${storyId}`,
+            ...(runtimeOptions._ensureSessionDeps ?? {}),
+          });
+
+          // Register system agents + any characters from the manifest.
+          // Actual spawn happens via the user's Belayer climb config.
+          for (const agentName of SYSTEM_AGENTS) {
+            try {
+              registerAgent({ worldInstanceId, storyId, agentName });
+            } catch {
+              // registerAgent throws if session not found — already established above.
+              // Swallow individual registration errors; session is the gate.
+            }
+          }
+
+          liveOptions = {
+            instanceDir,
+            useLiveAuthor: true,
+            useLiveTruthJudge: true,
+            wakeResumableNpcs: true,
+            wakeValidationDeps: validators
+              ? { validateWake: validators.validateWake, validateWakeResult: validators.validateWakeResult }
+              : null,
+          };
+        } catch (liveErr) {
+          // If session establishment fails (daemon down, etc.), surface actionable error.
+          const actionableMessage =
+            liveErr.name === "BelayerDaemonNotRunningError"
+              ? liveErr.message
+              : `Live session setup failed: ${liveErr.message}. ` +
+                `Run \`npm run instance:materialize -- --world ${scenarioId} --as ${scenarioId}-default\` first.`;
+          const err = new Error(actionableMessage);
+          err.statusCode = 503;
+          throw err;
+        }
+      }
+
       const result = await runPlayerTurn({
         ...runtimeOptions,
-        scenarioId: body.scenarioId ?? runtimeOptions.scenarioId ?? defaultScenarioId,
+        ...liveOptions,
+        scenarioId,
         playerAction: body.playerAction
       });
       return sendJson(response, result);

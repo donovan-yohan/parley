@@ -19,6 +19,25 @@ import path from "node:path";
 import { validateProfileNameBudget } from "./profileNameBudget.js";
 
 // ---------------------------------------------------------------------------
+// SOUL.md helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Attempt to read a SOUL.md file at a given path.
+ * Returns the file content as a string, or null if the file does not exist.
+ * @param {string} soulMdPath
+ * @returns {Promise<string|null>}
+ */
+async function readSoulMdIfExists(soulMdPath) {
+  try {
+    return await readFile(soulMdPath, "utf8");
+  } catch (err) {
+    if (err.code === "ENOENT") return null;
+    throw err;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Inline metadata shape validator
 // Keep in sync with src/contracts/belayerTalentMetadata.ts
 // ---------------------------------------------------------------------------
@@ -80,7 +99,7 @@ function parseFlatYaml(content) {
 // ---------------------------------------------------------------------------
 
 /**
- * Materialize a .belayer-talent.yaml profile directory.
+ * Materialize a .belayer-talent.yaml profile directory, and optionally a SOUL.md.
  *
  * @param {object} opts
  * @param {string} opts.cragSlug           - Belayer crag identifier
@@ -88,8 +107,10 @@ function parseFlatYaml(content) {
  * @param {string} opts.memoryScope        - One of: "climb" | "crag" | "talent"
  * @param {string} opts.hermesProfilesRoot - Root directory where profiles live
  * @param {boolean} [opts.force=false]     - Overwrite existing profile if true
+ * @param {string|null} [opts.soulMd]      - If provided, write a SOUL.md file alongside the YAML
+ *                                           with this content. Pass the raw markdown string.
  *
- * @returns {Promise<{ profileDir: string, profileName: string, alreadyExists: boolean }>}
+ * @returns {Promise<{ profileDir: string, profileName: string, alreadyExists: boolean, soulMdWritten: boolean }>}
  */
 export async function materializeTalentProfile({
   cragSlug,
@@ -97,6 +118,7 @@ export async function materializeTalentProfile({
   memoryScope,
   hermesProfilesRoot,
   force = false,
+  soulMd = null,
 }) {
   // 1. Validate profile name budget
   const budgetResult = validateProfileNameBudget(cragSlug, talentName);
@@ -120,7 +142,7 @@ export async function materializeTalentProfile({
         .then(() => true)
         .catch(() => false);
       if (yamlExists) {
-        return { profileDir, profileName, alreadyExists: true };
+        return { profileDir, profileName, alreadyExists: true, soulMdWritten: false };
       }
     }
   }
@@ -153,6 +175,14 @@ export async function materializeTalentProfile({
     throw new Error(`written .belayer-talent.yaml failed shape validation: ${err.message}`);
   }
 
-  // 7. Return result
-  return { profileDir, profileName, alreadyExists: false };
+  // 7. Write SOUL.md if provided
+  let soulMdWritten = false;
+  if (soulMd && typeof soulMd === "string" && soulMd.trim()) {
+    const soulMdPath = path.join(profileDir, "SOUL.md");
+    await writeFile(soulMdPath, soulMd, "utf8");
+    soulMdWritten = true;
+  }
+
+  // 8. Return result
+  return { profileDir, profileName, alreadyExists: false, soulMdWritten };
 }

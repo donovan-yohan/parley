@@ -157,6 +157,39 @@ test("happy path: materializeInstance succeeds with two characters", async () =>
       `${talentName} .belayer-talent.yaml should have memory_scope: crag`,
     );
   }
+
+  // systemTalents returned for storyteller and truth-judge
+  assert.ok(Array.isArray(result.systemTalents), "result.systemTalents should be an array");
+  assert.equal(result.systemTalents.length, 2, "should return 2 system talent entries");
+
+  const systemTalentNames = result.systemTalents.map((t) => t.talentName).sort();
+  assert.deepEqual(
+    systemTalentNames,
+    ["storyteller", "truth-judge"].sort(),
+    "systemTalents should contain storyteller and truth-judge",
+  );
+
+  for (const talentName of ["storyteller", "truth-judge"]) {
+    const expectedProfileName = `blyr-${INSTANCE_ID}-${talentName}`;
+    const entry = result.systemTalents.find((t) => t.talentName === talentName);
+    assert.ok(entry, `systemTalents should contain entry for ${talentName}`);
+    assert.equal(
+      entry.profileName,
+      expectedProfileName,
+      `profileName for ${talentName} should be blyr-<instance>-<talent>`,
+    );
+
+    // .belayer-talent.yaml exists and has memory_scope: crag
+    const yamlPath = path.join(entry.profileDir, ".belayer-talent.yaml");
+    const yamlStat = await stat(yamlPath);
+    assert.ok(yamlStat.isFile(), `.belayer-talent.yaml should exist for ${talentName}`);
+
+    const yamlContent = await readFile(yamlPath, "utf8");
+    assert.ok(
+      yamlContent.includes("memory_scope: crag"),
+      `${talentName} .belayer-talent.yaml should have memory_scope: crag`,
+    );
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -418,4 +451,103 @@ test("full world copy: WORLD.md and art-style.md exist in instance/world/ after 
   const maraPath = path.join(result.instanceDir, "world", "characters", "mara-underbough.md");
   const maraStat = await stat(maraPath);
   assert.ok(maraStat.isFile(), "character file should still exist under instance/world/characters/");
+});
+
+// ---------------------------------------------------------------------------
+// SOUL.md sourcing: worlds/_talents/<name>/SOUL.md → profile dir
+// ---------------------------------------------------------------------------
+
+test("system talents SOUL.md: written when worlds/_talents/<name>/SOUL.md exists", async () => {
+  const repoRoot = await makeTmpDir();
+  const hermesProfilesRoot = await makeTmpDir();
+  await scaffoldWorld(repoRoot, WORLD_ID, CHARACTERS);
+
+  // Create worlds/_talents/storyteller/SOUL.md and worlds/_talents/truth-judge/SOUL.md
+  const talentsDir = path.join(repoRoot, "worlds", "_talents");
+  await mkdir(path.join(talentsDir, "storyteller"), { recursive: true });
+  await writeFile(path.join(talentsDir, "storyteller", "SOUL.md"), "# Storyteller\nYou are the GM.\n", "utf8");
+  await mkdir(path.join(talentsDir, "truth-judge"), { recursive: true });
+  await writeFile(path.join(talentsDir, "truth-judge", "SOUL.md"), "# Truth Judge\nYou judge facts.\n", "utf8");
+
+  const mockSpawn = makeMockSpawn();
+
+  const result = await materializeInstance({
+    worldId: WORLD_ID,
+    instanceId: INSTANCE_ID,
+    repoRoot,
+    hermesProfilesRoot,
+    spawnSubprocess: mockSpawn,
+  });
+
+  // Each system talent should have soulMdWritten: true and a SOUL.md file
+  for (const talentName of ["storyteller", "truth-judge"]) {
+    const entry = result.systemTalents.find((t) => t.talentName === talentName);
+    assert.ok(entry, `should have entry for ${talentName}`);
+    assert.equal(entry.soulMdWritten, true, `soulMdWritten should be true for ${talentName}`);
+
+    const soulMdPath = path.join(entry.profileDir, "SOUL.md");
+    const soulMdStat = await stat(soulMdPath);
+    assert.ok(soulMdStat.isFile(), `SOUL.md should exist for ${talentName}`);
+
+    const soulMdContent = await readFile(soulMdPath, "utf8");
+    assert.ok(soulMdContent.length > 0, `SOUL.md for ${talentName} should be non-empty`);
+  }
+
+  // Art talents should NOT have SOUL.md (not a narration-driven talent)
+  for (const talentName of ["background-artist", "portrait-artist"]) {
+    const entry = result.artTalents.find((t) => t.talentName === talentName);
+    assert.ok(entry, `should have entry for ${talentName}`);
+    assert.equal(entry.soulMdWritten, false, `soulMdWritten should be false for art talent ${talentName}`);
+  }
+});
+
+test("character SOUL.md: derived from character markdown body", async () => {
+  const repoRoot = await makeTmpDir();
+  const hermesProfilesRoot = await makeTmpDir();
+  await scaffoldWorld(repoRoot, WORLD_ID, ["mara-underbough"]);
+
+  const mockSpawn = makeMockSpawn();
+
+  const result = await materializeInstance({
+    worldId: WORLD_ID,
+    instanceId: INSTANCE_ID,
+    repoRoot,
+    hermesProfilesRoot,
+    spawnSubprocess: mockSpawn,
+  });
+
+  const entry = result.profiles.find((p) => p.characterId === "mara-underbough");
+  assert.ok(entry, "should have profile entry for mara-underbough");
+  assert.equal(entry.soulMdWritten, true, "character SOUL.md should be written");
+
+  const soulMdPath = path.join(entry.profileDir, "SOUL.md");
+  const soulMdStat = await stat(soulMdPath);
+  assert.ok(soulMdStat.isFile(), "SOUL.md should exist for character");
+
+  const soulMdContent = await readFile(soulMdPath, "utf8");
+  assert.ok(soulMdContent.includes("mara-underbough"), "character SOUL.md should reference the character");
+});
+
+test("system talent SOUL.md: graceful when worlds/_talents/<name>/SOUL.md absent", async () => {
+  const repoRoot = await makeTmpDir();
+  const hermesProfilesRoot = await makeTmpDir();
+  await scaffoldWorld(repoRoot, WORLD_ID, CHARACTERS);
+  // Do NOT create worlds/_talents/ — no SOUL.md files present
+
+  const mockSpawn = makeMockSpawn();
+
+  // Should not throw — SOUL.md is optional
+  const result = await materializeInstance({
+    worldId: WORLD_ID,
+    instanceId: INSTANCE_ID,
+    repoRoot,
+    hermesProfilesRoot,
+    spawnSubprocess: mockSpawn,
+  });
+
+  // systemTalents still created; soulMdWritten: false
+  assert.equal(result.systemTalents.length, 2, "should still have 2 system talents");
+  for (const entry of result.systemTalents) {
+    assert.equal(entry.soulMdWritten, false, `soulMdWritten should be false when SOUL.md template absent for ${entry.talentName}`);
+  }
 });

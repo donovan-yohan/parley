@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node --import tsx src/server.js",
     "smoke:runtime": "node scripts/smoke-parley-runtime.mjs",
     "smoke:e2e": "node scripts/smoke-parley-e2e.mjs",
     "smoke:scenarios": "node scripts/smoke-parley-scenarios.mjs",
@@ -16,6 +16,7 @@
     "promote": "node scripts/parley-promote-from-eval.mjs",
     "smoke:belayer-doctor": "node scripts/smoke-belayer-doctor.mjs",
     "smoke:belayer-roundtrip": "node scripts/smoke-belayer-roundtrip.mjs",
+    "smoke:live-api": "node scripts/smoke-live-api.mjs",
     "validate:pr10": "node --import tsx scripts/validate-pr10-artifacts.mjs"
   },
   "engines": {

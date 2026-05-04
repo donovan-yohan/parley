@@ -15,11 +15,39 @@ import { judgeTurn } from "./truthAuthority.js";
 import { createScenarioFixtureAuthor, normalizeAuthoredTurn } from "./turnAuthor.js";
 import { attachVisualAssetsToCharacters, loadVisualAssetManifest, prepareVisualAssetsForScenario } from "./visualAssets.js";
 import { wakeNpc } from "./wake/wakeNpc.js";
+import { createBelayerStorytellerAuthor } from "./turnAuthor/belayerStorytellerAuthor.js";
+import { createBelayerTruthJudge } from "./truthAuthority/belayerTruthJudge.js";
+import { sendToAgent as sessionManagerSendToAgent } from "./belayer/sessionManager.js";
 
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(runtimeDir, "..", "..");
 const defaultWorldDir = path.join(repoRoot, "worlds", "last-lantern");
 const defaultScenePath = path.join(repoRoot, "examples", "last-lantern", "scene.yaml");
+
+// ---------------------------------------------------------------------------
+// Manifest helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Read an instance manifest and return { worldInstanceId, cragSlug }.
+ * Returns null if the manifest cannot be read (instance not materialized).
+ *
+ * @param {string} instanceDir
+ * @returns {Promise<{ worldInstanceId: string, cragSlug: string }|null>}
+ */
+async function readInstanceManifest(instanceDir) {
+  if (!instanceDir) return null;
+  try {
+    const raw = await readFile(path.join(instanceDir, "manifest.json"), "utf8");
+    const manifest = JSON.parse(raw);
+    return {
+      worldInstanceId: manifest.instance_id ?? manifest.crag_slug,
+      cragSlug: manifest.crag_slug,
+    };
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Minimal default wake NPC function. Only used when wakeResumableNpcs = true
@@ -66,10 +94,68 @@ export async function runPlayerTurn({
   // Schema validators injected by caller when wakeResumableNpcs = true.
   // Avoids .ts/.js loader contention: callers import schemas via tsx and inject.
   wakeValidationDeps = null,
+  // Live Belayer integration flags.
+  // When useLiveAuthor + useLiveTruthJudge are both true (and instanceDir
+  // is provided), the runtime uses the live Belayer storyteller + truth-judge
+  // instead of the deterministic mock fixtures.
+  // Both default to false for backward compatibility — existing tests stay green.
+  useLiveAuthor = false,
+  useLiveTruthJudge = false,
+  // Injectable author/judge factories — override live factories in tests.
+  // When provided, these are called instead of the built-in live factories.
+  _liveAuthorFactory = null,
+  _liveTruthJudgeFactory = null,
+  // Injectable sendToAgent for live truth judge (default: sessionManager.sendToAgent).
+  _sendToAgent = sessionManagerSendToAgent,
 }) {
   const trimmedAction = String(playerAction ?? "").trim();
   if (!trimmedAction) {
     throw new Error("playerAction is required");
+  }
+
+  // ── Live Belayer integration ────────────────────────────────────────────────
+  // When both useLiveAuthor + useLiveTruthJudge are true and instanceDir is
+  // provided, resolve (worldInstanceId, storyId) from the manifest and swap in
+  // the Belayer-backed author and truth judge.
+  //
+  // Legacy fixture author/judge (createScenarioFixtureAuthor, judgeTurn) are
+  // preserved for:
+  //   - Existing tests (pass neither flag)
+  //   - Un-materialized scenarios (no instanceDir)
+  //   - Either flag independently false (partial live mode)
+  //
+  // @deprecated createScenarioFixtureAuthor + judgeTurn for production API use.
+  //   Legacy fixture author: used only by tests + un-materialized scenarios via
+  //   the legacy code path. Production runs use createBelayerStorytellerAuthor.
+  // @deprecated judgeTurn (truthAuthority.js) for production API use.
+  //   Same — used only by tests + legacy scenarios. Production runs use
+  //   createBelayerTruthJudge.
+  let resolvedTurnAuthor = turnAuthor;
+  let resolvedTruthAuthority = truthAuthority;
+
+  if (useLiveAuthor && useLiveTruthJudge && instanceDir) {
+    const manifest = await readInstanceManifest(instanceDir);
+    if (!manifest) {
+      throw new Error(
+        `runPlayerTurn: useLiveAuthor + useLiveTruthJudge require a materialized instance ` +
+        `at ${instanceDir}. Run \`npm run instance:materialize -- --world <id> --as <id>-default\` first.`
+      );
+    }
+    const { worldInstanceId } = manifest;
+    // storyId = scenarioId for now; multi-story-per-instance is follow-up.
+    const storyId = scenarioId;
+
+    // Author: use injectable factory for testability; fall back to real factory.
+    const authorFactory = _liveAuthorFactory ?? createBelayerStorytellerAuthor;
+    resolvedTurnAuthor = authorFactory({ worldInstanceId, storyId });
+
+    // Truth judge: use injectable factory for testability; fall back to real factory.
+    const judgeFactory = _liveTruthJudgeFactory ?? createBelayerTruthJudge;
+    resolvedTruthAuthority = judgeFactory({
+      worldInstanceId,
+      storyId,
+      sendFn: _sendToAgent,
+    });
   }
 
   const scenario = await loadRuntimeScenario({ scenarioId, scenePath });
@@ -104,7 +190,7 @@ export async function runPlayerTurn({
   await Promise.all(characters.map((character) => persistCharacterMarkdown({ character, worldDir: resolvedWorldDir })));
 
   const authoredTurn = await buildAuthoredTurn({
-    turnAuthor,
+    turnAuthor: resolvedTurnAuthor,
     turnId,
     scenario,
     scene,
@@ -113,7 +199,7 @@ export async function runPlayerTurn({
     previousWorldState
   });
   const { narration, nextChoices, proposedFacts, authoring } = authoredTurn;
-  const truthVerdict = await truthAuthority({
+  const truthVerdict = await resolvedTruthAuthority({
     turnId,
     scene,
     scenario,

@@ -11,11 +11,66 @@
  *   - A Belayer crag initialized via `belayer crag init <instanceId>`
  */
 
-import { mkdir, copyFile, readdir, writeFile, stat, rm } from "node:fs/promises";
+import { mkdir, copyFile, readdir, writeFile, stat, rm, readFile } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { validateProfileNameBudget } from "./profileNameBudget.js";
 import { materializeTalentProfile } from "./talentProfileMaterializer.js";
+
+// ---------------------------------------------------------------------------
+// System talent names (non-character agents materialized for each instance)
+// ---------------------------------------------------------------------------
+
+/**
+ * Art-generation system talents (image_generate-capable).
+ * Wired in PR #15. SOUL.md not required for these — they operate via tool calls
+ * rather than natural-language narration.
+ */
+const ART_TALENTS = ["background-artist", "portrait-artist"];
+
+/**
+ * Story-system talents that need a SOUL.md (system prompt) from the shared
+ * template at worlds/_talents/<name>/SOUL.md.
+ */
+const STORY_SYSTEM_TALENTS = ["storyteller", "truth-judge"];
+
+// ---------------------------------------------------------------------------
+// SOUL.md loader
+// ---------------------------------------------------------------------------
+
+/**
+ * Load a SOUL.md file from worlds/_talents/<talentName>/SOUL.md.
+ * Returns the file content, or null if not found.
+ *
+ * @param {string} repoRoot
+ * @param {string} talentName
+ * @returns {Promise<string|null>}
+ */
+async function loadSystemTalentSoulMd(repoRoot, talentName) {
+  const soulMdPath = path.join(repoRoot, "worlds", "_talents", talentName, "SOUL.md");
+  try {
+    return await readFile(soulMdPath, "utf8");
+  } catch (err) {
+    if (err.code === "ENOENT") return null;
+    throw err;
+  }
+}
+
+/**
+ * Derive a minimal SOUL.md stub for a character talent from their character
+ * markdown file. Uses the prose body (everything after the front-matter `---`
+ * separator, or the whole file if no separator exists) as the system prompt.
+ *
+ * @param {string} characterMarkdownContent - Raw character markdown text
+ * @param {string} characterId
+ * @returns {string}
+ */
+export function deriveCharacterSoulMd(characterMarkdownContent, characterId) {
+  // Strip front-matter (--- ... ---) if present
+  const fmMatch = characterMarkdownContent.match(/^---\n[\s\S]*?\n---\n?([\s\S]*)$/m);
+  const body = fmMatch ? fmMatch[1].trim() : characterMarkdownContent.trim();
+  return `# ${characterId}\n\nYou are ${characterId}, a character in a Parley story instance.\n\n${body}\n`;
+}
 
 // ---------------------------------------------------------------------------
 // Default subprocess wrapper
@@ -92,8 +147,9 @@ async function copyDir(src, dest, { skip = new Set() } = {}) {
  * @returns {Promise<{
  *   instanceDir: string,
  *   manifestPath: string,
- *   profiles: Array<{ characterId: string, profileName: string, profileDir: string, alreadyExists: boolean }>,
- *   artTalents: Array<{ talentName: string, profileName: string, profileDir: string, alreadyExists: boolean }>
+ *   profiles: Array<{ characterId: string, profileName: string, profileDir: string, alreadyExists: boolean, soulMdWritten: boolean }>,
+ *   artTalents: Array<{ talentName: string, profileName: string, profileDir: string, alreadyExists: boolean, soulMdWritten: boolean }>,
+ *   systemTalents: Array<{ talentName: string, profileName: string, profileDir: string, alreadyExists: boolean, soulMdWritten: boolean }>
  * }>}
  */
 export async function materializeInstance({
@@ -171,6 +227,7 @@ export async function materializeInstance({
   const manifestPath = path.join(instanceDir, "manifest.json");
   const profiles = [];
   const artTalents = [];
+  const systemTalents = [];
 
   try {
     // 7. Copy full world template into instance/world/, skipping state/ (runtime-only)
@@ -198,26 +255,39 @@ export async function materializeInstance({
       );
     }
 
-    // 9. Materialize each character's talent profile
+    // 9. Materialize each character's talent profile.
+    // Derive a SOUL.md stub from the character's markdown so the agent
+    // has a system prompt grounded in their character description.
     for (const characterId of characterIds) {
+      const charMdPath = path.join(charsTemplateDir, `${characterId}.md`);
+      let charSoulMd = null;
+      try {
+        const charMdContent = await readFile(charMdPath, "utf8");
+        charSoulMd = deriveCharacterSoulMd(charMdContent, characterId);
+      } catch {
+        // If we can't read the character markdown, skip the SOUL.md — not fatal.
+      }
+
       const profileResult = await materializeTalentProfile({
         cragSlug: instanceId,
         talentName: characterId,
         memoryScope: "crag",
         hermesProfilesRoot,
         force,
+        soulMd: charSoulMd,
       });
       profiles.push({
         characterId,
         profileName: profileResult.profileName,
         profileDir: profileResult.profileDir,
         alreadyExists: profileResult.alreadyExists,
+        soulMdWritten: profileResult.soulMdWritten,
       });
     }
 
-    // Materialize art talents (PR #15) — these handle background + portrait image generation
+    // Materialize art talents (PR #15) — handle background + portrait image generation
     // via the Hermes image_generate tool through the Belayer wake transport.
-    const ART_TALENTS = ["background-artist", "portrait-artist"];
+    // Art talents do NOT need SOUL.md — they are driven by tool calls, not narration.
     for (const talentName of ART_TALENTS) {
       const result = await materializeTalentProfile({
         cragSlug: instanceId,
@@ -231,6 +301,29 @@ export async function materializeInstance({
         profileName: result.profileName,
         profileDir: result.profileDir,
         alreadyExists: result.alreadyExists,
+        soulMdWritten: result.soulMdWritten,
+      });
+    }
+
+    // Materialize story-system talents (storyteller + truth-judge).
+    // These need a SOUL.md sourced from worlds/_talents/<name>/SOUL.md.
+    // memory_scope: crag — so agent context persists across climbs within the instance.
+    for (const talentName of STORY_SYSTEM_TALENTS) {
+      const soulMd = await loadSystemTalentSoulMd(repoRoot, talentName);
+      const result = await materializeTalentProfile({
+        cragSlug: instanceId,
+        talentName,
+        memoryScope: "crag",
+        hermesProfilesRoot,
+        force,
+        soulMd,
+      });
+      systemTalents.push({
+        talentName,
+        profileName: result.profileName,
+        profileDir: result.profileDir,
+        alreadyExists: result.alreadyExists,
+        soulMdWritten: result.soulMdWritten,
       });
     }
   } catch (err) {
@@ -242,5 +335,5 @@ export async function materializeInstance({
   }
 
   // 10. Return result
-  return { instanceDir, manifestPath, profiles, artTalents };
+  return { instanceDir, manifestPath, profiles, artTalents, systemTalents };
 }

@@ -183,6 +183,79 @@ test("partial state: dir exists without .belayer-talent.yaml → completes mater
 });
 
 // ---------------------------------------------------------------------------
+// SOUL.md writing
+// ---------------------------------------------------------------------------
+
+test("soulMd: writes SOUL.md when provided", async () => {
+  const hermesProfilesRoot = await makeTmpDir();
+  const soulMdContent = "# My Talent\nYou are a specialized agent.\n";
+
+  const result = await materializeTalentProfile({
+    ...BASE_ARGS,
+    hermesProfilesRoot,
+    soulMd: soulMdContent,
+  });
+
+  assert.equal(result.soulMdWritten, true, "soulMdWritten should be true when soulMd is provided");
+
+  const soulMdPath = path.join(result.profileDir, "SOUL.md");
+  const soulMdStat = await stat(soulMdPath);
+  assert.ok(soulMdStat.isFile(), "SOUL.md should exist");
+
+  const writtenContent = await readFile(soulMdPath, "utf8");
+  assert.equal(writtenContent, soulMdContent, "SOUL.md content should match what was provided");
+});
+
+test("soulMd: not written when soulMd is null (default)", async () => {
+  const hermesProfilesRoot = await makeTmpDir();
+
+  const result = await materializeTalentProfile({
+    ...BASE_ARGS,
+    hermesProfilesRoot,
+    // soulMd intentionally omitted (defaults to null)
+  });
+
+  assert.equal(result.soulMdWritten, false, "soulMdWritten should be false when soulMd not provided");
+
+  const soulMdPath = path.join(result.profileDir, "SOUL.md");
+  const soulMdExists = await stat(soulMdPath).then(() => true).catch(() => false);
+  assert.equal(soulMdExists, false, "SOUL.md should NOT exist when soulMd not provided");
+});
+
+test("soulMd: not written when soulMd is empty string", async () => {
+  const hermesProfilesRoot = await makeTmpDir();
+
+  const result = await materializeTalentProfile({
+    ...BASE_ARGS,
+    hermesProfilesRoot,
+    soulMd: "   ", // whitespace-only
+  });
+
+  assert.equal(result.soulMdWritten, false, "soulMdWritten should be false for whitespace-only soulMd");
+});
+
+test("soulMd: alreadyExists returns soulMdWritten: false (no rewrite on idempotent path)", async () => {
+  const hermesProfilesRoot = await makeTmpDir();
+
+  // First call writes SOUL.md
+  await materializeTalentProfile({
+    ...BASE_ARGS,
+    hermesProfilesRoot,
+    soulMd: "# First SOUL\n",
+  });
+
+  // Second call without force returns alreadyExists: true and soulMdWritten: false
+  const second = await materializeTalentProfile({
+    ...BASE_ARGS,
+    hermesProfilesRoot,
+    soulMd: "# Different SOUL\n",
+  });
+
+  assert.equal(second.alreadyExists, true, "should report alreadyExists on second call");
+  assert.equal(second.soulMdWritten, false, "soulMdWritten should be false on idempotent early-return path");
+});
+
+// ---------------------------------------------------------------------------
 // Round-trip integrity
 // ---------------------------------------------------------------------------
 
