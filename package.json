@@ -8,9 +8,20 @@
     "smoke:runtime": "node scripts/smoke-parley-runtime.mjs",
     "smoke:e2e": "node scripts/smoke-parley-e2e.mjs",
     "smoke:scenarios": "node scripts/smoke-parley-scenarios.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "typecheck": "tsc --noEmit",
+    "test:contracts": "node --import tsx --test test/contracts/*.test.ts",
+    "validate:pr10": "node --import tsx scripts/validate-pr10-artifacts.mjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.39",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }
