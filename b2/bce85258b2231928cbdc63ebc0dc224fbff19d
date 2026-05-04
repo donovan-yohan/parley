@@ -1,0 +1,45 @@
+src/runtime/instances/talentProfileMaterializer.js
+  6fd9bdc7c61f8cc6 22-39,102,110-111,113,121,145,178-187
+src/runtime/wake/wakeNpc.js
+  6fd9bdc7c61f8cc6 25-28,57-64,67,87-88,90-137,143,197,207-218,221,228,235
+test/instances/materializeInstance.test.js
+  6fd9bdc7c61f8cc6 160-192,455-553
+src/runtime/parleyRuntime.js
+  6fd9bdc7c61f8cc6 18-20,27-51,97-109,116-160,193,202
+test/wake/wakeNpc.test.js
+  6fd9bdc7c61f8cc6 116,120-121,123,127,133-136,156,178-187,200,230-234,237,255-256,285-286,317,351,353,380-381
+src/runtime/instances/materializeInstance.js
+  6fd9bdc7c61f8cc6 14,20-74,150-152,230,258-260,262-270,277,284,288,290,304-326,338
+test/runPlayerTurn-live-mode.test.js
+  6fd9bdc7c61f8cc6 1-292
+scripts/smoke-live-api.mjs
+  6fd9bdc7c61f8cc6 1-137
+package.json
+  6fd9bdc7c61f8cc6 7,19
+src/contracts/runtime-validators.mjs
+  6fd9bdc7c61f8cc6 1-71
+src/server.js
+  6fd9bdc7c61f8cc6 2,9-12,20-71,121-186,189-190
+test/instances/talentProfileMaterializer.test.js
+  6fd9bdc7c61f8cc6 186-257
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "b2bce85258b2231928cbdc63ebc0dc224fbff19d",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 3851,
+      "total_deletions": 99,
+      "accepted_lines": 3828,
+      "overriden_lines": 0
+    }
+  }
+}
