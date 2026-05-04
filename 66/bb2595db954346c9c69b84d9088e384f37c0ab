@@ -1,0 +1,25 @@
+scripts/parley-instance-materialize.mjs
+  6fd9bdc7c61f8cc6 1-226
+package.json
+  6fd9bdc7c61f8cc6 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "66bb2595db954346c9c69b84d9088e384f37c0ab",
+  "prompts": {
+    "6fd9bdc7c61f8cc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab5d29e8-7d84-49e4-9d3f-9338dc46fc6c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 227,
+      "total_deletions": 0,
+      "accepted_lines": 1096,
+      "overriden_lines": 0
+    }
+  }
+}
