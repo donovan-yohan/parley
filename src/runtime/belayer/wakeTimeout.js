@@ -36,8 +36,10 @@ export async function defaultPollFn({
 
     try {
       const parsed = JSON.parse(stdout);
-      // Treat an empty array as "no response yet"
-      if (Array.isArray(parsed) && parsed.length === 0) return null;
+      // When response is an array, take the first element; empty array = no response yet
+      if (Array.isArray(parsed)) {
+        return parsed.length === 0 ? null : parsed[0];
+      }
       return parsed;
     } catch {
       return null;

@@ -106,6 +106,44 @@ describe("ParleyWakeResultSchema — negative: aborted without reason", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Positive: wake_deferred with reason (system-level deferral)
+// ---------------------------------------------------------------------------
+
+describe("ParleyWakeResultSchema — positive: wake_deferred with reason", () => {
+  it("accepts a wake_deferred result with reason", () => {
+    const result = ParleyWakeResultSchema.safeParse({
+      schema_version: "parley-wake-result/v1",
+      wake_id: "wake-abc123",
+      status: "wake_deferred",
+      reason: "belayer_daemon_not_running",
+    });
+    assert.ok(result.success, JSON.stringify(result));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Negative: wake_deferred without reason is rejected
+// ---------------------------------------------------------------------------
+
+describe("ParleyWakeResultSchema — negative: wake_deferred without reason", () => {
+  it("rejects wake_deferred status with no reason", () => {
+    const result = ParleyWakeResultSchema.safeParse({
+      schema_version: "parley-wake-result/v1",
+      wake_id: "wake-abc123",
+      status: "wake_deferred",
+    });
+    assert.equal(result.success, false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(" ");
+      assert.ok(
+        messages.includes("wake_deferred"),
+        `Expected "wake_deferred" in error message, got: ${messages}`,
+      );
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Negative: bad status enum value
 // ---------------------------------------------------------------------------
 

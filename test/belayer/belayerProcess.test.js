@@ -115,6 +115,14 @@ test("belayerCragExists returns false via plain-text fallback when slug is absen
   assert.equal(exists, false);
 });
 
+test("belayerCragExists does NOT match substring: 'my-crag' is absent when line contains 'my-crag-2'", async () => {
+  const spawn = mockSpawn({ exitCode: 0, stdout: "  my-crag-2  production\n  other-crag  staging\n" });
+
+  const exists = await belayerCragExists({ cragSlug: "my-crag", spawnSubprocess: spawn });
+
+  assert.equal(exists, false);
+});
+
 test("belayerCragExists throws BelayerCommandError on non-zero exit", async () => {
   const spawn = mockSpawn({ exitCode: 1, stderr: "permission denied" });
 

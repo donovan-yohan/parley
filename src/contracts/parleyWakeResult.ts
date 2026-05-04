@@ -5,7 +5,7 @@ export const ParleyWakeResultSchema = z
   .object({
     schema_version: schemaVersion("parley-wake-result/v1"),
     wake_id: z.string().min(1),
-    status: z.enum(["completed", "deferred", "aborted"]),
+    status: z.enum(["completed", "deferred", "aborted", "wake_deferred"]),
     actions: z.array(z.unknown()).optional(),
     reason: z.string().optional(),
     duration_ms: z.number().int().nonnegative().optional(),
@@ -13,7 +13,7 @@ export const ParleyWakeResultSchema = z
   .strict()
   .superRefine((value, ctx) => {
     if (
-      (value.status === "deferred" || value.status === "aborted") &&
+      (value.status === "deferred" || value.status === "aborted" || value.status === "wake_deferred") &&
       !value.reason
     ) {
       ctx.addIssue({

@@ -38,7 +38,7 @@ function buildMinimalWakeEnvelope({ character, scene, turn, scenario }) {
   return {
     schema_version: "parley-wake/v1",
     wake_id: `wake-${turn.id}-${character.id}`,
-    crag_slug: scene.crag ?? scenario.id,
+    crag_slug: scene.instance ?? scene.crag ?? scenario.id,
     actor_id: character.id,
     scene_id: scene.id,
     trigger: "player_turn_completed",
@@ -191,7 +191,10 @@ export async function runPlayerTurn({
         });
         wakedResults.push({ characterId: character.id, result });
       } catch (err) {
-        wakedResults.push({ characterId: character.id, error: err.message });
+        wakedResults.push({
+          characterId: character.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
   }

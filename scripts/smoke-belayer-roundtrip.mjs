@@ -203,7 +203,6 @@ async function main() {
 
     // 6. Build real belayerProcess using the real subprocess bridge.
     //    Override spawnSubprocess to use the resolved belayerBin path.
-    const { defaultSpawn } = await import("../src/runtime/belayer/belayerProcess.js");
     const realBelayerProcess = {
       async daemonStatus() {
         return belayerDaemonStatus({ belayerCli: belayerBin });

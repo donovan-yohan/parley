@@ -157,9 +157,9 @@ export async function wakeNpc({
     timeoutMs,
   });
 
-  // Step 7: If deferred (timeout etc.), return as-is.
+  // Step 7: If deferred (timeout etc.), spread wake_id so consumers always see it.
   if (response && response.status === "wake_deferred") {
-    return response;
+    return { ...response, wake_id: validatedEnvelope.wake_id };
   }
 
   // Step 8: Validate the wake result.

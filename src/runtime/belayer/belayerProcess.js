@@ -73,10 +73,22 @@ export async function defaultSpawn(cmd, args, { stdin, env } = {}) {
       });
     });
 
-    if (stdin != null) {
-      proc.stdin.write(stdin);
+    proc.stdin.on("error", (err) => {
+      if (err.code !== "EPIPE") {
+        // re-throw via reject — process is already wired to reject on error
+        reject(err);
+      }
+      // EPIPE silently swallowed; child's exit code carries the real signal
+    });
+
+    try {
+      if (stdin != null) {
+        proc.stdin.write(stdin);
+      }
+      proc.stdin.end();
+    } catch (err) {
+      if (err.code !== "EPIPE") throw err;
     }
-    proc.stdin.end();
   });
 }
 
@@ -144,8 +156,8 @@ export async function belayerCragExists({
     // Fall through to plain-text grep-style parsing
   }
 
-  // Fallback: check if the slug appears anywhere in the output
-  return stdout.split("\n").some((line) => line.includes(cragSlug));
+  // Fallback: tokenize each line and check for exact token match (avoids substring false-positives)
+  return stdout.split("\n").some((line) => line.split(/\s+/).includes(cragSlug));
 }
 
 /**
