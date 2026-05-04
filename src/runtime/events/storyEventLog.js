@@ -2,6 +2,8 @@ import { appendFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { assertSafeStoryIdSegment } from "./storyIdSafety.js";
 
+import { publish } from "./sseBroadcaster.js";
+
 export async function appendStoryEvent({ instanceDir, storyId, event, validateEvent = null }) {
   assertSafeStoryIdSegment(storyId);
   if (validateEvent) validateEvent(event); // injected ZodSchema.parse
@@ -9,6 +11,9 @@ export async function appendStoryEvent({ instanceDir, storyId, event, validateEv
   await mkdir(stateDir, { recursive: true });
   const eventsPath = path.join(stateDir, "events.jsonl");
   await appendFile(eventsPath, JSON.stringify(event) + "\n", "utf8");
+  try {
+    publish({ storyId, event });
+  } catch { /* never fail an append because broadcast threw */ }
   return { eventsPath };
 }
 

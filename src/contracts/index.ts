@@ -15,3 +15,5 @@ export * from "./toolCatalog.ts";
 export * from "./storyEvent.ts";
 export * from "./scenePulse.ts";
 export * from "./worldInstanceEvaluation.ts";
+export * from "./parleyImageWake.ts";
+export * from "./parleyImageWakeResult.ts";

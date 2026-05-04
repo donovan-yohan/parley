@@ -92,7 +92,8 @@ async function copyDir(src, dest, { skip = new Set() } = {}) {
  * @returns {Promise<{
  *   instanceDir: string,
  *   manifestPath: string,
- *   profiles: Array<{ characterId: string, profileName: string, profileDir: string, alreadyExists: boolean }>
+ *   profiles: Array<{ characterId: string, profileName: string, profileDir: string, alreadyExists: boolean }>,
+ *   artTalents: Array<{ talentName: string, profileName: string, profileDir: string, alreadyExists: boolean }>
  * }>}
  */
 export async function materializeInstance({
@@ -169,6 +170,7 @@ export async function materializeInstance({
   // no-clobber check at step 4 would block any retry without --force.
   const manifestPath = path.join(instanceDir, "manifest.json");
   const profiles = [];
+  const artTalents = [];
 
   try {
     // 7. Copy full world template into instance/world/, skipping state/ (runtime-only)
@@ -212,6 +214,25 @@ export async function materializeInstance({
         alreadyExists: profileResult.alreadyExists,
       });
     }
+
+    // Materialize art talents (PR #15) — these handle background + portrait image generation
+    // via the Hermes image_generate tool through the Belayer wake transport.
+    const ART_TALENTS = ["background-artist", "portrait-artist"];
+    for (const talentName of ART_TALENTS) {
+      const result = await materializeTalentProfile({
+        cragSlug: instanceId,
+        talentName,
+        memoryScope: "crag",      // accumulate world-style preferences across stories
+        hermesProfilesRoot,
+        force,
+      });
+      artTalents.push({
+        talentName,
+        profileName: result.profileName,
+        profileDir: result.profileDir,
+        alreadyExists: result.alreadyExists,
+      });
+    }
   } catch (err) {
     // Clean up partial instance dir so retry doesn't get blocked by no-clobber.
     // Talent profile dirs that may have been created in step 9 are intentionally
@@ -221,5 +242,5 @@ export async function materializeInstance({
   }
 
   // 10. Return result
-  return { instanceDir, manifestPath, profiles };
+  return { instanceDir, manifestPath, profiles, artTalents };
 }
