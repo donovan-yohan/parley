@@ -1,6 +1,12 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+/**
+ * @deprecated Inline talent construction is the legacy code path used by
+ * scenarios that have not been materialized into an instance via PR #12.
+ * Once all callers route through `runPlayerTurn({ instanceDir })`, this
+ * function and its caller in parleyRuntime.js can be deleted.
+ */
 export function buildScenarioCharacter({ scenario, characterDefinition, sourceRequest, scene = scenario.scene }) {
   const tags = [
     ...(characterDefinition.tags ?? []),
@@ -43,6 +49,12 @@ export function buildScenarioCharacter({ scenario, characterDefinition, sourceRe
   };
 }
 
+/**
+ * @deprecated Inline talent construction is the legacy code path used by
+ * scenarios that have not been materialized into an instance via PR #12.
+ * Once all callers route through `runPlayerTurn({ instanceDir })`, this
+ * function and its caller in parleyRuntime.js can be deleted.
+ */
 export function buildMaraUnderbough({ scene, sourceRequest }) {
   return buildScenarioCharacter({
     scene,

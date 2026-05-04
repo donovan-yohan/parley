@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildScenarioCharacter, persistCharacterMarkdown } from "./belayerCharacterAdapter.js";
+import { loadInstanceCharacters } from "./instances/loadInstanceCharacters.js";
 import {
   validateActionInterpretation,
   validateBeatRedirect,
@@ -25,6 +26,7 @@ export async function runPlayerTurn({
   stateDir,
   scenePath = defaultScenePath,
   worldDir,
+  instanceDir,
   turnAuthor = createScenarioFixtureAuthor(),
   truthAuthority = judgeTurn
 }) {
@@ -42,9 +44,16 @@ export async function runPlayerTurn({
   const worldStatePath = path.join(resolvedStateDir, "world-state.json");
   const previousWorldState = await readJsonIfExists(worldStatePath);
   const turnId = await nextTurnId(resolvedStateDir);
-  let characters = scenario.characters.map((characterDefinition) =>
-    buildScenarioCharacter({ scenario, characterDefinition, sourceRequest: turnId, scene })
-  );
+  let characters;
+  if (instanceDir) {
+    characters = await loadInstanceCharacters({ instanceDir, sceneId: scene.id });
+  } else {
+    // Legacy path: scenarios that haven't been materialized into an instance.
+    // Subsequent PRs will materialize all scenarios at boot time.
+    characters = scenario.characters.map((characterDefinition) =>
+      buildScenarioCharacter({ scenario, characterDefinition, sourceRequest: turnId, scene })
+    );
+  }
   const visualAssets = await prepareVisualAssetsForScenario({
     scenario,
     scene,
