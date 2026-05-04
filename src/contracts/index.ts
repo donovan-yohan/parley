@@ -11,3 +11,4 @@ export * from "./belayerTalentMetadata.ts";
 export * from "./parleyWake.ts";
 export * from "./parleyWakeResult.ts";
 export * from "./parleyActorAction.ts";
+export * from "./toolCatalog.ts";
