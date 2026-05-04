@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { Readable, Writable } from "node:stream";
@@ -619,6 +619,108 @@ test("turn with only beliefs and rumors passes truth review without canon", asyn
   assert.equal(result.truthVerdict.verdict, "pass");
   assert.equal(result.truthVerdict.accepted_facts.length, 0);
   assert.ok(result.truthVerdict.character_beliefs.some((fact) => fact.id === "mara-cracked-sign-belief"));
+});
+
+// ─── Wake routing tests ───────────────────────────────────────────────────────
+
+test("wakeResumableNpcs: false (default) — wakeNpcFn never called, no wakedResults in output", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-wake-off-"));
+  const stateDir = path.join(rootDir, "state");
+  const worldDir = path.join(rootDir, "world");
+  const wakeNpcCalls = [];
+  const mockWakeNpcFn = async (opts) => {
+    wakeNpcCalls.push(opts);
+    return { status: "completed", wake_id: opts.wakeEnvelope?.wake_id };
+  };
+
+  const result = await runPlayerTurn({
+    playerAction: "I ask who remembers the old north road.",
+    stateDir,
+    worldDir,
+    // wakeResumableNpcs defaults to false
+    wakeNpcFn: mockWakeNpcFn,
+  });
+
+  assert.equal(wakeNpcCalls.length, 0, "wakeNpcFn must not be called when wakeResumableNpcs is false");
+  assert.ok(!result.wakedResults, "wakedResults should not be present when wakeResumableNpcs is false");
+});
+
+test("wakeResumableNpcs: true + instanceDir — wakeNpcFn called once per resumable character, results aggregated", async () => {
+  const rootDir = await mkdtemp(path.join(tmpdir(), "parley-wake-on-"));
+  const worldDir = path.join(rootDir, "world");
+
+  // Build a minimal instance dir with manifest + character files so
+  // loadInstanceCharacters returns characters with lifecycle=resumable.
+  const instanceDir = path.join(rootDir, "instance");
+  const instanceCharsDir = path.join(instanceDir, "world", "characters");
+  await mkdir(instanceCharsDir, { recursive: true });
+
+  await writeFile(
+    path.join(instanceDir, "manifest.json"),
+    JSON.stringify({
+      schema_version: "parley-instance-manifest/v1",
+      world_id: "last-lantern",
+      instance_id: "last-lantern",
+      crag_slug: "last-lantern",
+      created_at: new Date().toISOString(),
+    }),
+    "utf8"
+  );
+
+  // Write a minimal character file so loadInstanceCharacters has something to load
+  await writeFile(
+    path.join(instanceCharsDir, "mara-underbough.md"),
+    ["---", "name: Mara Underbough", "role: tavernkeep", "lifecycle: resumable", "---", ""].join("\n"),
+    "utf8"
+  );
+
+  const wakeNpcCalls = [];
+  const mockWakeNpcFn = async (opts) => {
+    wakeNpcCalls.push(opts);
+    return {
+      schema_version: "parley-wake-result/v1",
+      wake_id: opts.wakeEnvelope?.wake_id ?? "mock-wake",
+      status: "completed",
+    };
+  };
+
+  // Pass-through validators — no Zod in this test file
+  const passthroughValidate = (v) => v;
+
+  const result = await runPlayerTurn({
+    playerAction: "I ask who remembers the old north road.",
+    stateDir: path.join(rootDir, "state"),
+    worldDir,
+    instanceDir,
+    wakeResumableNpcs: true,
+    wakeNpcFn: mockWakeNpcFn,
+    wakeValidationDeps: {
+      validateWake: passthroughValidate,
+      validateWakeResult: passthroughValidate,
+    },
+  });
+
+  // All resumable characters should have been woken
+  const resumableCharacters = result.characters.filter((c) => c.lifecycle === "resumable");
+  assert.ok(resumableCharacters.length >= 1, "should have at least one resumable character");
+  assert.ok(Array.isArray(result.wakedResults), "wakedResults should be an array");
+  assert.equal(result.wakedResults.length, resumableCharacters.length);
+
+  // Each waked result should reference a character id and have a result
+  for (const waked of result.wakedResults) {
+    assert.ok(waked.characterId, "each wakedResult should have characterId");
+    assert.ok(waked.result || waked.error, "each wakedResult should have result or error");
+  }
+
+  // wakeNpcFn should have been called once per resumable character
+  assert.equal(wakeNpcCalls.length, resumableCharacters.length);
+  for (const call of wakeNpcCalls) {
+    assert.ok(call.instanceDir, "wakeNpcFn should receive instanceDir");
+    assert.ok(call.characterId, "wakeNpcFn should receive characterId");
+    assert.ok(call.wakeEnvelope, "wakeNpcFn should receive wakeEnvelope");
+    assert.equal(call.wakeEnvelope.schema_version, "parley-wake/v1");
+    assert.ok(call.wakeEnvelope.current_story_context, "wakeEnvelope should have current_story_context");
+  }
 });
 
 test("server exposes scenario packs and routes state and turns by scenario", async () => {
