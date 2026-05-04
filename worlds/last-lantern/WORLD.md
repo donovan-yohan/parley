@@ -6,6 +6,7 @@ genre: grounded fantasy mystery
 era: late pre-industrial, lantern-and-letter
 tone: damp, wary, conversational
 default_aspect_ratio: "3:4"
+default_instance: last-lantern-default
 ---
 
 # Last Lantern
