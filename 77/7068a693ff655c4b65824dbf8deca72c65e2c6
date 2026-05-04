@@ -1,0 +1,23 @@
+test/instance-materialization.test.js
+  450676fd0e253278 1-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "777068a693ff655c4b65824dbf8deca72c65e2c6",
+  "prompts": {
+    "450676fd0e253278": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "99f7636c-7aaf-42a9-bc2f-bf725ea90121",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 337,
+      "total_deletions": 0,
+      "accepted_lines": 1418,
+      "overriden_lines": 0
+    }
+  }
+}
