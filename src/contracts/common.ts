@@ -32,7 +32,7 @@ export const SceneId = z
   .string()
   .regex(
     /^[a-z][a-z0-9-]{0,38}$/,
-    "WorldId: lowercase alpha leading, then [a-z0-9-], max 39 chars",
+    "SceneId: lowercase alpha leading, then [a-z0-9-], max 39 chars",
   );
 
 /**

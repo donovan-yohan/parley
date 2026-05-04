@@ -114,6 +114,12 @@ describe("SceneId", () => {
   it("rejects a non-string", () => {
     assert.equal(SceneId.safeParse(42).success, false);
   });
+
+  it("error message identifies SceneId (not WorldId)", () => {
+    const result = SceneId.safeParse("-bad");
+    assert.equal(result.success, false);
+    assert.ok(result.error.issues[0].message.includes("SceneId"));
+  });
 });
 
 // ---------------------------------------------------------------------------
