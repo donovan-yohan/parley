@@ -10,7 +10,7 @@ import {
   validateDetourScene,
   validateStoryConsequence
 } from "./dm/detourContracts.js";
-import { defaultScenarioId, loadScenarioPack, scenarioMetadata } from "./scenarioPacks.js";
+import { defaultScenarioId, ensureInstanceDir, loadScenarioPack, scenarioMetadata } from "./scenarioPacks.js";
 import { judgeTurn } from "./truthAuthority.js";
 import { createScenarioFixtureAuthor, normalizeAuthoredTurn } from "./turnAuthor.js";
 import { attachVisualAssetsToCharacters, loadVisualAssetManifest, prepareVisualAssetsForScenario } from "./visualAssets.js";
@@ -54,10 +54,9 @@ function buildMinimalWakeEnvelope({ character, scene, turn, scenario }) {
 export async function runPlayerTurn({
   scenarioId = defaultScenarioId,
   playerAction,
-  stateDir,
+  instanceDir,
   scenePath = defaultScenePath,
   worldDir,
-  instanceDir,
   turnAuthor = createScenarioFixtureAuthor(),
   truthAuthority = judgeTurn,
   // Wake routing — opt-in. Off by default to preserve backward compat.
@@ -74,21 +73,23 @@ export async function runPlayerTurn({
 
   const scenario = await loadRuntimeScenario({ scenarioId, scenePath });
   const scene = scenario.scene;
-  const resolvedStateDir = stateDir ?? scenario.stateDir;
+  const resolvedInstanceDir = instanceDir ?? scenario.instanceDir;
   // When instanceDir is provided and worldDir is not explicitly set, derive worldDir
   // from the instance so visual asset reads/writes and truth-authority calls hit the
   // instance's copy of the world rather than the shared template.
   const resolvedWorldDir = worldDir ?? (instanceDir ? path.join(instanceDir, "world") : scenario.worldDir);
-  await mkdir(resolvedStateDir, { recursive: true });
+  await ensureInstanceDir(resolvedInstanceDir);
 
-  const worldStatePath = path.join(resolvedStateDir, "world-state.json");
+  const worldStatePath = path.join(resolvedInstanceDir, "world-state.json");
   const previousWorldState = await readJsonIfExists(worldStatePath);
-  const turnId = await nextTurnId(resolvedStateDir);
-  let characters;
+  const turnId = await nextTurnId(resolvedInstanceDir);
+  let characters = [];
   if (instanceDir) {
     characters = await loadInstanceCharacters({ instanceDir, sceneId: scene.id });
-  } else {
-    // Legacy path: scenarios that haven't been materialized into an instance.
+  }
+  if (characters.length === 0) {
+    // Legacy / non-materialized path: fall back to the scenario template
+    // characters when the instance has no materialized profiles yet.
     // Subsequent PRs will materialize all scenarios at boot time.
     characters = scenario.characters.map((characterDefinition) =>
       buildScenarioCharacter({ scenario, characterDefinition, sourceRequest: turnId, scene })
@@ -126,14 +127,14 @@ export async function runPlayerTurn({
     detourScene: authoredTurn.detourScene,
     storyConsequence: authoredTurn.storyConsequence,
     beatRedirect: authoredTurn.beatRedirect,
-    stateDir: resolvedStateDir,
+    instanceDir: resolvedInstanceDir,
     worldDir: resolvedWorldDir
   });
 
   validateTruthVerdict(truthVerdict);
 
   if (truthVerdict.verdict !== "pass") {
-    await appendJsonLine(path.join(resolvedStateDir, "truth-verdicts.jsonl"), truthVerdict);
+    await appendJsonLine(path.join(resolvedInstanceDir, "truth-verdicts.jsonl"), truthVerdict);
     return {
       schema_version: "parley-turn/v1",
       turnId,
@@ -165,10 +166,10 @@ export async function runPlayerTurn({
     truth_verdict: truthVerdict.id
   };
 
-  await appendJsonLine(path.join(resolvedStateDir, "turns.jsonl"), turn);
-  await persistDmArtifacts({ stateDir: resolvedStateDir, authoredTurn });
-  await appendJsonLine(path.join(resolvedStateDir, "truth-verdicts.jsonl"), truthVerdict);
-  await persistHiddenTruth({ stateDir: resolvedStateDir, truthVerdict });
+  await appendJsonLine(path.join(resolvedInstanceDir, "turns.jsonl"), turn);
+  await persistDmArtifacts({ instanceDir: resolvedInstanceDir, authoredTurn });
+  await appendJsonLine(path.join(resolvedInstanceDir, "truth-verdicts.jsonl"), truthVerdict);
+  await persistHiddenTruth({ instanceDir: resolvedInstanceDir, truthVerdict });
   const worldState = buildWorldState({ scenario, scene, turn, characters, truthVerdict, visualAssets, previousWorldState, authoredTurn });
   await writeFile(worldStatePath, `${JSON.stringify(worldState, null, 2)}\n`, "utf8");
 
@@ -224,15 +225,15 @@ export async function runPlayerTurn({
 
 export async function loadCurrentState({
   scenarioId = defaultScenarioId,
-  stateDir,
+  instanceDir,
   scenePath = defaultScenePath,
   worldDir
 } = {}) {
   const scenario = await loadRuntimeScenario({ scenarioId, scenePath });
-  const resolvedStateDir = stateDir ?? scenario.stateDir;
+  const resolvedInstanceDir = instanceDir ?? scenario.instanceDir;
   const resolvedWorldDir = worldDir ?? scenario.worldDir;
-  const worldState = await readJsonIfExists(path.join(resolvedStateDir, "world-state.json"));
-  const turns = await readJsonLinesIfExists(path.join(resolvedStateDir, "turns.jsonl"));
+  const worldState = await readJsonIfExists(path.join(resolvedInstanceDir, "world-state.json"));
+  const turns = await readJsonLinesIfExists(path.join(resolvedInstanceDir, "turns.jsonl"));
   const latestVisualAssets = await loadVisualAssetManifest(resolvedWorldDir);
   const visualAssets = latestVisualAssets.assets.length ? latestVisualAssets : worldState?.visual_assets ?? latestVisualAssets;
   const characters = attachVisualAssetsToCharacters({ characters: worldState?.characters ?? [], visualAssets });
@@ -328,8 +329,8 @@ function unquoteYamlScalar(value) {
   return value;
 }
 
-async function nextTurnId(stateDir) {
-  const turns = await readJsonLinesIfExists(path.join(stateDir, "turns.jsonl"));
+async function nextTurnId(instanceDir) {
+  const turns = await readJsonLinesIfExists(path.join(instanceDir, "turns.jsonl"));
   return `turn-${String(turns.length + 1).padStart(4, "0")}`;
 }
 
@@ -459,12 +460,12 @@ function summarizeDmArtifacts(authoredTurn) {
   };
 }
 
-async function persistHiddenTruth({ stateDir, truthVerdict }) {
+async function persistHiddenTruth({ instanceDir, truthVerdict }) {
   const writes = truthVerdict.author_only_hidden_truth ?? truthVerdict.hidden_truth_writes ?? [];
   if (!Array.isArray(writes) || writes.length === 0) {
     return;
   }
-  const sidecarPath = path.join(stateDir, "hidden-truth.jsonl");
+  const sidecarPath = path.join(instanceDir, "hidden-truth.jsonl");
   for (const entry of writes) {
     await appendJsonLine(sidecarPath, {
       ...entry,
@@ -475,7 +476,7 @@ async function persistHiddenTruth({ stateDir, truthVerdict }) {
   }
 }
 
-async function persistDmArtifacts({ stateDir, authoredTurn }) {
+async function persistDmArtifacts({ instanceDir, authoredTurn }) {
   const artifactFiles = [
     ["action-interpretations.jsonl", authoredTurn.actionInterpretation],
     ["detour-scenes.jsonl", authoredTurn.detourScene],
@@ -485,7 +486,7 @@ async function persistDmArtifacts({ stateDir, authoredTurn }) {
 
   for (const [fileName, artifact] of artifactFiles) {
     if (artifact) {
-      await appendJsonLine(path.join(stateDir, fileName), artifact);
+      await appendJsonLine(path.join(instanceDir, fileName), artifact);
     }
   }
 }

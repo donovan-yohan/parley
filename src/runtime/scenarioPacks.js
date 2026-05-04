@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
+import { mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -6,15 +6,60 @@ import { validateStoryAttractor } from "./dm/detourContracts.js";
 
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(runtimeDir, "..", "..");
-export const scenariosDir = path.join(repoRoot, "scenarios");
 export const defaultScenarioId = "last-lantern";
 
+// ---------------------------------------------------------------------------
+// Path helpers — single source of truth for world/scenario/instance layout.
+// Callers outside this module (e.g. truthAuthority) MUST use these helpers
+// rather than constructing paths inline so layout changes stay localized.
+// ---------------------------------------------------------------------------
+
+export function worldDirFor(worldId) {
+  return path.join(repoRoot, "worlds", worldId);
+}
+
+export function scenarioJsonPathFor(worldId, scenarioId) {
+  return path.join(repoRoot, "worlds", worldId, "scenarios", scenarioId, "scenario.json");
+}
+
+export function instanceDirFor(worldId, instanceId = "playthrough-1") {
+  return path.join(repoRoot, "instances", worldId, instanceId);
+}
+
+export async function ensureInstanceDir(instanceDir) {
+  await mkdir(instanceDir, { recursive: true });
+}
+
 export async function listScenarioPacks() {
-  const entries = await readdir(scenariosDir, { withFileTypes: true });
+  const worldsDir = path.join(repoRoot, "worlds");
+  const worldEntries = await readdir(worldsDir, { withFileTypes: true });
+  const scenarioRefs = [];
+  for (const worldEntry of worldEntries) {
+    if (!worldEntry.isDirectory()) {
+      continue;
+    }
+    const scenariosDirForWorld = path.join(worldsDir, worldEntry.name, "scenarios");
+    let scenarioEntries;
+    try {
+      scenarioEntries = await readdir(scenariosDirForWorld, { withFileTypes: true });
+    } catch (error) {
+      // Worlds without a scenarios/ subdir are valid (e.g. world.json-only
+      // entries). Surface every other error so real filesystem problems
+      // (EACCES, ENOTDIR, etc.) are not silently swallowed.
+      if (error?.code === "ENOENT") {
+        continue;
+      }
+      throw error;
+    }
+    for (const scenarioEntry of scenarioEntries) {
+      if (scenarioEntry.isDirectory()) {
+        scenarioRefs.push({ worldId: worldEntry.name, scenarioId: scenarioEntry.name });
+      }
+    }
+  }
+
   const settled = await Promise.allSettled(
-    entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => loadScenarioPack(entry.name))
+    scenarioRefs.map(({ worldId, scenarioId }) => loadScenarioPack(scenarioId, { worldId }))
   );
 
   const scenarios = [];
@@ -31,18 +76,28 @@ export async function listScenarioPacks() {
     .map((scenario) => scenarioMetadata(scenario));
 }
 
-export async function loadScenarioPack(scenarioId = defaultScenarioId) {
+export async function loadScenarioPack(scenarioId = defaultScenarioId, options = {}) {
   const id = normalizeScenarioId(scenarioId);
-  const scenarioPath = path.join(scenariosDir, id, "scenario.json");
+  // 1a invariant: when the caller does not supply a worldId, treat scenarioId
+  // as the worldId. listScenarioPacks now passes worldId explicitly so that
+  // future PRs can host multiple scenarios per world without changing this
+  // public signature.
+  const worldId = options.worldId ? normalizeWorldId(options.worldId, scenarioId) : id;
+  const scenarioPath = scenarioJsonPathFor(worldId, id);
   const raw = await readFile(scenarioPath, "utf8");
   const scenario = JSON.parse(raw);
   validateScenarioPack(scenario, scenarioPath);
-  const worldId = normalizeWorldId(scenario.world?.id, scenarioPath);
+  const declaredWorldId = normalizeWorldId(scenario.world?.id, scenarioPath);
+  if (declaredWorldId !== worldId) {
+    throw new Error(
+      `${scenarioPath} declares world.id ${JSON.stringify(declaredWorldId)} but lives under worlds/${worldId}/scenarios/${id}`
+    );
+  }
   return {
     ...scenario,
     scenarioPath,
-    stateDir: path.join(repoRoot, "worlds", worldId, "state"),
-    worldDir: path.join(repoRoot, "worlds", worldId)
+    worldDir: worldDirFor(worldId),
+    instanceDir: instanceDirFor(worldId)
   };
 }
 

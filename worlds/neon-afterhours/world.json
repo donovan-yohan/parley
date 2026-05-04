@@ -1,0 +1,8 @@
+{
+  "schema_version": "parley-world/v1",
+  "id": "neon-afterhours",
+  "name": "Neon Afterhours",
+  "premise": "Corporate audit systems, exhausted handlers, and faction pressure collide after the office goes dark.",
+  "tone": "tense cyberpunk procedural",
+  "scenarios": ["neon-afterhours"]
+}

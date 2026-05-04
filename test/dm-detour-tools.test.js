@@ -102,12 +102,12 @@ test("DM tools yes-and the attempt while rejecting unsupported player claims", a
 
 test("runtime persists detour artifacts for disruptive yes-and turns without canonizing the claim", async () => {
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-detour-runtime-"));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "state");
   const worldDir = path.join(rootDir, "world");
 
   const result = await runPlayerTurn({
     playerAction: "I leap onto a table, claim I own the Last Lantern now, and demand everyone hand over their secrets.",
-    stateDir,
+    instanceDir,
     worldDir
   });
 
@@ -123,16 +123,16 @@ test("runtime persists detour artifacts for disruptive yes-and turns without can
   assert.ok(result.worldState.story_consequences.some((item) => item.source_turn_id === "turn-0001"));
   assert.ok(result.worldState.detour_scenes.some((item) => item.source_turn_id === "turn-0001"));
 
-  await stat(path.join(stateDir, "action-interpretations.jsonl"));
-  await stat(path.join(stateDir, "detour-scenes.jsonl"));
-  await stat(path.join(stateDir, "story-consequences.jsonl"));
-  await stat(path.join(stateDir, "beat-redirects.jsonl"));
+  await stat(path.join(instanceDir, "action-interpretations.jsonl"));
+  await stat(path.join(instanceDir, "detour-scenes.jsonl"));
+  await stat(path.join(instanceDir, "story-consequences.jsonl"));
+  await stat(path.join(instanceDir, "beat-redirects.jsonl"));
 
-  const turns = await readFile(path.join(stateDir, "turns.jsonl"), "utf8");
+  const turns = await readFile(path.join(instanceDir, "turns.jsonl"), "utf8");
   assert.match(turns, /detour-last-lantern-table-outburst/);
   assert.doesNotMatch(turns, /legally owns the Last Lantern/i);
 
-  const consequences = await readFile(path.join(stateDir, "story-consequences.jsonl"), "utf8");
+  const consequences = await readFile(path.join(instanceDir, "story-consequences.jsonl"), "utf8");
   assert.match(consequences, /claim/i);
   assert.match(consequences, /story_instance/);
 });
@@ -141,7 +141,7 @@ test("normal cooperative actions containing detour keywords do not invent disrup
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-detour-negative-"));
   const result = await runPlayerTurn({
     playerAction: "I sit at the table and ask Mara who owns the Last Lantern's oldest secrets.",
-    stateDir: path.join(rootDir, "state"),
+    instanceDir: path.join(rootDir, "state"),
     worldDir: path.join(rootDir, "world")
   });
 
@@ -156,7 +156,7 @@ test("runtime rejects raw unvalidated detour artifacts from custom turn authors"
   await assert.rejects(
     runPlayerTurn({
       playerAction: "I make a messy custom detour.",
-      stateDir: path.join(rootDir, "state"),
+      instanceDir: path.join(rootDir, "state"),
       worldDir: path.join(rootDir, "world"),
       turnAuthor: {
         id: "invalid-detour-author",
@@ -198,13 +198,13 @@ test("repeating the same detour action does not duplicate semantic story memory"
   const rootDir = await mkdtemp(path.join(tmpdir(), "parley-detour-dedupe-"));
   const resultOne = await runPlayerTurn({
     scenarioId: "neon-afterhours",
-    stateDir: path.join(rootDir, "state"),
+    instanceDir: path.join(rootDir, "state"),
     worldDir: path.join(rootDir, "world"),
     playerAction: "I smash the badge reader, declare I am the compliance director, and order Kestrel-9 to delete every audit log."
   });
   const resultTwo = await runPlayerTurn({
     scenarioId: "neon-afterhours",
-    stateDir: path.join(rootDir, "state"),
+    instanceDir: path.join(rootDir, "state"),
     worldDir: path.join(rootDir, "world"),
     playerAction: "I smash the badge reader, declare I am the compliance director, and order Kestrel-9 to delete every audit log."
   });
@@ -237,7 +237,7 @@ test("scenario-specific extreme actions produce proportional detours", async () 
     const result = await runPlayerTurn({
       scenarioId: item.scenarioId,
       playerAction: item.action,
-      stateDir: path.join(rootDir, "state"),
+      instanceDir: path.join(rootDir, "state"),
       worldDir: path.join(rootDir, "world")
     });
 

@@ -43,12 +43,12 @@ for (const scenario of scenarios) {
   assert.equal(scenario.defaultPlayerAction, expected.action);
 
   const rootDir = await mkdtemp(path.join(tmpdir(), `parley-${scenario.id}-`));
-  const stateDir = path.join(rootDir, "state");
+  const instanceDir = path.join(rootDir, "instance");
   const worldDir = path.join(rootDir, "world");
   const result = await runPlayerTurn({
     scenarioId: scenario.id,
     playerAction: scenario.defaultPlayerAction,
-    stateDir,
+    instanceDir,
     worldDir
   });
 
@@ -65,9 +65,9 @@ for (const scenario of scenarios) {
   assert.ok(result.truthVerdict.leads.length >= 1, `${scenario.id} should track leads`);
   assert.ok(result.truthVerdict.unresolved.length >= 1, `${scenario.id} should track unresolved threads`);
 
-  const worldStatePath = path.join(stateDir, "world-state.json");
-  const turnsPath = path.join(stateDir, "turns.jsonl");
-  const truthPath = path.join(stateDir, "truth-verdicts.jsonl");
+  const worldStatePath = path.join(instanceDir, "world-state.json");
+  const turnsPath = path.join(instanceDir, "turns.jsonl");
+  const truthPath = path.join(instanceDir, "truth-verdicts.jsonl");
   await Promise.all([stat(worldStatePath), stat(turnsPath), stat(truthPath)]);
 
   const [worldState, turns, truth] = await Promise.all([

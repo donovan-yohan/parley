@@ -1,0 +1,8 @@
+{
+  "schema_version": "parley-world/v1",
+  "id": "orchard-welcome",
+  "name": "Mossgrove",
+  "premise": "Neighbors share work, food, and careful silences around an orchard tradition.",
+  "tone": "warm cozy small-town mystery",
+  "scenarios": ["orchard-welcome"]
+}
