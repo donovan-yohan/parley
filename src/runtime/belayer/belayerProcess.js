@@ -96,6 +96,15 @@ export async function defaultSpawn(cmd, args, { stdin, env } = {}) {
 
 /**
  * Runs `belayer auth ensure`.
+ *
+ * Returns `{ ok: false }` on non-zero exit instead of throwing because auth
+ * failure is recoverable: callers should surface the stderr to the user and
+ * direct them to run `belayer auth` interactively. Sibling functions
+ * (cragExists, mailSend) DO throw on non-zero exit because their callers
+ * cannot recover from those failures inline. ENOENT (binary missing) still
+ * throws BelayerNotInstalledError via defaultSpawn — callers MUST also
+ * check `result.ok` for the auth-rejection case.
+ *
  * @returns {Promise<{ ok: boolean, stdout: string, stderr: string }>}
  */
 export async function belayerAuthEnsure({

@@ -177,6 +177,11 @@ export async function runPlayerTurn({
   // Errors are caught per-character and aggregated — a single NPC wake failure
   // must not abort the turn result.
   const wakedResults = [];
+  if (wakeResumableNpcs && !instanceDir) {
+    console.warn(
+      "parleyRuntime: wakeResumableNpcs=true requires instanceDir; skipping wake fan-out (no NPCs woken)."
+    );
+  }
   if (wakeResumableNpcs && instanceDir) {
     const { validateWake = null, validateWakeResult = null } = wakeValidationDeps ?? {};
     for (const character of characters.filter((c) => c.lifecycle === "resumable")) {

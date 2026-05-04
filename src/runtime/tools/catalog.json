@@ -1,0 +1,116 @@
+[
+  {
+    "name": "speak",
+    "authority": "actor",
+    "write_path": "instance-public",
+    "description": "Speak dialogue aloud in the scene — visible to all present characters and the player."
+  },
+  {
+    "name": "emote",
+    "authority": "actor",
+    "write_path": "instance-public",
+    "description": "Perform a physical action or express an emotion visible to others in the scene."
+  },
+  {
+    "name": "move",
+    "authority": "actor",
+    "write_path": "instance-public",
+    "description": "Move the character to a new location or position within the current scene."
+  },
+  {
+    "name": "set_activity",
+    "authority": "actor",
+    "write_path": "instance-public",
+    "description": "Declare the character's current activity or idle behaviour for ambient scene context."
+  },
+  {
+    "name": "ask_player",
+    "authority": "actor",
+    "write_path": "instance-public",
+    "description": "Pose a direct question or prompt to the player character, requesting a response."
+  },
+  {
+    "name": "remember_private",
+    "authority": "actor",
+    "write_path": "profile-private",
+    "description": "Write a private memory entry to the character's MEMORY.md — not visible to other characters."
+  },
+  {
+    "name": "remember_public",
+    "authority": "actor",
+    "write_path": "instance-public",
+    "description": "Record a shared memory or observable fact into the instance event log."
+  },
+  {
+    "name": "update_relationship",
+    "authority": "actor",
+    "write_path": "instance-public",
+    "description": "Update the character's public relationship standing with another entity in the instance event log."
+  },
+  {
+    "name": "set_intention",
+    "authority": "actor",
+    "write_path": "profile-private",
+    "description": "Set or revise the character's private goal or intention for the current story arc."
+  },
+  {
+    "name": "revise_belief",
+    "authority": "actor",
+    "write_path": "profile-private",
+    "description": "Update a private belief the character holds based on new information encountered this wake."
+  },
+  {
+    "name": "surface_lead",
+    "authority": "actor",
+    "write_path": "instance-public",
+    "description": "Surface a story lead or hook that may be pursued by the player or other characters."
+  },
+  {
+    "name": "create_rumor",
+    "authority": "actor",
+    "write_path": "instance-public",
+    "description": "Introduce a rumor into the scene that can spread through the instance's social fabric."
+  },
+  {
+    "name": "propose_fact",
+    "authority": "gm-only",
+    "write_path": "instance-public",
+    "description": "GM-only: assert a world fact into the instance event log for other characters to treat as true."
+  },
+  {
+    "name": "record_consequence",
+    "authority": "gm-only",
+    "write_path": "instance-public",
+    "description": "GM-only: record a story consequence that will affect the world state or character arcs."
+  },
+  {
+    "name": "request_scene_shift",
+    "authority": "actor",
+    "write_path": "instance-public",
+    "description": "Request a transition to a different scene or location — subject to GM approval."
+  },
+  {
+    "name": "reject_claim",
+    "authority": "validator-only",
+    "write_path": "none",
+    "description": "Validator-only: reject a claim made by a character as inconsistent with established facts."
+  },
+  {
+    "name": "deflect",
+    "authority": "actor",
+    "write_path": "none",
+    "description": "Deflect a question or action without committing to a response — produces no persistent state."
+  },
+  {
+    "name": "wake_done",
+    "authority": "lifecycle",
+    "write_path": "none",
+    "description": "Signal that the character's wake is complete and no further tool calls will be made."
+  },
+  {
+    "name": "wake_abort",
+    "authority": "lifecycle",
+    "write_path": "none",
+    "description": "Abort the current wake abnormally — used when an unrecoverable error prevents normal completion."
+  }
+]

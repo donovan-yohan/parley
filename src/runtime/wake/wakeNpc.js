@@ -18,9 +18,11 @@ import {
   belayerMailSend,
   belayerDaemonStatus,
 } from "../belayer/belayerProcess.js";
-import { awaitWakeResponse as defaultAwaitWakeResponseImpl } from "../belayer/wakeTimeout.js";
+import {
+  awaitWakeResponse as defaultAwaitWakeResponseImpl,
+  defaultPollFn,
+} from "../belayer/wakeTimeout.js";
 import { validateProfileNameBudget } from "../instances/profileNameBudget.js";
-import { defaultPollFn } from "../belayer/wakeTimeout.js";
 
 // ─── Default validators (stubs — must be replaced by caller) ──────────────────
 
@@ -157,7 +159,9 @@ export async function wakeNpc({
     timeoutMs,
   });
 
-  // Step 7: If deferred (timeout etc.), spread wake_id so consumers always see it.
+  // Step 7: If deferred (timeout etc.), normalize shape so consumers always see wake_id.
+  // The timeout path from awaitWakeResponse uses `clientEventId`; daemon-down path here uses `wake_id`.
+  // Surface both for now so downstream consumers (PR #14 pulse, PR #15 UI) don't have to disambiguate.
   if (response && response.status === "wake_deferred") {
     return { ...response, wake_id: validatedEnvelope.wake_id };
   }
