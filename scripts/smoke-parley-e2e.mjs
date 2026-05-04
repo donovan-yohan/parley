@@ -1,9 +1,15 @@
 #!/usr/bin/env node
+/**
+ * smoke-parley-e2e.mjs — Parley server API smoke test.
+ *
+ * Updated in 1d: removed tests against old src/client/ (deleted) and /api/scenarios.
+ * Now tests the new API surface: /api/worlds, /api/instances, /api/stories, /api/turn (new shape).
+ */
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { Readable, Writable } from "node:stream";
 
 import { createParleyServer } from "../src/server.js";
@@ -11,7 +17,6 @@ import { createParleyServer } from "../src/server.js";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 let instanceDir;
 let worldDir;
-const playerAction = "I ask who remembers the old north road.";
 const originalFetch = globalThis.fetch;
 
 async function main() {
@@ -28,194 +33,118 @@ async function main() {
   const server = createParleyServer({ instanceDir, worldDir });
   const serverFetch = createInProcessFetch(server);
 
-  try {
-    const [html, appSource, cssSource] = await Promise.all([
-      fetchText(serverFetch, "/", "text/html"),
-      fetchText(serverFetch, "/app.js", "text/javascript"),
-      fetchText(serverFetch, "/styles.css", "text/css")
-    ]);
+  // /api/worlds should return the installed world summaries
+  const worldsResponse = await serverFetch("/api/worlds");
+  assert.equal(worldsResponse.status, 200, "/api/worlds should return 200");
+  const worldsData = await worldsResponse.json();
+  assert.ok(Array.isArray(worldsData.worlds), "worlds should be an array");
+  assert.ok(worldsData.worlds.length >= 1, "at least one world should be installed");
 
-    assert.match(html, /id="theme-select"/);
-    assert.match(html, /id="scene-art"/);
-    assert.match(appSource, /scenarioSelect\.addEventListener/);
-    assert.match(appSource, /\/api\/scenarios/);
-    assert.match(cssSource, /\[data-theme="last-lantern"\]/);
-    assert.match(cssSource, /\[data-theme="cyberpunk"\]/);
-    assert.match(cssSource, /\[data-theme="cozy"\]/);
-    assert.match(cssSource, /\.portrait-frame/);
-    assert.match(cssSource, /\.scene-art/);
+  const lastLantern = worldsData.worlds.find((w) => w.id === "last-lantern");
+  assert.ok(lastLantern, "last-lantern world should be present");
+  assert.equal(lastLantern.name, "Last Lantern");
 
-    const harness = createDomHarness();
-    installClientGlobals({ harness, serverFetch });
+  // /api/scenarios removed in 1d — must 404
+  const scenariosResponse = await serverFetch("/api/scenarios");
+  assert.equal(scenariosResponse.status, 404, "/api/scenarios should be gone (404)");
 
-    const appUrl = pathToFileURL(path.join(root, "src", "client", "app.js"));
-    appUrl.search = `smoke=${Date.now()}`;
-    await import(appUrl.href);
+  // /api/state removed in 1d — must 404
+  const stateResponse = await serverFetch("/api/state?scenario=last-lantern");
+  assert.equal(stateResponse.status, 404, "/api/state should be gone (404)");
 
-    await waitUntil(() => harness.themeSelect.value === "last-lantern");
-    assert.deepEqual(
-      harness.themeSelect.children.map((option) => option.value).sort(),
-      ["last-lantern", "neon-afterhours", "orchard-welcome"]
-    );
-    assert.equal(harness.sceneTitle.textContent, "Last Lantern Tavern");
-    assert.match(textContent(harness.transcript), /old north road waits in the rain/);
+  // POST /api/turn with old shape { scenarioId } must return 400
+  const legacyTurnResponse = await serverFetch("/api/turn", {
+    method: "POST",
+    body: JSON.stringify({
+      scenarioId: "last-lantern",
+      playerAction: "I ask who remembers the old north road."
+    })
+  });
+  assert.equal(legacyTurnResponse.status, 400, "Legacy turn shape should be rejected with 400");
 
-    harness.themeSelect.value = "neon-afterhours";
-    await harness.themeSelect.dispatchEvent({ type: "change" });
-    assert.equal(harness.document.documentElement.dataset.theme, "cyberpunk");
-    assert.equal(harness.sceneTitle.textContent, "After-Hours Audit Floor");
-    assert.match(harness.sceneSubtitle.textContent, /sealed audit floor/);
-    assert.equal(harness.input.value, "I ask who signed the audit lockout.");
-    assert.match(textContent(harness.transcript), /Helix Arcology/);
+  // Create an instance and run a turn via the new shape
+  const instanceResponse = await serverFetch("/api/instances", {
+    method: "POST",
+    body: JSON.stringify({ worldId: "last-lantern" })
+  });
+  assert.equal(instanceResponse.status, 200, "/api/instances POST should return 200");
+  const instance = await instanceResponse.json();
+  assert.ok(instance.instanceId, "instance should have an instanceId");
+  assert.ok(/^playthrough-\d+$/.test(instance.instanceId), "instanceId should match playthrough-N pattern");
 
-    harness.themeSelect.value = "last-lantern";
-    await harness.themeSelect.dispatchEvent({ type: "change" });
-    assert.equal(harness.document.documentElement.dataset.theme, "last-lantern");
-    assert.equal(harness.sceneTitle.textContent, "Last Lantern Tavern");
+  // Create a story instance
+  const storyResponse = await serverFetch("/api/stories", {
+    method: "POST",
+    body: JSON.stringify({
+      worldId: "last-lantern",
+      instanceId: instance.instanceId,
+      storyTemplateId: "last-lantern"
+    })
+  });
+  assert.equal(storyResponse.status, 200, "/api/stories POST should return 200");
+  const story = await storyResponse.json();
+  assert.equal(story.status, "in_progress");
 
-    harness.input.value = playerAction;
+  // POST /api/turn with new shape { worldId, instanceId, storyId, playerAction }
+  const turnResponse = await serverFetch("/api/turn", {
+    method: "POST",
+    body: JSON.stringify({
+      worldId: "last-lantern",
+      instanceId: instance.instanceId,
+      storyId: story.storyId,
+      playerAction: "I ask who remembers the old north road."
+    })
+  });
+  assert.equal(turnResponse.status, 200, "New turn shape should return 200");
+  const turn = await turnResponse.json();
+  assert.ok(turn.narration, "turn should have narration");
+  assert.match(turn.narration, /Mara Underbough/);
+  assert.ok(Array.isArray(turn.nextChoices), "turn should have nextChoices");
 
-    let releaseTurnFetch;
-    const realFetch = globalThis.fetch;
-    globalThis.fetch = async (url, options) => {
-      if (url === "/api/turn") {
-        return new Promise((resolve, reject) => {
-          releaseTurnFetch = () => {
-            realFetch("/api/turn", options).then(resolve, reject);
-          };
-        });
-      }
-      return realFetch(url, options);
-    };
+  // Verify the story's turnCount was updated
+  const storyFetchResponse = await serverFetch(
+    `/api/story?world=last-lantern&instance=${instance.instanceId}&story=${story.storyId}`
+  );
+  assert.equal(storyFetchResponse.status, 200, "/api/story GET should return 200");
+  const updatedStory = await storyFetchResponse.json();
+  assert.equal(updatedStory.turnCount, 1, "story turnCount should be 1 after one turn");
 
-    const submitPromise = harness.form.dispatchEvent({ type: "submit", preventDefault() {} });
-    assert.equal(harness.input.disabled, true);
-    assert.equal(harness.submitButton.disabled, true);
-    assert.equal(harness.submitButton.textContent, "Listening...");
-    assert.equal(harness.turnStatus.textContent, "The room weighs the question before answering.");
-
-    assert.ok(releaseTurnFetch, "client submit should call /api/turn");
-    releaseTurnFetch();
-    await submitPromise;
-
-    assert.equal(harness.input.disabled, false);
-    assert.equal(harness.submitButton.disabled, false);
-    assert.equal(harness.submitButton.textContent, "Submit");
-    assert.equal(harness.turnStatus.textContent, "");
-    assert.match(textContent(harness.transcript), /Mara Underbough/);
-    assert.match(textContent(harness.transcript), /old north road/i);
-    assert.match(textContent(harness.transcript), /Ashford/i);
-    assert.match(textContent(harness.transcript), /lead|thread|trail/i);
-    assert.match(textContent(harness.characters), /Mara Underbough/);
-    assert.match(textContent(harness.characters), /Portrait prompt ready/);
-    assert.match(textContent(harness.sceneArt), /Background prompt ready/);
-    assert.match(textContent(harness.characters), /reusable, resumable NPC/);
-    assert.doesNotMatch(textContent(harness.characters), /keeps the Last Lantern's bar/);
-    assert.match(textContent(harness.truth), /Leads/);
-    assert.match(textContent(harness.truth), /Rumors/);
-    assert.match(textContent(harness.truth), /Unresolved/);
-
-    globalThis.fetch = async (url, options) => {
-      if (url === "/api/turn") {
-        return {
-          status: 500,
-          ok: false,
-          async json() {
-            return { error: "Synthetic turn failure." };
-          }
-        };
-      }
-      return realFetch(url, options);
-    };
-    harness.input.value = "Ask a question that fails in the smoke harness.";
-    await harness.form.dispatchEvent({ type: "submit", preventDefault() {} });
-    assert.match(textContent(harness.transcript), /Synthetic turn failure/);
-    assert.match(textContent(harness.characters), /Mara Underbough/);
-    assert.match(textContent(harness.truth), /Leads/);
-
-    const choiceButton = harness.choices.children[0].children[0];
-    choiceButton.dispatchEvent({ type: "click" });
-    assert.equal(harness.input.value, choiceButton.textContent);
-
-    const worldStatePath = path.join(instanceDir, "world-state.json");
-    const turnsPath = path.join(instanceDir, "turns.jsonl");
-    const truthPath = path.join(instanceDir, "truth-verdicts.jsonl");
-
-    for (const artifactPath of [worldStatePath, turnsPath, truthPath]) {
-      await stat(artifactPath);
+  // Test PATCH /api/instances (rename)
+  const renameResponse = await serverFetch(
+    `/api/instances/last-lantern/${instance.instanceId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ displayName: "My Epic Playthrough" })
     }
+  );
+  assert.equal(renameResponse.status, 200, "PATCH rename should return 200");
+  const renamed = await renameResponse.json();
+  assert.equal(renamed.displayName, "My Epic Playthrough");
 
-    const [worldStateRaw, turns, truthRaw] = await Promise.all([
-      readFile(worldStatePath, "utf8"),
-      readFile(turnsPath, "utf8"),
-      readFile(truthPath, "utf8")
-    ]);
+  // Test DELETE /api/instances
+  const deleteResponse = await serverFetch(
+    `/api/instances/last-lantern/${instance.instanceId}`,
+    { method: "DELETE" }
+  );
+  assert.equal(deleteResponse.status, 200, "DELETE instance should return 200");
 
-    assert.match(worldStateRaw, /mara-underbough/);
-    assert.match(turns, /I ask who remembers the old north road\./);
-
-    const worldState = JSON.parse(worldStateRaw);
-    const persistedVerdicts = truthRaw
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => JSON.parse(line));
-    const lastVerdict = persistedVerdicts.at(-1);
-
-    assert.ok(
-      lastVerdict.leads.some((entry) => entry.id === "old-north-road-lead"),
-      "expected old-north-road-lead in the last verdict"
-    );
-    assert.ok(
-      lastVerdict.unresolved.some((entry) => entry.id === "ashford-name-mystery"),
-      "expected ashford-name to remain an unresolved mystery, not be promoted to canon"
-    );
-    assert.ok(
-      !lastVerdict.accepted_facts.some((fact) => /ashford/i.test(fact.text)),
-      "Ashford must never appear as accepted canon"
-    );
-    assert.ok(
-      worldState.leads.some((entry) => entry.id === "old-north-road-lead"),
-      "expected old-north-road-lead in world-state.leads"
-    );
-    assert.ok(
-      !worldState.canon.some((fact) => /ashford/i.test(fact.text ?? "")),
-      "world-state.canon must not contain any Ashford fact"
-    );
-
-    console.log("Parley narrative e2e smoke");
-    console.log("");
-    console.log("Checks:");
-    for (const check of [
-      "Server served index, client JavaScript, and theme CSS",
-      "Client scenario selector is populated from /api/scenarios",
-      "Client scenario selection updates theme, title, subtitle, opening line, and input default",
-      "Client submit enters and exits loading state",
-      "Client submit exercises /api/turn",
-      "Client keeps the last good state after a failed turn",
-      "Mara answers the old north road prompt",
-      "Visual asset prompts are visible for Mara's portrait and the scene background",
-      "Mara is reusable and resumable",
-      "Story memory records rumor, lead, and unresolved mystery",
-      "Choice buttons populate the next input",
-      "State artifacts were persisted"
-    ]) {
-      console.log(`- ${check}`);
-    }
-  } finally {
-    globalThis.fetch = originalFetch;
+  console.log("Parley narrative e2e smoke");
+  console.log("");
+  console.log("Checks:");
+  for (const check of [
+    "/api/worlds returns installed worlds",
+    "/api/scenarios removed — returns 404",
+    "/api/state removed — returns 404",
+    "POST /api/turn with legacy { scenarioId } shape returns 400",
+    "POST /api/instances creates playthrough-N instance",
+    "POST /api/stories creates in_progress story",
+    "POST /api/turn (new shape) runs turn + returns narration",
+    "/api/story GET returns updated turnCount",
+    "PATCH /api/instances renames display name",
+    "DELETE /api/instances removes instance",
+  ]) {
+    console.log(`- ${check}`);
   }
-}
-
-async function fetchText(fetchImpl, url, expectedContentType) {
-  const response = await fetchImpl(url);
-  assert.equal(response.status, 200, `${url} should return 200`);
-  assert.match(response.headers.get("content-type") ?? "", new RegExp(expectedContentType));
-  return response.text();
-}
-
-function installClientGlobals({ harness, serverFetch }) {
-  globalThis.document = harness.document;
-  globalThis.fetch = serverFetch;
 }
 
 function createInProcessFetch(server) {
@@ -260,91 +189,6 @@ async function requestServer(server, { method, url, body }) {
   };
 }
 
-function createDomHarness() {
-  const document = new FakeDocument();
-  const elements = {
-    form: document.register("turn-form", new FakeElement("form")),
-    input: document.register("player-action", new FakeElement("input")),
-    submitButton: document.register("submit-turn", new FakeElement("button")),
-    turnStatus: document.register("turn-status", new FakeElement("p")),
-    transcript: document.register("transcript", new FakeElement("ol")),
-    choices: document.register("choices", new FakeElement("ul")),
-    characters: document.register("characters", new FakeElement("ul")),
-    truth: document.register("truth", new FakeElement("div")),
-    sceneArt: document.register("scene-art", new FakeElement("aside")),
-    themeSelect: document.register("theme-select", new FakeElement("select")),
-    sceneTitle: document.register("scene-title", new FakeElement("h1")),
-    sceneSubtitle: document.register("scene-subtitle", new FakeElement("p"))
-  };
-  elements.input.focus = () => {};
-  elements.input.select = () => {};
-  return { document, ...elements };
-}
-
-class FakeDocument {
-  constructor() {
-    this.documentElement = new FakeElement("html");
-    this.documentElement.dataset = {};
-    this.elements = new Map();
-    this.title = "";
-  }
-
-  register(id, element) {
-    element.id = id;
-    this.elements.set(id, element);
-    return element;
-  }
-
-  querySelector(selector) {
-    if (!selector.startsWith("#")) {
-      throw new Error(`Unsupported selector in smoke DOM: ${selector}`);
-    }
-    const element = this.elements.get(selector.slice(1));
-    assert.ok(element, `expected smoke DOM element ${selector}`);
-    return element;
-  }
-
-  createElement(tagName) {
-    return new FakeElement(tagName);
-  }
-}
-
-class FakeElement {
-  constructor(tagName) {
-    this.tagName = tagName;
-    this.children = [];
-    this.dataset = {};
-    this.eventListeners = new Map();
-    this.className = "";
-    this.disabled = false;
-    this.value = "";
-    this.textContent = "";
-  }
-
-  append(...children) {
-    this.children.push(...children);
-  }
-
-  replaceChildren(...children) {
-    this.children = children;
-  }
-
-  addEventListener(type, listener) {
-    const listeners = this.eventListeners.get(type) ?? [];
-    listeners.push(listener);
-    this.eventListeners.set(type, listeners);
-  }
-
-  async dispatchEvent(event) {
-    const listeners = this.eventListeners.get(event.type) ?? [];
-    await Promise.all(listeners.map((listener) => listener(event)));
-  }
-
-  focus() {}
-
-  select() {}
-}
-
 class FakeRequest extends Readable {
   constructor({ method, url, body }) {
     super();
@@ -386,17 +230,3 @@ class FakeResponse extends Writable {
 }
 
 await main();
-
-function textContent(element) {
-  return [element.textContent, ...element.children.map((child) => textContent(child))].join(" ");
-}
-
-async function waitUntil(predicate, timeoutMs = 500) {
-  const start = Date.now();
-  while (!predicate()) {
-    if (Date.now() - start > timeoutMs) {
-      throw new Error("Timed out waiting for smoke condition");
-    }
-    await new Promise((resolve) => setTimeout(resolve, 5));
-  }
-}

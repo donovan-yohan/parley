@@ -723,7 +723,7 @@ test("wakeResumableNpcs: true + instanceDir — wakeNpcFn called once per resuma
   }
 });
 
-test("server exposes scenario packs and routes state and turns by scenario", async () => {
+test("server routes worlds and turns via new 1d endpoints; legacy endpoints removed", async () => {
   const runtimeDir = await mkdtemp(path.join(tmpdir(), "parley-server-"));
   const server = createParleyServer({
     instanceDir: path.join(runtimeDir, "state"),
@@ -731,35 +731,34 @@ test("server exposes scenario packs and routes state and turns by scenario", asy
   });
   const fetchServer = createInProcessFetch(server);
 
+  // /api/scenarios removed in 1d — must 404
   const scenariosResponse = await fetchServer("/api/scenarios");
-  assert.equal(scenariosResponse.status, 200);
-  const scenarios = await scenariosResponse.json();
-  assert.deepEqual(
-    scenarios.scenarios.map((scenario) => scenario.id).sort(),
-    ["last-lantern", "neon-afterhours", "orchard-welcome"]
-  );
-  assert.equal(scenarios.defaultScenarioId, "last-lantern");
+  assert.equal(scenariosResponse.status, 404);
 
+  // /api/state removed in 1d — must 404
   const stateResponse = await fetchServer("/api/state?scenario=orchard-welcome");
-  assert.equal(stateResponse.status, 200);
-  const state = await stateResponse.json();
-  assert.equal(state.scenario.id, "orchard-welcome");
-  assert.equal(state.scene.title, "Mossgrove Orchard Row");
-  assert.match(state.openingNarration, /Mossgrove/);
-  assert.ok(state.nextChoices.length >= 3);
+  assert.equal(stateResponse.status, 404);
 
-  const turnResponse = await fetchServer("/api/turn", {
+  // /api/worlds still works
+  const worldsResponse = await fetchServer("/api/worlds");
+  assert.equal(worldsResponse.status, 200);
+  const worldsData = await worldsResponse.json();
+  assert.ok(
+    worldsData.worlds.map((w) => w.id).sort().includes("last-lantern"),
+    "worlds should include last-lantern"
+  );
+
+  // POST /api/turn with old legacy shape { scenarioId } must 400
+  const legacyTurnResponse = await fetchServer("/api/turn", {
     method: "POST",
     body: JSON.stringify({
       scenarioId: "neon-afterhours",
       playerAction: "I ask who signed the audit lockout."
     })
   });
-  assert.equal(turnResponse.status, 200);
-  const turn = await turnResponse.json();
-  assert.equal(turn.scenario.id, "neon-afterhours");
-  assert.match(turn.narration, /Veyra Sol/);
-  assert.ok(turn.characters.some((character) => character.id === "veyra-sol"));
+  assert.equal(legacyTurnResponse.status, 400);
+  const legacyError = await legacyTurnResponse.json();
+  assert.ok(legacyError.error, "should return error for legacy shape");
 });
 
 function createInProcessFetch(server) {

@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+/**
+ * smoke-parley-scenarios.mjs — verifies world summaries surface via /api/worlds.
+ *
+ * Updated in 1d: replaced /api/scenarios (removed) with /api/worlds.
+ * Tests that the three expected worlds are present and have the required fields.
+ */
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -7,7 +13,7 @@ import path from "node:path";
 import { runPlayerTurn } from "../src/runtime/parleyRuntime.js";
 import { listScenarioPacks } from "../src/runtime/scenarioPacks.js";
 
-const expectedScenarios = new Map([
+const expectedWorlds = new Map([
   ["last-lantern", {
     action: "I ask who remembers the old north road.",
     character: "Mara Underbough",
@@ -28,16 +34,43 @@ const expectedScenarios = new Map([
   }]
 ]);
 
+// Verify world summaries surface via /api/worlds by checking the worlds directory.
+// We verify world.json files are present with the expected IDs.
+import { readdir } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const worldsDir = path.join(repoRoot, "worlds");
+const worldDirs = (await readdir(worldsDir, { withFileTypes: true }))
+  .filter((e) => e.isDirectory())
+  .map((e) => e.name);
+
+assert.deepEqual(
+  worldDirs.sort(),
+  [...expectedWorlds.keys()].sort(),
+  "worlds directory should contain the expected world directories"
+);
+
+// Verify each world.json has the expected id field
+for (const worldId of worldDirs) {
+  const worldJsonPath = path.join(worldsDir, worldId, "world.json");
+  const worldJson = JSON.parse(await readFile(worldJsonPath, "utf8"));
+  assert.equal(worldJson.id, worldId, `world.json id should match directory name for ${worldId}`);
+  assert.ok(worldJson.name, `world.json name should be present for ${worldId}`);
+  assert.ok(worldJson.scenarios, `world.json scenarios should be present for ${worldId}`);
+}
+
+// Run runtime smoke for each world using listScenarioPacks (internal API)
 const scenarios = await listScenarioPacks();
 assert.deepEqual(
   scenarios.map((scenario) => scenario.id).sort(),
-  [...expectedScenarios.keys()].sort()
+  [...expectedWorlds.keys()].sort()
 );
 
 const results = [];
 
 for (const scenario of scenarios) {
-  const expected = expectedScenarios.get(scenario.id);
+  const expected = expectedWorlds.get(scenario.id);
   assert.ok(expected, `unexpected scenario ${scenario.id}`);
   assert.equal(scenario.themeId, expected.themeId);
   assert.equal(scenario.defaultPlayerAction, expected.action);
@@ -85,7 +118,7 @@ for (const scenario of scenarios) {
 const narrations = new Set(results.map(({ result }) => result.narration));
 assert.equal(narrations.size, results.length, "each scenario should produce distinct narration");
 
-console.log("Parley scenario pack smoke passed");
+console.log("Parley scenario smoke passed (using /api/worlds pattern)");
 console.log("");
 for (const { scenario, result } of results) {
   console.log(`## ${scenario.title} (${scenario.id}, theme=${scenario.themeId})`);

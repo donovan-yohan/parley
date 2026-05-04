@@ -3,8 +3,8 @@ import { mkdir, readdir, readFile, realpath, rm, writeFile } from "node:fs/promi
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { loadCurrentState, runPlayerTurn } from "./runtime/parleyRuntime.js";
-import { defaultScenarioId, listScenarioPacks, loadScenarioPack, repoRoot } from "./runtime/scenarioPacks.js";
+import { runPlayerTurn } from "./runtime/parleyRuntime.js";
+import { defaultScenarioId, loadScenarioPack, repoRoot } from "./runtime/scenarioPacks.js";
 import { subscribe } from "./runtime/events/sseBroadcaster.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -128,36 +128,20 @@ export async function handleParleyRequest(request, response, runtimeOptions = {}
 
     // ── Existing endpoints ───────────────────────────────────────────────────
 
-
-    if (request.method === "GET" && requestUrl.pathname === "/api/scenarios") {
-      return sendJson(response, {
-        defaultScenarioId,
-        scenarios: await listScenarioPacks()
-      });
-    }
-
-    if (request.method === "GET" && requestUrl.pathname === "/api/state") {
-      return sendJson(response, await loadCurrentState({
-        ...runtimeOptions,
-        scenarioId: requestUrl.searchParams.get("scenario") ?? runtimeOptions.scenarioId ?? defaultScenarioId
-      }));
-    }
+    // GET /api/scenarios — removed in 1d (replaced by GET /api/worlds).
+    // GET /api/state — removed in 1d (no longer needed; shell uses new endpoints).
+    // POST /api/turn legacy shape { scenarioId, playerAction } — removed in 1d.
 
     if (request.method === "POST" && requestUrl.pathname === "/api/turn") {
       const body = await readJsonBody(request);
 
-      // New shape: { worldId, instanceId, storyId, playerAction }
-      if (body.worldId) {
-        const result = await handleRunTurnNew(body.worldId, body.instanceId, body.storyId, body.playerAction);
-        return sendJson(response, result);
+      // Reject old shape: { scenarioId, playerAction }
+      if (!body.worldId) {
+        return sendJson(response, { error: "worldId is required. Legacy {scenarioId} shape is no longer accepted." }, 400);
       }
 
-      // Legacy shape: { scenarioId, playerAction } — back-compat until 1d.
-      const result = await runPlayerTurn({
-        ...runtimeOptions,
-        scenarioId: body.scenarioId ?? runtimeOptions.scenarioId ?? defaultScenarioId,
-        playerAction: body.playerAction
-      });
+      // New shape: { worldId, instanceId, storyId, playerAction }
+      const result = await handleRunTurnNew(body.worldId, body.instanceId, body.storyId, body.playerAction);
       return sendJson(response, result);
     }
 
@@ -626,9 +610,9 @@ function isWorldImageAsset(filePath) {
 async function serveStatic(request, response) {
   const urlPath = new URL(request.url, `http://localhost:${port}`).pathname;
   const relativePath = urlPath === "/" ? "index.html" : urlPath.slice(1);
-  const filePath = path.join(clientDir, relativePath);
+  const filePath = path.join(distDir, relativePath);
 
-  if (!filePath.startsWith(clientDir)) {
+  if (!filePath.startsWith(distDir)) {
     return sendJson(response, { error: "Not found" }, 404);
   }
 
