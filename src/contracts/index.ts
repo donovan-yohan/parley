@@ -17,3 +17,6 @@ export * from "./scenePulse.ts";
 export * from "./worldInstanceEvaluation.ts";
 export * from "./parleyImageWake.ts";
 export * from "./parleyImageWakeResult.ts";
+export * from "./world.ts";
+export * from "./theme.ts";
+export * from "./worldManifest.ts";

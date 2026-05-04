@@ -1,0 +1,38 @@
+schema_version: parley-theme/v1
+
+palette:
+  background: "#fef3c7"
+  midground:  "#92400e"
+  foreground: "#451a03"
+
+typography:
+  fontSans:    "Inter"
+  fontMono:    "JetBrains Mono"
+  fontDisplay: "Fraunces"
+  fontUrl:     "https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500&display=swap"
+  baseSize:    16
+  lineHeight:  1.75
+  letterSpacing: "0"
+
+layout:
+  radius:  "1rem"
+  density: spacious
+
+layoutVariant: cozy
+
+assets:
+  bg: ""
+
+componentStyles:
+  dialogueFrame:
+    borderRadius:   "1rem"
+    background:     "rgba(254, 243, 199, 0.9)"
+    borderColor:    "rgba(146, 64, 14, 0.3)"
+    backdropFilter: "blur(8px)"
+  card:
+    borderRadius: "0.75rem"
+    border:       "2px solid rgba(146, 64, 14, 0.2)"
+
+colorOverrides:
+  primary: "#b45309"
+  ring:    "rgba(180, 83, 9, 0.5)"
