@@ -1,0 +1,11 @@
+{
+  "schema_version": "parley-world/v1",
+  "id": "gentle-shore",
+  "name": "Gentle Shore",
+  "premise": "A seaside village prepares its annual seashell festival where every neighbor has a story and a small worry.",
+  "tone": "warm cozy coastal community",
+  "scenarios": ["seashell-festival"],
+  "shell": "default",
+  "layoutVariant": "cozy",
+  "stylesheet": "stylesheet.css"
+}

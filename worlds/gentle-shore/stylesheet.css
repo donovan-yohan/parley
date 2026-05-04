@@ -1,0 +1,122 @@
+/* ============================================================
+   gentle-shore / stylesheet.css
+   Animal Crossing-inspired pastel coastal theme.
+   All color references use CSS custom properties defined by
+   the Parley theme cascade from theme.yaml.
+   ============================================================ */
+
+/* ── Pastel sky gradient backdrop ── */
+[data-layout-variant="cozy"] .scene-backdrop,
+[data-layout-variant="cozy"] .l3-storyplay-backdrop {
+  background: linear-gradient(
+    180deg,
+    #ffe8c8 0%,      /* warm peach horizon glow */
+    #fff4e0 30%,     /* peach-cream midsky */
+    #d4ecd4 70%,     /* pale sage approaching horizon */
+    #a8d5a8 100%     /* soft sage horizon line */
+  );
+}
+
+/* ── Paper texture via SVG noise data-uri ── */
+[data-layout-variant="cozy"] .l3-storyplay::before,
+[data-layout-variant="cozy"] .scene-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  z-index: 0;
+}
+
+/* ── Soft cloud shapes layered behind transcript ── */
+[data-layout-variant="cozy"] .scene-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 300' preserveAspectRatio='xMidYMid slice'%3E%3Cellipse cx='120' cy='80' rx='90' ry='38' fill='white' opacity='0.38'/%3E%3Cellipse cx='160' cy='70' rx='60' ry='28' fill='white' opacity='0.28'/%3E%3Cellipse cx='500' cy='55' rx='110' ry='42' fill='white' opacity='0.32'/%3E%3Cellipse cx='550' cy='45' rx='70' ry='30' fill='white' opacity='0.22'/%3E%3Cellipse cx='700' cy='90' rx='80' ry='34' fill='white' opacity='0.28'/%3E%3Cellipse cx='740' cy='78' rx='50' ry='22' fill='white' opacity='0.18'/%3E%3C/svg%3E");
+  background-size: 100% 60%;
+  background-repeat: no-repeat;
+  background-position: top center;
+  z-index: 0;
+}
+
+/* ── Bobbing animation for choice buttons ── */
+@keyframes bob {
+  0%   { transform: translateY(0px); }
+  40%  { transform: translateY(-4px); }
+  70%  { transform: translateY(-2px); }
+  100% { transform: translateY(0px); }
+}
+
+[data-layout-variant="cozy"] .choice-list button,
+[data-layout-variant="cozy"] .choice-button {
+  animation: bob 3.2s ease-in-out infinite;
+  border-radius: 1rem;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+[data-layout-variant="cozy"] .choice-list button:nth-child(2),
+[data-layout-variant="cozy"] .choice-button:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+[data-layout-variant="cozy"] .choice-list button:nth-child(3),
+[data-layout-variant="cozy"] .choice-button:nth-child(3) {
+  animation-delay: 0.8s;
+}
+
+[data-layout-variant="cozy"] .choice-list button:hover,
+[data-layout-variant="cozy"] .choice-button:hover {
+  animation-play-state: paused;
+  box-shadow: 0 6px 18px rgba(168, 213, 168, 0.45);
+  transform: translateY(-2px);
+}
+
+/* ── Dialogue frame: paper-card style ── */
+[data-layout-variant="cozy"] .dialogue-frame {
+  background:    #fff8ec;
+  border:        1.5px solid #a8d5a8;
+  border-radius: 1.25rem;
+  box-shadow:    0 4px 12px rgba(168, 213, 168, 0.3);
+  padding:       1.25rem;
+}
+
+/* ── Speaker name: warm display font styling ── */
+[data-layout-variant="cozy"] .speaker-name {
+  font-family:   "Fraunces", serif;
+  font-size:     1.05em;
+  font-weight:   700;
+  color:         #5c4a3a;
+  letter-spacing: 0.01em;
+}
+
+/* ── Transcript text: airy and readable ── */
+[data-layout-variant="cozy"] .transcript-text,
+[data-layout-variant="cozy"] .narration-text {
+  font-family: "Quicksand", sans-serif;
+  line-height: 1.75;
+  color:       #5c4a3a;
+}
+
+/* ── Card overrides ── */
+[data-layout-variant="cozy"] .card {
+  background:    #fff8ec;
+  border:        1.5px solid rgba(168, 213, 168, 0.5);
+  border-radius: 1.25rem;
+}
+
+/* ── Scrollbar: gentle shore palette ── */
+[data-layout-variant="cozy"] ::-webkit-scrollbar {
+  width: 6px;
+}
+[data-layout-variant="cozy"] ::-webkit-scrollbar-track {
+  background: #fff4e0;
+}
+[data-layout-variant="cozy"] ::-webkit-scrollbar-thumb {
+  background:    #a8d5a8;
+  border-radius: 3px;
+}

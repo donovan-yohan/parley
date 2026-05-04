@@ -1,0 +1,461 @@
+{
+  "schema_version": "parley-scenario/v1",
+  "id": "seashell-festival",
+  "title": "Seashell Festival",
+  "subtitle": "Afternoon on the festival green. A cat is missing. Everyone has an opinion.",
+  "themeId": "cozy",
+  "defaultPlayerAction": "I ask Daffodil if she needs any help with the festival.",
+  "openingNarration": "The Gentle Shore Seashell Festival smells of salt air, lemonade, and fresh paint. Sage-and-cream banners drift in the harbor breeze. Daffodil Keep stands near the shell-painting station with a clipboard, scanning the green with the focused calm of someone whose backup plan already has a backup plan.",
+  "suggestedPlayerIntents": [
+    "I ask Daffodil if she needs any help with the festival.",
+    "Ask Marigold what she's been watching from her chair.",
+    "Look for the child who seems to be searching for something."
+  ],
+  "world": {
+    "id": "gentle-shore",
+    "name": "Gentle Shore",
+    "premise": "A seaside village prepares its annual seashell festival where every neighbor has a story and a small worry.",
+    "tone": "warm cozy coastal community"
+  },
+  "scene": {
+    "schema_version": "parley-scene/v1",
+    "id": "seashell-festival-green",
+    "title": "Seashell Festival Green",
+    "crag": "gentle-shore",
+    "climb": "afternoon-opening",
+    "visual": {
+      "status": "draft",
+      "environment_type": "outdoor coastal festival in afternoon light",
+      "time_of_day": "golden afternoon",
+      "composition": "visual novel background, wide establishing shot of the festival green with banners, shell-painting station, and harbor visible at the cliff edge",
+      "landmarks": [
+        "sage-and-cream festival banners between posts",
+        "shell-painting station with a rack of painted shells",
+        "folding lemonade table in shade",
+        "tide-pool path splitting off right"
+      ],
+      "safe_overlay_zones": [
+        "bottom third",
+        "center lower third"
+      ],
+      "negative": [
+        "no visible player character",
+        "no readable text/signage",
+        "no UI elements"
+      ]
+    },
+    "background": {
+      "status": "missing",
+      "prompt_path": "worlds/gentle-shore/assets/backgrounds/seashell-festival.prompt.md",
+      "asset_path": "worlds/gentle-shore/assets/backgrounds/seashell-festival.png",
+      "aspect_ratio": "landscape"
+    }
+  },
+  "characters": [
+    {
+      "id": "daffodil-keep",
+      "name": "Daffodil Keep",
+      "role": "festival-organizer",
+      "reusable": true,
+      "lifecycle": "resumable",
+      "world": "gentle-shore",
+      "faction": "gentle-shore-festival-committee",
+      "tone": "warm-brisk",
+      "importance": "recurring",
+      "knowledgeBoundary": "Knows all festival logistics and decades of village history. Does not know where Hazel's cat is. Will have strong feelings about animals on the festival green.",
+      "tags": [
+        "location:gentle-shore-festival-green",
+        "role:festival-organizer",
+        "importance:recurring",
+        "faction:gentle-shore-festival-committee",
+        "tone:warm-brisk"
+      ],
+      "portrait": {
+        "status": "missing",
+        "prompt_path": "worlds/gentle-shore/assets/portraits/daffodil-keep.prompt.md",
+        "asset_path": "worlds/gentle-shore/assets/portraits/daffodil-keep.png",
+        "aspect_ratio": "portrait"
+      },
+      "visual": {
+        "status": "draft",
+        "age_range": "mid-fifties",
+        "build": "energetic, upright, practical posture",
+        "physical_description": "sun-browned face with laugh lines, grey-streaked hair pinned up efficiently, alert brown eyes",
+        "wardrobe": [
+          "festival committee sash in sage and cream",
+          "linen blouse",
+          "comfortable walking shoes"
+        ],
+        "signature_props": [
+          "clipboard with festival schedule",
+          "pen tucked behind one ear"
+        ],
+        "palette_hints": [
+          "sage",
+          "cream",
+          "warm sand",
+          "peach-cream light"
+        ],
+        "negative": [
+          "no formal gown",
+          "no casual disarray",
+          "no armor"
+        ]
+      }
+    },
+    {
+      "id": "marigold-aster",
+      "name": "Marigold Aster",
+      "role": "retiree-neighbor",
+      "reusable": true,
+      "lifecycle": "resumable",
+      "world": "gentle-shore",
+      "faction": "gentle-shore-residents",
+      "tone": "dry-warm",
+      "importance": "recurring",
+      "knowledgeBoundary": "Knows village social dynamics and long festival history. Noticed the cat earlier but does not know where it went. Does not volunteer information unless asked.",
+      "tags": [
+        "location:gentle-shore-festival-green",
+        "role:retiree-neighbor",
+        "importance:recurring",
+        "faction:gentle-shore-residents",
+        "tone:dry-warm"
+      ],
+      "portrait": {
+        "status": "missing",
+        "prompt_path": "worlds/gentle-shore/assets/portraits/marigold-aster.prompt.md",
+        "asset_path": "worlds/gentle-shore/assets/portraits/marigold-aster.png",
+        "aspect_ratio": "portrait"
+      },
+      "visual": {
+        "status": "draft",
+        "age_range": "early seventies",
+        "build": "slight, settled, comfortable",
+        "physical_description": "silver-streaked hair tidily pinned, bright observant eyes behind wire-rimmed glasses, kind face with deep laugh lines",
+        "wardrobe": [
+          "light cardigan in cream",
+          "small seashell brooch on lapel"
+        ],
+        "signature_props": [
+          "folding chair",
+          "cup of something warm"
+        ],
+        "palette_hints": [
+          "cream",
+          "silver",
+          "peach-cream light",
+          "sage green from the brooch"
+        ],
+        "negative": [
+          "no formal gown",
+          "no frailty markers",
+          "no armor"
+        ]
+      }
+    },
+    {
+      "id": "hazel-tide",
+      "name": "Hazel Tide",
+      "role": "child-seeking-missing-cat",
+      "reusable": true,
+      "lifecycle": "resumable",
+      "world": "gentle-shore",
+      "faction": "gentle-shore-residents",
+      "tone": "earnest-worried",
+      "importance": "recurring",
+      "knowledgeBoundary": "Knows where she has already looked. Knows Pebble's habits and the whistle Pebble responds to. Does not know where Pebble is.",
+      "tags": [
+        "location:gentle-shore-festival-green",
+        "role:child-seeking-missing-cat",
+        "importance:recurring",
+        "faction:gentle-shore-residents",
+        "tone:earnest-worried"
+      ],
+      "portrait": {
+        "status": "missing",
+        "prompt_path": "worlds/gentle-shore/assets/portraits/hazel-tide.prompt.md",
+        "asset_path": "worlds/gentle-shore/assets/portraits/hazel-tide.png",
+        "aspect_ratio": "portrait"
+      },
+      "visual": {
+        "status": "draft",
+        "age_range": "around nine years old",
+        "build": "small, energetic, currently trying to look calm",
+        "physical_description": "sandy hair in a practical braid, freckled nose, worried eyes scanning the middle distance",
+        "wardrobe": [
+          "plain festival t-shirt",
+          "shorts with pockets",
+          "sandals"
+        ],
+        "signature_props": [
+          "folded festival program used as notepad",
+          "small pencil tucked into braid"
+        ],
+        "palette_hints": [
+          "warm sand hair",
+          "peach-cream skin",
+          "sage and cream shirt"
+        ],
+        "negative": [
+          "no adult proportions",
+          "no mature expression",
+          "no weapons"
+        ]
+      }
+    }
+  ],
+  "responses": [
+    {
+      "id": "help-daffodil",
+      "matchAny": [
+        "help with the festival",
+        "help daffodil",
+        "need any help",
+        "anything I can do"
+      ],
+      "narration": "Daffodil Keep clicks her pen twice against the clipboard — the sound of a person reorganizing her priorities on the fly. \"The lemonade needs a second person to keep the ice refilled, the shell rack by the harbor needs someone to make sure the painted ones are actually dry before they blow into the water, and—\" She pauses, eyes tracking something small and quick moving behind the lemonade table. \"—there is apparently a cat on my festival green, which is against regulation nine, subsection two.\" She says it with the tone of someone who wrote that regulation herself.",
+      "nextChoices": [
+        "Offer to handle the ice and keep an eye out for the cat.",
+        "Ask Daffodil what regulation nine actually says.",
+        "Go find out whose cat it is."
+      ]
+    },
+    {
+      "id": "ask-marigold",
+      "matchAny": [
+        "ask marigold",
+        "what she's been watching",
+        "marigold's chair",
+        "talk to marigold",
+        "retiree"
+      ],
+      "narration": "Marigold Aster lifts her cup of elderflower cordial in a small salute as you approach. \"You've noticed the child,\" she says, before you've said anything. \"The one with the notepad. She's been at it for twenty minutes — very systematic. Under the lemonade table, along the shell rack, twice past the tide-pool path.\" She settles back. \"I saw a small striped cat earlier, near the climbing roses on the harbor-path side. I didn't think it was relevant until just now.\"",
+      "nextChoices": [
+        "Ask Marigold if the cat went toward the harbor path.",
+        "Go tell the child what Marigold saw.",
+        "Ask Marigold if this has happened before."
+      ]
+    },
+    {
+      "id": "find-hazel",
+      "matchAny": [
+        "find the child",
+        "looking for something",
+        "child with the notepad",
+        "go find",
+        "hazel",
+        "whose cat"
+      ],
+      "narration": "Hazel Tide looks up from her festival-program notepad with the expression of someone who has been trying not to look frantic. \"Her name is Pebble,\" she says, getting the important information out immediately. \"Striped, small, had a ribbon harness — she got out of it. I've checked under the lemonade table and by the shell rack and near the restrooms.\" She holds up the program: three locations carefully crossed off. \"Marigold Aster said she might have seen her near the harbor path but wasn't sure. She comes when I whistle but I'm not sure she can hear it from here.\"",
+      "nextChoices": [
+        "Offer to check the harbor path with Hazel.",
+        "Ask Hazel to demonstrate the whistle so you can help listen.",
+        "Go ask Daffodil if anyone reported a stray cat."
+      ]
+    },
+    {
+      "id": "harbor-path",
+      "matchAny": [
+        "harbor path",
+        "climbing roses",
+        "check the path",
+        "go with hazel"
+      ],
+      "narration": "The harbor-path side of the festival green runs along a low stone wall with climbing roses gone warm and pink in the afternoon. Halfway down, where the wall makes a corner and the shade pools up nicely, a small striped cat is sitting in a very deliberate patch of sun, watching the festival with the calm of a creature that knows it is being looked for and has decided the current arrangement is acceptable. Hazel makes a specific three-note whistle. Pebble opens one eye wider.",
+      "nextChoices": [
+        "Wait quietly while Hazel coaxes Pebble out.",
+        "Ask Hazel what Pebble likes — maybe there's festival lemonade involved.",
+        "Try whistling yourself."
+      ]
+    },
+    {
+      "id": "pebble-found",
+      "matchAny": [
+        "coax pebble",
+        "wait quietly",
+        "lemonade",
+        "whistle yourself",
+        "found the cat",
+        "pebble"
+      ],
+      "narration": "Pebble descends from the sunny patch with great dignity and allows Hazel to scoop her up. The relief on Hazel's face is enormous and carefully controlled. \"Thank you,\" she says. \"I was going to find her anyway but it went faster.\" She tucks Pebble under one arm and consults the notepad. \"I should go tell Daffodil so she can close the regulation.\" She says it entirely seriously, and then almost smiles. Marigold Aster, visible across the green, raises her cup again in a small toast.",
+      "nextChoices": [
+        "Walk back to the festival green with Hazel and Pebble.",
+        "Let Hazel go tell Daffodil while you explore the harbor path.",
+        "Ask Hazel if Pebble has done this before."
+      ]
+    },
+    {
+      "id": "fallback",
+      "narration": "The festival green is quiet enough between the stalls to hear the harbor. Daffodil Keep is near the shell-painting station with her clipboard. Marigold Aster sits in her folding chair in a good sightline. A child with a braid and a notepad is scanning the green with focused, worried eyes.",
+      "nextChoices": [
+        "I ask Daffodil if she needs any help with the festival.",
+        "Ask Marigold what she's been watching from her chair.",
+        "Go see what the child is looking for."
+      ]
+    }
+  ],
+  "proposedFacts": [
+    {
+      "id": "daffodil-festival-organizer",
+      "category": "canon",
+      "text": "Daffodil Keep is the festival organizer and has been for eleven years. She takes festival regulations seriously.",
+      "character_id": "daffodil-keep",
+      "responseIds": ["help-daffodil"]
+    },
+    {
+      "id": "cat-on-festival-green",
+      "category": "canon",
+      "text": "There is a small striped cat named Pebble loose on the festival green, against festival regulation nine subsection two.",
+      "responseIds": ["help-daffodil", "find-hazel"]
+    },
+    {
+      "id": "marigold-saw-cat",
+      "category": "lead",
+      "text": "Marigold Aster saw a small striped cat near the climbing roses on the harbor-path side of the festival green.",
+      "source": "marigold-aster",
+      "responseIds": ["ask-marigold"]
+    },
+    {
+      "id": "hazel-searching-pebble",
+      "category": "canon",
+      "text": "Hazel Tide is nine years old and searching the festival green for her cat Pebble, who escaped a ribbon harness.",
+      "character_id": "hazel-tide",
+      "responseIds": ["find-hazel"]
+    },
+    {
+      "id": "pebble-at-harbor-path",
+      "category": "unresolved",
+      "text": "Pebble was last seen near the harbor-path climbing roses but may have moved on.",
+      "responseIds": ["harbor-path"]
+    },
+    {
+      "id": "pebble-found-safe",
+      "category": "canon",
+      "text": "Pebble was found at the harbor-path wall and retrieved by Hazel.",
+      "character_id": "hazel-tide",
+      "responseIds": ["pebble-found"]
+    }
+  ],
+  "storyAttractors": [
+    {
+      "schema_version": "parley-story-attractor/v1",
+      "id": "gentle-shore.find-pebble",
+      "story_instance_id": "materialized-at-runtime",
+      "priority": "high",
+      "intent": "The player should help reunite Hazel with her missing cat Pebble by gathering the clue from Marigold and following it to the harbor path.",
+      "acceptable_routes": [
+        "talking to Marigold first and relaying the clue",
+        "finding Hazel first and then gathering the clue together",
+        "following visible movement near the harbor-path wall directly"
+      ],
+      "forbidden_shortcuts": [
+        "Pebble appears instantly without any effort",
+        "Daffodil produces the cat from her clipboard",
+        "the festival ends without resolution"
+      ],
+      "success_signals": [
+        "player knows Marigold's clue about the harbor path",
+        "player has helped Hazel reach the harbor-path area",
+        "Pebble is found and Hazel's relief is shown"
+      ]
+    }
+  ],
+  "dmDetourGuidance": [
+    {
+      "id": "disrupt-shell-station",
+      "matchAny": [
+        "knock over the shells",
+        "throw a shell",
+        "disrupt the station",
+        "shout at daffodil"
+      ],
+      "intent": "performative_disruption",
+      "plausibility": "possible",
+      "cooperation": "disruptive",
+      "claimPolicy": "attempt_allowed_claim_rejected",
+      "consequenceLevel": "social",
+      "targets": [
+        "daffodil-keep",
+        "festival-visitors"
+      ],
+      "targetAttractorIds": [
+        "gentle-shore.find-pebble"
+      ],
+      "unsupportedClaims": [
+        {
+          "id": "claim-player-owns-festival",
+          "claim": "The player claims authority over the festival and demands everyone stop.",
+          "reason": "Daffodil runs the festival; a verbal claim changes nothing about who holds the clipboard."
+        }
+      ],
+      "narration": "Daffodil Keep looks at the scattered shells with the expression of someone who has planned for exactly this. She doesn't raise her voice. \"There is a bin for broken ones,\" she says. \"The festival continues. I will add this to the incident log.\" Nearby, Marigold Aster sets down her cup and watches with the quiet interest of someone getting her money's worth.",
+      "detour": {
+        "title": "The Incident Log",
+        "purpose": "Apply social consequence for the disruption while keeping the festival moving and the cat search unresolved.",
+        "temporaryLocation": "seashell-festival-green",
+        "entryState": {
+          "disruption_level": "minor",
+          "daffodil_trust": "reduced",
+          "festival_status": "continuing"
+        },
+        "exitConditions": [
+          "apologize to Daffodil and offer to help repair",
+          "redirect energy toward finding Pebble",
+          "move away from the shell station"
+        ],
+        "expiresAfter": "scene_resolution"
+      },
+      "consequence": {
+        "category": "social_reputation",
+        "summary": "The player caused a minor disruption at the shell-painting station; Daffodil is less warm but the festival continues.",
+        "affectedEntities": [
+          "daffodil-keep",
+          "festival-visitors"
+        ],
+        "reputationDeltas": [
+          {
+            "entity_id": "daffodil-keep",
+            "axis": "trust",
+            "change": -1,
+            "reason": "The player disrupted the shell station instead of helping."
+          }
+        ],
+        "followupHooks": [
+          "Daffodil is more formal until the player helps repair the disruption.",
+          "Marigold found it mildly entertaining."
+        ],
+        "promotionEligible": false
+      },
+      "redirect": {
+        "routeType": "consequence_reveal",
+        "summary": "The disruption earns a note in Daffodil's incident log and mild social disapproval. The cat is still missing.",
+        "nextSceneSuggestions": [
+          "Apologize to Daffodil and offer to tidy up.",
+          "Go find Hazel and help with the cat search.",
+          "Ask Marigold what she thought of all that."
+        ]
+      },
+      "memoryFacts": [
+        {
+          "id": "shell-station-disruption",
+          "category": "belief",
+          "text": "The player disrupted the shell-painting station; Daffodil logged the incident.",
+          "character_id": "daffodil-keep"
+        }
+      ],
+      "matchAnyGroups": [
+        [
+          "knock over the shells",
+          "throw a shell",
+          "disrupt the station"
+        ],
+        [
+          "shout at daffodil",
+          "argue with daffodil",
+          "demand daffodil stop"
+        ]
+      ]
+    }
+  ]
+}
