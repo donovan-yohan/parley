@@ -1,3 +1,7 @@
+import path from "node:path";
+
+import { instanceDirFor } from "./scenarioPacks.js";
+
 export function judgeTurn({
   turnId,
   scene,
@@ -118,9 +122,11 @@ function buildEvidencePaths({ scenario, instanceDir, worldDir }) {
     evidence.push(scenario.scenarioPath);
   }
   if (instanceDir) {
-    evidence.push(`${instanceDir}/turns.jsonl`);
+    evidence.push(path.join(instanceDir, "turns.jsonl"));
   } else if (scenario?.world?.id) {
-    evidence.push(`instances/${scenario.world.id}/playthrough-1/turns.jsonl`);
+    // Centralized via scenarioPacks.instanceDirFor so the instance layout
+    // stays defined in one place.
+    evidence.push(path.join(instanceDirFor(scenario.world.id), "turns.jsonl"));
   }
   return evidence;
 }

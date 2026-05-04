@@ -30,11 +30,10 @@
 - `instances/last-lantern/playthrough-1/.gitkeep` — empty migrated instance directory.
 - `instances/neon-afterhours/playthrough-1/.gitkeep` — same.
 - `instances/orchard-welcome/playthrough-1/.gitkeep` — same.
-- `test/runtime/instanceMaterialization.test.js` — new instance creation + idempotent re-run + missing-template tests.
+- `test/instance-materialization.test.js` — new instance creation + idempotent re-run + missing-template tests.
 
 **Modified:**
-- `src/runtime/scenarioPacks.js:44` — replace single `stateDir` with `worldDir` + `instanceDir` + scan `worlds/<id>/scenarios/` for templates.
-- `src/runtime/scenarioPacks.js` — also support reading `world.json` for the world's identity fields (premise/tone/etc); during 1a the scenario.json `world` block stays authoritative for backward compat, but scenarioPacks emits both.
+- `src/runtime/scenarioPacks.js:44` — replace single `stateDir` with `worldDir` + `instanceDir` + scan `worlds/<id>/scenarios/` for templates. No `world.json` reads land in 1a; the scenario.json `world` block stays authoritative through Part 1c, when the Zod schemas + theme cascade introduce world.json consumers.
 - `src/runtime/parleyRuntime.js` — every callsite that accepts `stateDir` accepts `instanceDir` instead. Internal helpers (`nextTurnId`, `persistHiddenTruth`, `persistDmArtifacts`) take `instanceDir`.
 - `src/runtime/truthAuthority.js:11,115-125` — `stateDir` parameter renamed to `instanceDir`; evidence path string updated.
 - `test/support/inProcessServer.js` — fixture builders that construct `stateDir` paths use the new instance path.
@@ -379,7 +378,7 @@ Three tasks dispatchable as parallel subagents. Each adds new test coverage or v
 ### Task C1: New test — instance materialization [PARALLEL]
 
 **Files:**
-- Create: `test/runtime/instanceMaterialization.test.js`
+- Create: `test/instance-materialization.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -438,7 +437,7 @@ test("missing scenario.json under worlds/<id>/scenarios/ fails clearly", async (
 
 - [ ] **Step 2: Run the new test file**
 
-Run: `node --test test/runtime/instanceMaterialization.test.js`
+Run: `node --test test/instance-materialization.test.js`
 Expected: 4 tests pass.
 
 - [ ] **Step 3: Run full suite**
@@ -507,7 +506,7 @@ If any smoke fails, the migration missed a callsite — re-run Group B's grep + 
 New tests + verification land as a single commit:
 
 ```bash
-git add test/runtime/instanceMaterialization.test.js
+git add test/instance-materialization.test.js
 git commit -m "test(1a): instance materialization coverage
 
 - loadScenarioPack emits instanceDir + worldDir, no stateDir
