@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildScenarioCharacter, persistCharacterMarkdown } from "./belayerCharacterAdapter.js";
+import { loadInstanceCharacters } from "./instances/loadInstanceCharacters.js";
 import {
   validateActionInterpretation,
   validateBeatRedirect,
@@ -25,6 +26,7 @@ export async function runPlayerTurn({
   stateDir,
   scenePath = defaultScenePath,
   worldDir,
+  instanceDir,
   turnAuthor = createScenarioFixtureAuthor(),
   truthAuthority = judgeTurn
 }) {
@@ -36,15 +38,25 @@ export async function runPlayerTurn({
   const scenario = await loadRuntimeScenario({ scenarioId, scenePath });
   const scene = scenario.scene;
   const resolvedStateDir = stateDir ?? scenario.stateDir;
-  const resolvedWorldDir = worldDir ?? scenario.worldDir;
+  // When instanceDir is provided and worldDir is not explicitly set, derive worldDir
+  // from the instance so visual asset reads/writes and truth-authority calls hit the
+  // instance's copy of the world rather than the shared template.
+  const resolvedWorldDir = worldDir ?? (instanceDir ? path.join(instanceDir, "world") : scenario.worldDir);
   await mkdir(resolvedStateDir, { recursive: true });
 
   const worldStatePath = path.join(resolvedStateDir, "world-state.json");
   const previousWorldState = await readJsonIfExists(worldStatePath);
   const turnId = await nextTurnId(resolvedStateDir);
-  let characters = scenario.characters.map((characterDefinition) =>
-    buildScenarioCharacter({ scenario, characterDefinition, sourceRequest: turnId, scene })
-  );
+  let characters;
+  if (instanceDir) {
+    characters = await loadInstanceCharacters({ instanceDir, sceneId: scene.id });
+  } else {
+    // Legacy path: scenarios that haven't been materialized into an instance.
+    // Subsequent PRs will materialize all scenarios at boot time.
+    characters = scenario.characters.map((characterDefinition) =>
+      buildScenarioCharacter({ scenario, characterDefinition, sourceRequest: turnId, scene })
+    );
+  }
   const visualAssets = await prepareVisualAssetsForScenario({
     scenario,
     scene,
@@ -180,11 +192,13 @@ async function loadRuntimeScenario({ scenarioId, scenePath }) {
 
 async function loadSceneSeed(scenePath) {
   const raw = await readFile(scenePath, "utf8");
+  // Migrated seeds use `instance:`; legacy seeds used `crag:`. Accept both, prefer the new field.
+  const instance = matchYamlScalar(raw, "instance") ?? matchYamlScalar(raw, "crag") ?? "last-lantern-default";
   return {
     schema_version: matchYamlScalar(raw, "schema_version") ?? "parley-scene/v1",
     id: matchYamlScalar(raw, "id") ?? "last-lantern-tavern",
     title: matchYamlScalar(raw, "title") ?? "Last Lantern Tavern",
-    crag: matchYamlScalar(raw, "crag") ?? "last-lantern",
+    instance,
     climb: matchYamlScalar(raw, "climb") ?? "first-rumor"
   };
 }
@@ -337,7 +351,7 @@ function buildWorldState({ scenario, scene, turn, characters, truthVerdict, visu
     current_scene: {
       id: scene.id,
       title: scene.title,
-      crag: scene.crag,
+      instance: scene.instance ?? scene.crag ?? null,
       climb: scene.climb
     },
     characters: mergeById(previousCharacters, characters.map((character) => ({

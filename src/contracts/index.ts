@@ -6,3 +6,5 @@ export * from "./detourScene.ts";
 export * from "./storyConsequence.ts";
 export * from "./beatRedirect.ts";
 export * from "./parseHelpers.ts";
+export * from "./instance.ts";
+export * from "./belayerTalentMetadata.ts";

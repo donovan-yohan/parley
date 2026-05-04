@@ -1,6 +1,12 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+/**
+ * @deprecated Inline talent construction is the legacy code path used by
+ * scenarios that have not been materialized into an instance via PR #12.
+ * Once all callers route through `runPlayerTurn({ instanceDir })`, this
+ * function and its caller in parleyRuntime.js can be deleted.
+ */
 export function buildScenarioCharacter({ scenario, characterDefinition, sourceRequest, scene = scenario.scene }) {
   const tags = [
     ...(characterDefinition.tags ?? []),
@@ -43,6 +49,12 @@ export function buildScenarioCharacter({ scenario, characterDefinition, sourceRe
   };
 }
 
+/**
+ * @deprecated Inline talent construction is the legacy code path used by
+ * scenarios that have not been materialized into an instance via PR #12.
+ * Once all callers route through `runPlayerTurn({ instanceDir })`, this
+ * function and its caller in parleyRuntime.js can be deleted.
+ */
 export function buildMaraUnderbough({ scene, sourceRequest }) {
   return buildScenarioCharacter({
     scene,
@@ -82,7 +94,25 @@ export async function persistCharacterMarkdown({ character, worldDir }) {
   const charactersDir = path.join(worldDir, "characters");
   await mkdir(charactersDir, { recursive: true });
 
-  const content = `# ${character.name}
+  const tagsYaml = JSON.stringify(character.tags ?? []);
+  const frontmatter = [
+    "---",
+    `id: ${character.id}`,
+    `name: ${character.name}`,
+    `role: ${character.role ?? "unspecified"}`,
+    `lifecycle: ${character.lifecycle ?? "resumable"}`,
+    ...(character.world != null ? [`world: ${character.world}`] : []),
+    ...(character.scene != null ? [`scene: ${character.scene}`] : []),
+    ...(character.faction != null ? [`faction: ${character.faction}`] : []),
+    ...(character.tone != null ? [`tone: ${character.tone}`] : []),
+    ...(character.importance != null ? [`importance: ${character.importance}`] : []),
+    ...(character.knowledgeBoundary != null ? [`knowledgeBoundary: ${character.knowledgeBoundary}`] : []),
+    `tags: ${tagsYaml}`,
+    "---",
+    "",
+  ].join("\n");
+
+  const content = `${frontmatter}# ${character.name}
 
 Schema: \`${character.schema_version}\`
 

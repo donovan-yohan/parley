@@ -8,6 +8,7 @@ import {
   CharacterId,
   CragSlug,
   TalentName,
+  InstanceId,
   schemaVersion,
 } from "../../src/contracts/common.ts";
 
@@ -217,6 +218,48 @@ describe("TalentName", () => {
 
   it("rejects a non-string", () => {
     assert.equal(TalentName.safeParse([]).success, false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// InstanceId
+// ---------------------------------------------------------------------------
+describe("InstanceId", () => {
+  it("accepts a valid instance id starting with a letter", () => {
+    assert.ok(InstanceId.safeParse("my-instance").success);
+  });
+
+  it("accepts a valid instance id starting with a digit", () => {
+    assert.ok(InstanceId.safeParse("0instance").success);
+  });
+
+  it("accepts a single alphanumeric character", () => {
+    assert.ok(InstanceId.safeParse("a").success);
+  });
+
+  it("accepts max-length instance id (39 chars)", () => {
+    // 1 leading alphanumeric + 38 trailing [a-z0-9-]
+    assert.ok(InstanceId.safeParse("a" + "b".repeat(38)).success);
+  });
+
+  it("rejects an instance id exceeding 39 chars", () => {
+    assert.equal(InstanceId.safeParse("a" + "b".repeat(39)).success, false);
+  });
+
+  it("rejects an instance id starting with a hyphen", () => {
+    assert.equal(InstanceId.safeParse("-instance").success, false);
+  });
+
+  it("rejects an instance id with uppercase letters", () => {
+    assert.equal(InstanceId.safeParse("MyInstance").success, false);
+  });
+
+  it("accepts an instance id with underscores (matches Belayer profile-name segment grammar)", () => {
+    assert.equal(InstanceId.safeParse("my_instance").success, true);
+  });
+
+  it("rejects a non-string", () => {
+    assert.equal(InstanceId.safeParse(42).success, false);
   });
 });
 
